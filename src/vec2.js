@@ -1,5 +1,7 @@
 
-(function(window){
+window.modula = window.modula || {};
+
+(function(modula){
     
     // A Javascript 2D vector library
     // conventions :
@@ -33,7 +35,7 @@
            this.y = arguments[1];
         }
     }
-    window.Vec2 = Vec2;
+    modula.Vec2 = Vec2;
     
     // Multiply a number expressed in radiant by rad2deg to convert it in degrees
     var rad2deg = 57.29577951308232;
@@ -205,7 +207,7 @@
         }
         return true;
     };
-})(window);
+})(window.modula);
 
         
 

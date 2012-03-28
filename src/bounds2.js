@@ -1,5 +1,7 @@
 
-(function(window){
+window.modula = window.modula || {};
+
+(function(modula){
     // A Bounding Shapes Library
 
 
@@ -19,7 +21,7 @@
         this.mx = cx + rx;  // maximum x coordinate contained in the ellipse
         this.my = cy + ry;  // maximum x coordinate contained in the ellipse
     }
-    window.BEllipse = BEllipse;
+    modula.BEllipse = BEllipse;
 
     // returns an unordered list of vector defining the positions of the intersections between the ellipse's
     // boundary and a line segment defined by the start and end vectors a,b
@@ -89,7 +91,7 @@
         this.my = y + sy;        // maximum x coordinate contained in the rectangle
     }
 
-    window.BRect = BRect;
+    modula.BRect = BRect;
     // Static method creating a new bounding rectangle of size (sx,sy) centered on (cx,cy)
     BRect.new_centered = function(cx,cy,sx,sy){
         return new BRect(cx-sx/2,cy-sy/2,sx,sy);
@@ -152,4 +154,4 @@
     };
 
 
-})(window);
+})(window.modula);
