@@ -44,7 +44,7 @@ window.modula = window.modula || {};
 		}
 	};
 
-	modula.Mat2 = Mat2();
+	modula.Mat2 = Mat2;
 
 	var proto = Mat2.prototype;
 
