@@ -105,7 +105,7 @@ window.modula = window.modula || {};
 		return vec.sub(this.pos)
 			  .rotate(-this.rotation)
 			  .scale(1.0/this.scale);
-	}
+	};
 
 	proto.world_to_local = function(vec){
 		if(this.parent){
@@ -119,7 +119,7 @@ window.modula = window.modula || {};
 		return vec.scale(this.scale)
 			  .rotate(this.rotation)
 			  .add(this.pos);
-	}
+	};
 
 	proto.local_to_world = function(vec){
 		if(this.parent){
