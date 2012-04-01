@@ -17,6 +17,8 @@ window.modula = window.modula || {};
 	var epsilon_equals = function(a,b){
 		return Math.abs(a-b) <= modula.epsilon;
 	};
+
+	var Vec2 = modula.Vec2;
 	
 	function Mat2(){
 
@@ -57,55 +59,76 @@ window.modula = window.modula || {};
 	Mat2.one  = function(){ return new Mat2(1,1,1,1); };
 
 	proto.equals = function(mat){
-		return  this.full_type == mat.full_type && 
+		return  this.full_type === mat.full_type && 
 			epsilon_equals(this.xx, mat.xx) &&
 			epsilon_equals(this.xy, mat.xy) &&
 			epsilon_equals(this.yx, mat.yx) &&
 			epsilon_equals(this.yy, mat.yy);
 	};
 
-	proto.clone = function(mat){
+	proto.clone = function(){
 		var m = new Mat2();
-		m.xx = mat.xx;
-		m.xy = mat.xy;
-		m.yx = mat.yx;
-		m.yy = mat.yy;
+		m.xx = this.xx;
+		m.xy = this.xy;
+		m.yx = this.yx;
+		m.yy = this.yy;
 		return m;
 	}
 	
 	proto.scale = function(mat){
 		var m = this.clone();
-		m.xx *= mat.xx || mat;
-		m.xy *= mat.xy || mat;
-		m.yx *= mat.yx || mat;
-		m.yy *= mat.yy || mat;
+		if(m.xx != undefined){
+			m.xx *= mat.xx;
+			m.xy *= mat.xy;
+			m.yx *= mat.yx;
+			m.yy *= mat.yy;
+		}else{
+			m.xx *= mat;
+			m.xy *= mat;
+			m.yx *= mat;
+			m.yy *= mat;
+		}
 		return m;
 	};
 
 	proto.add = function(mat){
 		var m = this.clone();
-		m.xx += mat.xx || mat;
-		m.xy += mat.xy || mat;
-		m.yx += mat.yx || mat;
-		m.yy += mat.yy || mat;
+		if(m.xx != undefined){
+			m.xx += mat.xx;
+			m.xy += mat.xy;
+			m.yx += mat.yx;
+			m.yy += mat.yy;
+		}else{
+			m.xx += mat;
+			m.xy += mat;
+			m.yx += mat;
+			m.yy += mat;
+		}
 		return m;
 	};
 
 	proto.sub = function(mat){
 		var m = this.clone();
-		m.xx -= mat.xx || mat;
-		m.xy -= mat.xy || mat;
-		m.yx -= mat.yx || mat;
-		m.yy -= mat.yy || mat;
+		if(m.xx != undefined){
+			m.xx -= mat.xx;
+			m.xy -= mat.xy;
+			m.yx -= mat.yx;
+			m.yy -= mat.yy;
+		}else{
+			m.xx -= mat;
+			m.xy -= mat;
+			m.yx -= mat;
+			m.yy -= mat;
+		}
 		return m;
 	};
 	
-	proto.neg = function(mat){
+	proto.neg = function(){
 		var m = this.clone();
-		m.xx = - m.xx;
-		m.xy = - m.xy;
-		m.yx = - m.yx;
-		m.yy = - m.yy;
+		m.xx = - this.xx;
+		m.xy = - this.xy;
+		m.yx = - this.yx;
+		m.yy = - this.yy;
 		return m;
 	};
 
@@ -156,7 +179,7 @@ window.modula = window.modula || {};
 	};
 
 	Mat2.rotation_deg = function(angle){
-		return Mat2.rotation(angle * modula.rad2deg);
+		return Mat2.rotation(angle * modula.deg2rad);
 	};
 
 	Mat2.scale = function(fac){
@@ -169,7 +192,7 @@ window.modula = window.modula || {};
 	};
 
 	proto.rotate_deg = function(angle){
-		return this.rotate(angle * modula.rad2deg);
+		return this.rotate(angle * modula.deg2rad);
 	};
 
 	proto.transpose = function(){
@@ -229,6 +252,10 @@ window.modula = window.modula || {};
 			m.yy = vec.y;
 		}
 		return m;
+	};
+
+	proto.array = function(){
+		return [this.xx, this.xy, this.yx, this.yy];
 	};
 
 })(window.modula);
