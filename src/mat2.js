@@ -44,13 +44,13 @@ window.modula = window.modula || {};
 			this.yx = arguments[2];
 			this.yy = arguments[3];
 		}
-	};
+	}
 
 	modula.Mat2 = Mat2;
 
 	var proto = Mat2.prototype;
 
-	proto.type  	= 'mat';
+	proto.type	= 'mat';
 	proto.dimension = 2;
 	proto.full_type = 'mat2';
 
@@ -73,7 +73,7 @@ window.modula = window.modula || {};
 		m.yx = this.yx;
 		m.yy = this.yy;
 		return m;
-	}
+	};
 	
 	proto.scale = function(mat){
 		var m = this.clone();
