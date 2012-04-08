@@ -78,6 +78,12 @@ window.modula = window.modula || {};
 			}
 			return this;
 		};
+		this.get_opt = function(options,name,default_value){
+			if(options && options[name]){
+				return options[name];
+			}
+			return default_value;
+		};
 		/*
 		this.getsetters = function(){
 			if(!this.prototype){ // ???
