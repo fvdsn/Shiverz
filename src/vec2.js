@@ -71,6 +71,12 @@ window.modula = window.modula || {};
     Vec2.one  = function(){ return new Vec2(1,1); };
     Vec2.x    = function(){ return new Vec2(1,0); };
     Vec2.y    = function(){ return new Vec2(0,1); };
+	Vec2.random_positive = function(){ 
+		return new Vec2(Math.random(),Math.random());
+	};
+	Vec2.random = function(){
+		return new Vec2(Math.random()*2 - 1, Math.random()*2 - 1); 
+	};
 
     // returns the length or modulus or magnitude of the vector
     proto.len = function(){
