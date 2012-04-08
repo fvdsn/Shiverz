@@ -5,17 +5,53 @@ window.onload = function() {
 	context.fillStyle = 'black';
 	modula.use();
 	window.scene1 = new Scene();
+	draw.set_context(context);
+	
+	
+	main.game = new (Game.extend({
+		init:function(){
+			this.last_time = -1;
+		},
+		on_frame_start: function(){
+			context.canvas.width = window.innerWidth;
+			context.canvas.height = window.innerHeight;
+			context.clearRect(0,0, canvas.width, canvas.height);
+			context.globalCompositeOperation = "lighter";
+
+			
+			if(main.time > this.last_time + 0.02){
+				this.last_time = main.time;
+				var i = 5;
+				while(i--){
+					var ent = new TestEnt({
+						pos: Vec2.random_positive().mult_xy(canvas.width,canvas.height),
+						dir: Vec2.random().scale(5+Math.random()*50),
+						color: 'rgba('+
+								Math.round(10 + Math.random() * 10)+','+
+								Math.round(1 + Math.random() * 5) +','+
+								Math.round(5  + Math.random() * 15)+',1)',
+						radius: 5 + Math.random()*50,
+						//color: 'rgba(0.1,255,0,1)', 
+					});
+					scene1.add_ent(ent);
+				}
+			}
+		},
+	}))();
+	
 	window.TestEnt = Ent2.extend({
-		on_first_update: function(){
-			console.log("First:"+this.name+" frame:"+this._current_frame);
+		init: function(opt){
+			this._super(opt);
+			this.dir = this.get_opt(opt,'dir', new Vec2(3,10));
+			this.color = this.get_opt(opt,'color','#F00');
+			this.radius = this.get_opt(opt,'radius',20);
 		},
 		on_update: function(){
-			console.log("Update:"+this.name+" frame:"+this._current_frame);
-		},
-		on_destroy: function(){
-			console.log("Destroyed:"+this.name);
+			this.transform.translate(this.dir.scale(main.delta_time));
+			draw.disc(this.transform.pos, this.radius, this.color);
 		},
 	});
-	main.set_fps(5);
+	
 	main.add_scene(scene1);
+	main.run();
 };
