@@ -53,7 +53,7 @@ window.modula = window.modula || {};
 		var c = modula.draw.context;
 		if(color){
 			c.save();
-			c.strokeStyle = color;
+			c.fillStyle = color;
 		}
 		c.beginPath();
 		c.arc(pos.x,pos.y,radius,0,2*Math.PI);
