@@ -1,8 +1,8 @@
 
-window.modula = window.modula || {};
-
 (function(modula){
-	//
+
+	modula.require('Transform2','Core','Vec2');
+
 	// Multiply a number expressed in radiant by rad2deg to convert it in degrees
 	var rad2deg = 57.29577951308232;
 	modula.rad2deg = rad2deg;
@@ -146,7 +146,7 @@ window.modula = window.modula || {};
 		return this;
 	};
 
-	proto.child_count = function(){
+	proto.get_child_count = function(){
 		return this.childs.length;
 	};
 

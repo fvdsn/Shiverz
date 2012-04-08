@@ -1,7 +1,7 @@
 
-window.modula = window.modula || {};
-
 (function(modula){
+
+	if(modula.require) { modula.require('Mat2','Vec2'); } 
 
 	// Multiply a number expressed in radiant by rad2deg to convert it in degrees
 	var rad2deg = 57.29577951308232;

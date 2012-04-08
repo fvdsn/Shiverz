@@ -1,9 +1,8 @@
 
-window.modula = window.modula || {};
-
 (function(modula){
     // A Bounding Shapes Library
 
+    if(modula.require){ modula.require('Bounds2','Vec2'); }
 
     // A Bounding Ellipse
     // cx,cy : center of the ellipse

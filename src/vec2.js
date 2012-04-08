@@ -2,23 +2,6 @@
 window.modula = window.modula || {};
 
 (function(modula){
-
-    modula.use = function(){
-	    if(arguments.length){
-		    for (var i = 0; i < arguments.length; i++){
-			    var prop = arguments[i];
-			    if(modula.hasOwnProperty(prop)){
-				    window[prop] = modula[prop];
-			    }
-		    }
-	    }else{
-		    for (var prop in modula){
-			    if(modula.hasOwnProperty(prop)){
-				    window[prop] = modula[prop];
-		    	    }
-		    }
-	    }
-    };
     
     // A Javascript 2D vector library
     // conventions :
