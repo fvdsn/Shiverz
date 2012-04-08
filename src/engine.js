@@ -285,7 +285,7 @@ window.modula = window.modula || {};
 		run_frame : function(){
 
 			// Adding new entities to the entity_list.
-			for(var i = 0; i < this._new_entity_list.length; i++){
+			for(var i = 0, len = this._new_entity_list.length; i < len; i++){
 				var ent = this._new_entity_list[i];
 				this._entity_list.push(ent);
 				if(ent.is_root()){
@@ -296,7 +296,7 @@ window.modula = window.modula || {};
 			this._new_entity_list = [];
 
 			//Updating all entities
-			for(var i = 0; i < this._entity_list.length; i++){
+			for(var i = 0, len = this._entity_list.length; i < len; i++){
 				var ent = this._entity_list[i];
 				if(ent._state !== 'destroyed'){
 					this._ent_update(ent);
@@ -309,13 +309,13 @@ window.modula = window.modula || {};
 			//Applying physics
 			//Applying collisions
 			//Destroying entities
-			for(var i = 0; i < this._entity_list.length; i++){
+			for(var i = 0,len = this._entity_list.length; i < len; i++){
 				var ent = this._entity_list[i];
 				if(ent._state === "destroyed"){
 					this._destroyed_entity_list.push(ent);
 				}
 			}
-			for(var i = 0; i < this._destroyed_entity_list.length; i++){
+			for(var i = 0,len = this._destroyed_entity_list.length; i < len; i++){
 				var ent = this._destroyed_entity_list[i];
 				this._entity_list.remove(ent);
 				if(ent.is_root()){
@@ -342,6 +342,7 @@ window.modula = window.modula || {};
 			this._transform    = get(attrs,'transform') || new modula.Transform2();
 			this.transform	   = this._transform; 	//readonly
 			this.transform.ent = this;
+			this.transform.pos = get(attrs,'pos',this.transform.pos);
 			
 			this.collision_behaviour = get(attrs,'collision_behaviour', 'receiver');
 			this.name   = get(attrs,'name', "Ent2_"+this._uid);
