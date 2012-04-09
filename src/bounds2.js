@@ -2,7 +2,7 @@
 (function(modula){
     // A Bounding Shapes Library
 
-    if(modula.require){ modula.require('Bounds2','Vec2'); }
+    if(modula.require){ modula.require('Vec2'); }
 
     // A Bounding Ellipse
     // cx,cy : center of the ellipse
@@ -72,6 +72,16 @@
         }
         return collisions;
     };
+	
+	// returns true if the ellipse contains the position defined by the vector 'vec'
+    BEllipse.prototype.contains_vec = function(v){
+        v = v.mult_xy(this.hx,this.hy);
+        return v.len_sq() <= 1;
+    };
+    // returns true if the ellipse contains the position (x,y) 
+    BEllipse.prototype.contains_xy = function(x,y){
+        return this.contains(new Vec2(x,y));
+    };
     
     // A bounding rectangle
     // x,y the minimum coordinate contained in the rectangle
@@ -91,10 +101,12 @@
     }
 
     modula.BRect = BRect;
-    // Static method creating a new bounding rectangle of size (sx,sy) centered on (cx,cy)
+    
+	// Static method creating a new bounding rectangle of size (sx,sy) centered on (cx,cy)
     BRect.new_centered = function(cx,cy,sx,sy){
         return new BRect(cx-sx/2,cy-sy/2,sx,sy);
     };
+	
     //intersect line a,b with line c,d, returns null if no intersection
     function line_intersect(a,b,c,d){
         // http://paulbourke.net/geometry/lineline2d/
@@ -131,8 +143,34 @@
         if(pos) collisions.push(pos);
         return collisions;
     };
-
-    // returns true if the rectangle contains the position defined by the vector 'vec'
+	
+	BRect.prototype.translate = function(dpos){
+		this.x  += dpos.x;
+		this.mx += dpos.x;	
+		this.y  += dpos.y;
+		this.my += dpos.y;
+	};
+	
+	BRect.prototype.scale = function(vec){
+		this.hx *= vec.x;
+		this.hy *= vec.y;
+		this.sx  = this.hx * 2;
+		this.sy  = this.hy * 2;
+		this.x   = this.cx - this.hx;
+		this.mx  = this.cx + this.hx;
+		this.y   = this.cy - this.hy;
+		this.my  = this.cy + this.hy;
+	};
+	
+	BRect.prototype.clone = function(){
+		return new BRect(this.x,this.y,this.sx,this.sy);
+	};
+	
+	BRect.prototype.clone_at = function(center){
+		return new BRect(center.x - this.sx/2, center.y - this.sy/2, this.sx, this.sy);
+	};
+    
+	// returns true if the rectangle contains the position defined by the vector 'vec'
     BRect.prototype.contains_vec = function(vec){
         return ( vec.x >= this.x && vec.x <= this.mx && 
                  vec.y >= this.y && vec.y <= this.my  );
@@ -142,15 +180,51 @@
         return ( x >= this.x && x <= this.mx && 
                  y >= this.y && y <= this.my  );
     };
-    // returns true if the ellipse contains the position defined by the vector 'vec'
-    BEllipse.prototype.contains_vec = function(v){
-        v = v.mult_xy(this.hx,this.hy);
-        return v.len_sq() <= 1;
-    };
-    // returns true if the ellipse contains the position (x,y) 
-    BEllipse.prototype.contains_xy = function(x,y){
-        return this.contains(new Vec2(x,y));
-    };
-
-
+	
+	function bound_collides(amin, amax, bmin, bmax){
+		if(amin + amax < bmin + bmax){
+			return amax > bmin;
+		}else{
+			return amin < bmax;
+		}
+	}
+	
+	function bound_escape_dist(amin, amax, bmin, bmax){
+		if(amin + amax < bmin + bmax){
+			var disp = bmin - amax;
+			if(disp >= 0){
+				return 0;
+			}else{
+				return disp;
+			}
+		}else{
+			var disp = bmax - amin;
+			if(disp <= 0){
+				return 0;
+			}else{
+				return disp;
+			}
+		}
+	}
+	
+	BRect.prototype.collides = function(b){
+		return bound_collides(this.x, this.mx, b.x, b.mx) && 
+			   bound_collides(this.y, this.my, b.y, b.my);
+	};
+	
+	BRect.prototype.collision_vector = function(b){
+		var dx = bound_escape_dist(this.x, this.mx, b.x, b.mx); 
+		var dy = bound_escape_dist(this.y, this.my, b.y, b.my);
+		if( Math.abs(dx) < Math.abs(dy) ){
+			return new Vec2(dx,0);
+		}else{
+			return new Vec2(0,dy);
+		}
+	};
+	
+	BRect.prototype.collision_axis = function(b){
+		return new Vec2( bound_escape_dist(this.x, this.mx, b.x, b.mx),
+						 bound_escape_dist(this.y, this.my, b.y, b.my)  );
+	};
+	
 })(window.modula);
