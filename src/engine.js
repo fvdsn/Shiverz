@@ -96,7 +96,11 @@ window.modula = window.modula || {};
 			for(i = 0; i < this.scene_list.length; i++){
 				this.scene = this.scene_list[i];
 				var camera = this.scene.camera;
-
+				var renderer = this.scene.renderer;
+				
+				if(renderer){
+					renderer.draw_init();
+				}
 				if(camera){
 					camera.on_render_setup();
 					camera.background_setup();
@@ -104,7 +108,11 @@ window.modula = window.modula || {};
 				}
 
 				this.scene.run_frame();
-
+				
+				if(renderer){
+					renderer.draw_frame(this.scene,camera);
+					renderer.draw_end();
+				}
 				if(camera){
 					camera.on_render_start();
 					this.scene.draw();
@@ -126,9 +134,10 @@ window.modula = window.modula || {};
 		},
 
 		run: function(){
-			console.log("start");
-
 			var self = this;
+			if(self.running){
+				return;
+			}
 			self.running = true;
 			self.run_start();
 
@@ -176,10 +185,116 @@ window.modula = window.modula || {};
 
 	modula.Renderer = modula.Class.extend({
 		render_background: function(){},
-		Material: modula.Class.extend({
-		}),
+		get_width: function(){},
+		get_height: function(){},
+		draw_init: function(){},
+		draw_frame: function(scene,camera){},
+		draw_end: function(){},
 	});
-
+	
+	modula.Renderer.Drawable = modula.Class.extend({
+		draw: function(renderer, entity){},
+	})
+	
+	modula.RendererCanvas2d = modula.Renderer.extend({
+		init: function(options){
+			this.canvas = this.get_opt(options,'canvas',undefined);
+			if(!this.canvas){ console.log('ERROR: please provide a canvas!'); }
+			this.context = this.canvas.getContext('2d');
+			this.background = this.get_opt(options,'background',undefined);
+			this.globalCompositeOperation = this.get_opt(options,'globalCompositeOperation','source-over');
+			this.globalAlpha = this.get_opt(options,'globalAlpha',1);
+		},
+		get_width: function(){
+			return this.canvas.width;
+		},
+		get_height: function(){
+			return this.canvas.height;
+		},
+		draw_init: function(){
+			if(modula.draw){
+				modula.draw.set_context(this.context);
+			}
+			this.context.save();
+			this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
+			if(this.background){
+				this.context.fillStyle = this.background;
+				this.context.fillRect(0,0,this.canvas.width, this.canvas.height);
+			}
+			this.context.globalCompositeOperation = this.globalCompositeOperation;
+			this.context.globalAlpha = this.globalAlpha;
+		},
+		draw_end: function(){
+			context.restore();
+		},
+		draw_frame: function(scene,camera){
+			
+			function draw_entity(ent){
+				this.context.save();
+				this.context.translate(ent.transform.pos.x, ent.transform.pos.y);
+				this.context.scale(ent.transform.scale, ent.transform.scale);
+				this.context.rotate(ent.transform.rotation);
+				if(ent.render){
+					if(ent.drawable){
+						ent.drawable.draw(this,ent);
+					}
+					ent.on_draw();
+				}
+				if(ent.render_childs){
+					for(var i = 0, len = ent.get_child_count(); i < len; i++){
+						draw_entity(ent.get_child(i));
+					}
+				}
+				this.context.restore();
+			}
+			
+			for(var i = 0, len = scene._root_entity_list.length; i < len; i++){
+				var ent = scene._root_entity_list[i];
+				draw_entity(ent);
+			}
+		},
+	});
+	
+	modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable.extend({
+		init: function(options){
+			
+			this.image = this.get_opt(options,'image',null);
+	
+			this.alpha = this.get_opt(options,'alpha',undefined);
+			this.compositeOperation = this.get_opt(options,'compositeOperation',undefined);
+			this.src   = this.get_opt(options,'src',undefined);
+			
+			if(this.src === undefined){
+				this.src = this.image.src;
+			}else{
+				this.image = new Image();
+				this.image.src = this.src;
+			}
+			
+			this.pos   = this.get_opt(options,'pos',new Vec2());
+			this.pos   = this.pos.add_xy(-this.image.width/2,-this.image.height/2);
+		},
+		clone: function(){
+			var r = new modula.RendererCanvas2d.DrawableSprite({image:this.image});
+			r.pos = this.pos.clone();
+			r.src = this.src;
+			r.alpha = this.alpha;
+			r.compositeOperation = this.compositeOperation;
+			return r;
+		},
+		draw: function(renderer,ent){
+			context.save();
+			if(this.alpha !== undefined){
+				context.globalAlpha *= this.alpha;
+			}
+			if(this.compositeOperation !== undefined){
+				context.globalCompositeOperation = this.compositeOperation;
+			}
+			renderer.context.drawImage(this.image,this.pos.x, this.pos.y);
+			context.restore();
+		},
+	});
+	
 	modula.Scene = modula.Class.extend({
 		init: function(params){
 			this._entity_list = [];
@@ -191,6 +306,7 @@ window.modula = window.modula || {};
 			this._entity_by_name = {};
 			this._entity_by_class = {};
 			this.camera = get(params,'camera',null);
+			this.renderer = get(params,'renderer',null);
 			this.name = get(params,'name',"Scene"+get_new_uid());
 
 			this.sequence = get(params,'sequence',[
@@ -276,6 +392,7 @@ window.modula = window.modula || {};
 					ent.on_update();
 				}
 			}
+			//update child entities too !
 			if(!ent.is_leaf()){
 				for(var i = 0; i < ent.get_child_count();i++){
 					this._ent_update(ent.get_child(i));
@@ -291,13 +408,14 @@ window.modula = window.modula || {};
 				if(ent.is_root()){
 					this._root_entity_list.push(ent);
 				}
-				//FIXME make it alive and set current frame ?
+				//FIXME make it alive and set current frame ? see J2D
 			}
 			this._new_entity_list = [];
 
-			//Updating all entities
-			for(var i = 0, len = this._entity_list.length; i < len; i++){
-				var ent = this._entity_list[i];
+			// Updating all entities. root entities updates their childs so that 
+			// they dont update after their childs
+			for(var i = 0, len = this._root_entity_list.length; i < len; i++){
+				var ent = this._root_entity_list[i];
 				if(ent._state !== 'destroyed'){
 					this._ent_update(ent);
 					if(ent._destroy_time && ent._destroy_time <= main.time){
@@ -306,8 +424,26 @@ window.modula = window.modula || {};
 				}
 			}
 
-			//Applying physics
-			//Applying collisions
+			//Applying physics TODO
+			
+			//Applying collisions FIXME: Slow, TODO: port optiomisations from J2D
+			for(var i = 0, len = this._root_entity_list.length; i < len; i++){
+				var e = this._root_entity_list[i];
+				//only emitters send collision events
+				if( e.collision_behaviour === 'emitter' || e.collision_behaviour === 'both'){
+					for(var j = 0; j < len; j++){
+						var r = this._root_entity_list[j];
+						//only receivers receive collision events
+						if( (r !== e) && (r.collision_behaviour === 'receiver' || e.collision_behaviour === 'both') ){
+							if( e.collides(r) ){
+								e.on_collision_emit(r);
+								r.on_collision_receive(e);
+							}
+						}
+					}
+				}
+			}							
+						
 			//Destroying entities
 			for(var i = 0,len = this._entity_list.length; i < len; i++){
 				var ent = this._entity_list[i];
@@ -344,11 +480,15 @@ window.modula = window.modula || {};
 			this.transform.ent = this;
 			this.transform.pos = get(attrs,'pos',this.transform.pos);
 			
-			this.collision_behaviour = get(attrs,'collision_behaviour', 'receiver');
+			this.collision_behaviour = get(attrs,'collision_behaviour', 'none');	// none, receiver, emitter, both
 			this.name   = get(attrs,'name', "Ent2_"+this._uid);
 			this.active = get(attrs,'active',true);
-			this.bound  = get(attrs,'bound',null);
+			this.render = get(attrs,'render',true);
+			this.render_childs = get(attrs,'render_childs',true);
+			this.bound  = get(attrs,'bound',undefined);
 			this.pos_z  = get(attrs,'pos_z',0);
+			this.drawable = get(attrs,'drawable',undefined);
+			this.start_time = modula.main.time;
 		},
 		set_transform: function(tr){
 			this._transform.ent = undefined;
@@ -408,17 +548,26 @@ window.modula = window.modula || {};
 			}else{
 				return Number.MAX_VALUE;
 			}
-
 		},
 		is_destroyed: function(){
 			return this._state === "destroyed"; 
+		},
+		collides: function(ent){
+			var epos = ent.transform.get_world_pos();
+			var epos = epos.sub(this.transform.get_world_pos());
+			if(ent.bound){
+				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
+				return this.bound.collides(ebound);
+			}else{
+				return this.contains(epos);
+			}
 		},
 		on_first_update: function(){},
 		on_update: function(){},
 		on_destroy: function(){},
 		on_draw: function(){},
-		on_collision_emit: function(ent, col_vec){},
-		on_collision_receive: function(ent, col_vec){},
+		on_collision_emit: function(ent){},
+		on_collision_receive: function(ent){},
 	});
 
 })(window.modula);
