@@ -46,6 +46,12 @@ window.modula = window.modula || {};
   	
 	// The base Class implementation
   	this.Class = function(){
+		
+		//Returns the value of the field 'name'
+		//it will first try to execute the getter method 'get_name()'
+		//then it will try to find a readonly field '_name'
+		//then it will try to find a field 'name'
+		//it returns undefined if everything fails
 		this.get = function(name){
 			var fun = 'get_'+name;
 			if(this[fun]){
@@ -58,6 +64,18 @@ window.modula = window.modula || {};
 				return ret;
 			}
 		};
+		
+		// Tries to set the value of the field 'name' to 'value'
+		// it will first try to use a setter method 'set_name(value)'
+		// it will then look if the field is writable. if there exist a 
+		// readonly field of the same name '_name', then it is not writable
+		// and it will do nothing.
+		// if it is writable or the field doesn't exist, the field will be created
+		// and set to the provided value.
+		//
+		// An altermative way to call set is to provide a dictionnary of fields and value.
+		// Those are all set in undefined order with the same behaviour as set(name,value) 
+		//
 		this.set = function(name,value){
 			if(arguments.length == 1 && typeof arguments[0] === "object"){
 				var arg = arguments[0];
@@ -78,12 +96,27 @@ window.modula = window.modula || {};
 			}
 			return this;
 		};
+		
+		//Returns true if the object has a field named 'name', readonly or not
+		this.has = function(name){
+			return this[name] || this['_'+name] || this['get_'+name] ;
+		};
+		
 		this.get_opt = function(options,name,default_value){
 			if(options && options[name]){
 				return options[name];
 			}
 			return default_value;
 		};
+		this.get_all_opt = function(options, defaults){
+			for ( opt in defaults ){
+				if(options.hasOwnProperty(opt)){
+					this[opt] = this.get_opt(options,opt,defaults[opt]);
+				}
+			}
+			return this;
+		};
+		
 		/*
 		this.getsetters = function(){
 			if(!this.prototype){ // ???
