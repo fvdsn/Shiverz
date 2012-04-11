@@ -165,6 +165,66 @@ window.modula = window.modula || {};
 
 	modula.main = new modula.Main();
 
+	modula.Input = modula.Class.extend({
+		init: function(selector){
+			this._mouse_status = 'out'; // 'out' | 'in' | 'entering' | 'leaving'
+			this._mouse_previous_status = 'out';
+			
+			this._mouse_pos = new Vec2();
+			this._mouse_previous_pos = new Vec2();
+			this._mouse_delta_pos = new Vec2();
+
+			this._mouse_drag_pos = new Vec2();
+			this._mouse_drag_delta_pos = new Vec2();
+			this._mouse_drag = 'no'; // 'no' | 'dragging' | 'drag_start' | 'drag_end'
+			this._mouse_events = [];
+
+			this._key_status = {}; // 'up' | 'down' | 'press' | 'release' , undefined == 'up'
+			this._key_previous_status = {};
+			this._key_up_events = [];
+			this._key_down_events = [];
+			this._stop_event = {};
+			this._catch_event = {};
+			this._alias = {};
+			/*
+			$(selector).keyup(function(e){
+				this.key_events.push(e);
+			};
+			$(selector).keydown(function(e){
+				this.key_events.push(e);
+			}
+			*/
+		},
+
+		/* event: 'key_X', 'letters', 'symbols', 'numbers', 'modifiers', 'specials', 'mouse', 'click', 'doubleclick', 'scroll' */
+
+		set_event_catching: function(e,catching){},
+		is_event_catching: function(e){},
+
+		set_event_stopping: function(e,catching){},
+		is_event_stopping: function(e){},
+		/* key: a,b,c,...,y,z,1,2,..0,!,@,$,...,
+		 * 'left','right','up','down','space',
+		 * 'alt','shift','left-shift','right-shift','ctrl','super',
+		 * 'f1','f2','enter','esc','insert','delete','home','end',
+		 * 'pageup','pagedown'
+		 * 'mouse_x','mouse-left','mouse-right','mouse-middle','scroll-up','scroll-down'
+		 */
+
+		is_key_pressing : function(key){},
+		is_key_releasing : function(key){},
+		is_key_down: function(key){},
+		is_key_up: function(key){},
+		
+		is_mouse_over: function(){},
+		is_mouse_entering: function(){},
+		is_mouse_leaving: function(){},
+		
+		get_mouse_scroll: function(){},
+		set_alias: function(action,key){},
+		process_events: function(){},
+	});
+
 	modula.Game = modula.Class.extend({
 		on_game_start  : function(){},
 		on_frame_start : function(){},
