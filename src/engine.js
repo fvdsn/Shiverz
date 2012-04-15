@@ -39,6 +39,7 @@ window.modula = window.modula || {};
 
 	modula.Main = modula.Class.extend({
 		game:	null,
+        input:  null,
 		scene:	null,
 		scene_list: [],
 		rng:	null,
@@ -90,6 +91,10 @@ window.modula = window.modula || {};
 			this.time = this.time_millis * 0.001;
 			//console.log("Frame: "+this.frame+" time: "+this.time+" time_system: "+this.time_system+" delta_time: "+this.delta_time);
 
+
+            if(this.input){
+                this.input.process_events();
+            }
 			if(this.game){
 				this.game.on_frame_start();
 			}
@@ -180,29 +185,41 @@ window.modula = window.modula || {};
 			this._mouse_events = [];
 
 			this._key_status = {}; // 'up' | 'down' | 'press' | 'release' , undefined == 'up'
-			this._key_previous_status = {};
-			this._key_up_events = [];
-			this._key_down_events = [];
-			this._stop_event = {};
-			this._catch_event = {};
+			this._key_events = [];
+
 			this._alias = {};
-			/*
+            /*
+
 			$(selector).keyup(function(e){
-				this.key_events.push(e);
-			};
+                console.log('keyup');
+				this.key_events.push({type:'up', key: e.which});
+			});
 			$(selector).keydown(function(e){
-				this.key_events.push(e);
-			}
-			*/
+                console.log('keydown');
+				this.key_events.push({type:'down', key: e.which});
+			});
+            */
 		},
+		process_events: function(){
+            for(var i = 0; i < this._key_events.length; i++){
+                var e =  this._key_events[i];
+                var previous = this._key_status[e.key];
+                if(e.type === 'up'){
+                    if(previous === 'down' || previous === 'press'){
+                        this._key_status[e.key] = 'release';
+                    }else{
+                        this._key_status[e.key] = 'up';
+                    }
+                }else if(e.type === 'down'){
+                    if(previous === 'up' || previous === 'release' || previous === undefined){
+                        this._key_status[e.key] = 'press';
+                    }else{
+                        this._key_status[e.key] = 'down';
+                    }
+                }
+            }
+        },
 
-		/* event: 'key_X', 'letters', 'symbols', 'numbers', 'modifiers', 'specials', 'mouse', 'click', 'doubleclick', 'scroll' */
-
-		set_event_catching: function(e,catching){},
-		is_event_catching: function(e){},
-
-		set_event_stopping: function(e,catching){},
-		is_event_stopping: function(e){},
 		/* key: a,b,c,...,y,z,1,2,..0,!,@,$,...,
 		 * 'left','right','up','down','space',
 		 * 'alt','shift','left-shift','right-shift','ctrl','super',
@@ -211,18 +228,47 @@ window.modula = window.modula || {};
 		 * 'mouse_x','mouse-left','mouse-right','mouse-middle','scroll-up','scroll-down'
 		 */
 
-		is_key_pressing : function(key){},
-		is_key_releasing : function(key){},
-		is_key_down: function(key){},
-		is_key_up: function(key){},
+		is_key_pressing : function(key){
+            key = this.get_alias(key);
+            return this._key_status[key] === 'press';
+        },
+		is_key_releasing : function(key){
+            key = this.get_alias(key);
+            return this._key_status[key] === 'release';
+        },
+		is_key_down: function(key){
+            key = this.get_alias(key);
+            var s = this._key_status[key];
+            return s === 'down' || s === 'press';
+        },
+		is_key_up: function(key){
+            key = this.get_alias(key);
+            var s = this._key_status[key];
+            return s === undefined || s === 'up' || s === 'release';
+        },
 		
-		is_mouse_over: function(){},
+		is_mouse_over: function(){
+        },
 		is_mouse_entering: function(){},
 		is_mouse_leaving: function(){},
 		
-		get_mouse_scroll: function(){},
-		set_alias: function(action,key){},
-		process_events: function(){},
+		get_mouse_scroll: function(){
+            if ( this.is_key_down('scroll-up')){
+                return 1;
+            }else if (this.is_key_down('scroll-down')){
+                return -1;
+            }
+            return 0;
+        },
+		set_alias: function(action,key){
+            this._alias[action] = key;
+        },
+        get_alias: function(alias){
+            while(alias in this._alias){
+                alias = this._alias[alias];
+            }
+            return alias;
+        },
 	});
 
 	modula.Game = modula.Class.extend({

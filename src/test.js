@@ -46,6 +46,9 @@ window.onload = function() {
 				}
 			}
 		},
+		on_frame_end: function(){
+		  //console.log('fps:',1/main.delta_time,'ents:',main.scene.get_all_ent().length);
+		},
 	}))();
 	
 	window.TestEnt = Ent2.extend({
@@ -66,6 +69,8 @@ window.onload = function() {
 			this.drawable.alpha = Math.min(main.time - this.start_time, 1);
 		},
 	});
+
+    //main.input = new Input('#test_canvas_1');
 	
 	main.add_scene(scene1);
 	main.run();
