@@ -116,36 +116,6 @@ window.modula = window.modula || {};
 			}
 			return this;
 		};
-		
-		/*
-		this.getsetters = function(){
-			if(!this.prototype){ // ???
-				this.prototype = {};
-			}
-			for( field in this){
-				if(!this.hasOwnProperty(field)){
-					continue;
-				}
-				if(typeof (this.field) === "function"){
-					continue;
-				}
-				if(field === "prototype"){
-					continue;
-				}
-				if(field[0] === '_'){
-					if(this['get'+field] === undefined){
-						this.prototype['get'+field] = function(){ return this.field; };
-					}
-				}else{
-					if(this['get_'+field] === undefined){
-						this.prototype['get_'+field] = function(){ return this.field; };
-					}
-					if(this['set_'+field] === undefined){
-						this.prototype['set_'+field] = function(value){ this.field = value; return this; };
-					}
-				}
-			}
-		};*/
   	};
   
   // Create a new Class that inherits from this class
