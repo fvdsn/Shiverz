@@ -39,12 +39,12 @@ window.modula = window.modula || {};
 
 	modula.Main = modula.Class.extend({
 		game:	null,
-        input:  null,
+		input:	null,
 		scene:	null,
 		scene_list: [],
 		rng:	null,
 		running:	false,
-		restart_time: 	-1,
+		restart_time:	-1,
 		frame:	0,
 		time:	0,
 		time_millis:	0,
@@ -54,7 +54,7 @@ window.modula = window.modula || {};
 		fixed_delta_time:	1/60,
 		delta_time:		1/60,
 		
-		resolution: 	new Vec2(800,600),
+		resolution:		new Vec2(800,600),
 	
 		add_scene: function(scene){
 			this.scene_list.push(scene);
@@ -92,9 +92,9 @@ window.modula = window.modula || {};
 			//console.log("Frame: "+this.frame+" time: "+this.time+" time_system: "+this.time_system+" delta_time: "+this.delta_time);
 
 
-            if(this.input){
-                this.input.process_events();
-            }
+			if(this.input){
+				this.input.process_events();
+			}
 			if(this.game){
 				this.game.on_frame_start();
 			}
@@ -192,16 +192,16 @@ window.modula = window.modula || {};
 			this._key_events = [];
 
 			this._alias = {};
-            
+			
 			var $elem = $(selector);
 			console.log(selector,$elem, $elem[0]);
 			
 			$elem.keyup(function(e){
-                //console.log('keyup',e);
+				//console.log('keyup',e);
 				self._key_events.push({type:'up', key: String.fromCharCode(e.which).toLowerCase()});
 			});
 			$elem.keydown(function(e){
-                //console.log('keydown',e);
+				//console.log('keydown',e);
 				self._key_events.push({type:'down', key: String.fromCharCode(e.which).toLowerCase()});
 			});
 			
@@ -253,16 +253,16 @@ window.modula = window.modula || {};
 		process_events: function(){
 			var time = modula.main.time_system;
 			
-            for(var i = 0; i < this._key_events.length; i++){
-                var e =  this._key_events[i];
-                var previous = this._key_status[e.key];
-                if(e.type === 'up'){
-                    if(previous === 'down' || previous === 'press'){
-                        this._key_status[e.key] = 'release';
-                    }else{
-                        this._key_status[e.key] = 'up';
-                    }
-                }else if(e.type === 'down'){
+			for(var i = 0; i < this._key_events.length; i++){
+				var e =  this._key_events[i];
+				var previous = this._key_status[e.key];
+				if(e.type === 'up'){
+					if(previous === 'down' || previous === 'press'){
+						this._key_status[e.key] = 'release';
+					}else{
+						this._key_status[e.key] = 'up';
+					}
+				}else if(e.type === 'down'){
 					if(previous !== 'down'){
 						this._key_status[e.key] = 'press';
 					}
@@ -272,7 +272,7 @@ window.modula = window.modula || {};
 				}
 				this._key_update_time[e.key] = time;
 				//console.log('updated key '+e.key+' from '+previous+' to '+this._key_status[e.key]+' at time '+time);
-            }
+			}
 			for(key in this._key_status){
 				//console.log(time,this,this._key_update_time);
 				if(this._key_update_time[key] === undefined || this._key_update_time[key] < time ){
@@ -318,28 +318,28 @@ window.modula = window.modula || {};
 		 */
 
 		is_key_pressing : function(key){
-            key = this.get_alias(key);
+			key = this.get_alias(key);
 			//console.log(this._key_status[key]);
-            return this._key_status[key] === 'press';
-        },
+			return this._key_status[key] === 'press';
+		},
 		is_key_releasing : function(key){
-            key = this.get_alias(key);
-            return this._key_status[key] === 'release';
-        },
+			key = this.get_alias(key);
+			return this._key_status[key] === 'release';
+		},
 		is_key_down: function(key){
-            key = this.get_alias(key);
-            var s = this._key_status[key];
-            return s === 'down' || s === 'press';
-        },
+			key = this.get_alias(key);
+			var s = this._key_status[key];
+			return s === 'down' || s === 'press';
+		},
 		is_key_up: function(key){
-            key = this.get_alias(key);
-            var s = this._key_status[key];
-            return s === undefined || s === 'up' || s === 'release';
-        },
-		
+			key = this.get_alias(key);
+			var s = this._key_status[key];
+			return s === undefined || s === 'up' || s === 'release';
+		},
+
 		is_mouse_over: function(){
 			return this._mouse_status === 'over' || this._mouse_status === 'entering';
-        },
+		},
 		is_mouse_entering: function(){
 			return this._mouse_status === 'entering';
 		},
@@ -347,22 +347,22 @@ window.modula = window.modula || {};
 			return this._mouse_status === 'leaving';
 		},
 		get_mouse_scroll: function(){
-            if ( this.is_key_down('scroll-up')){
-                return 1;
-            }else if (this.is_key_down('scroll-down')){
-                return -1;
-            }
-            return 0;
-        },
+			if ( this.is_key_down('scroll-up')){
+				return 1;
+			}else if (this.is_key_down('scroll-down')){
+				return -1;
+			}
+			return 0;
+		},
 		set_alias: function(action,key){
-            this._alias[action] = key;
-        },
-        get_alias: function(alias){
-            while(alias in this._alias){
-                alias = this._alias[alias];
-            }
-            return alias;
-        },
+			this._alias[action] = key;
+		},
+		get_alias: function(alias){
+			while(alias in this._alias){
+				alias = this._alias[alias];
+			}
+			return alias;
+		},
 	});
 
 	modula.Game = modula.Class.extend({
@@ -673,20 +673,20 @@ window.modula = window.modula || {};
 			this._uid = get_new_uid();
 			this._state = 'new';
 			this._current_frame = 0;
-			this._destroy_time = get(attrs,'duration')  || Number.MAX_VALUE; // TODO correct delay
+			this._destroy_time = get(attrs,'duration')	|| Number.MAX_VALUE; // TODO correct delay
 			this._scene_list   = get(attrs,'scene') ? [attrs.scene] : [];
 			this._transform    = get(attrs,'transform') || new modula.Transform2();
-			this.transform	   = this._transform; 	//readonly
+			this.transform	   = this._transform;	//readonly
 			this.transform.ent = this;
 			this.transform.pos = get(attrs,'pos',this.transform.pos);
 			
 			this.collision_behaviour = get(attrs,'collision_behaviour', 'none');	// none, receiver, emitter, both
-			this.name   = get(attrs,'name', "Ent2_"+this._uid);
+			this.name	= get(attrs,'name', "Ent2_"+this._uid);
 			this.active = get(attrs,'active',true);
 			this.render = get(attrs,'render',true);
 			this.render_childs = get(attrs,'render_childs',true);
-			this.bound  = get(attrs,'bound',undefined);
-			this.pos_z  = get(attrs,'pos_z',0);
+			this.bound	= get(attrs,'bound',undefined);
+			this.pos_z	= get(attrs,'pos_z',0);
 			this.drawable = get(attrs,'drawable',undefined);
 			this.start_time = modula.main.time;
 		},
