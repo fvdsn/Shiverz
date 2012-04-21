@@ -172,12 +172,15 @@ window.modula = window.modula || {};
 
 	modula.Input = modula.Class.extend({
 		init: function(selector){
-			this._mouse_status = 'out'; // 'out' | 'in' | 'entering' | 'leaving'
-			this._mouse_previous_status = 'out';
-			
+			var self = this;
+			this._mouse_status = 'out'; // 'out' | 'over' | 'entering' | 'leaving'
+			this._mouse_status_previous = 'out';
+			this._mouse_status_system = 'out';
+
+			this._mouse_pos_system = new Vec2();
 			this._mouse_pos = new Vec2();
-			this._mouse_previous_pos = new Vec2();
-			this._mouse_delta_pos = new Vec2();
+			this._mouse_pos_previous = new Vec2();
+			this._mouse_pos_delta = new Vec2();
 
 			this._mouse_drag_pos = new Vec2();
 			this._mouse_drag_delta_pos = new Vec2();
@@ -185,22 +188,71 @@ window.modula = window.modula || {};
 			this._mouse_events = [];
 
 			this._key_status = {}; // 'up' | 'down' | 'press' | 'release' , undefined == 'up'
+			this._key_update_time = {};
 			this._key_events = [];
 
 			this._alias = {};
-            /*
+            
+			var $elem = $(selector);
+			console.log(selector,$elem, $elem[0]);
+			
+			$elem.keyup(function(e){
+                //console.log('keyup',e);
+				self._key_events.push({type:'up', key: String.fromCharCode(e.which).toLowerCase()});
+			});
+			$elem.keydown(function(e){
+                //console.log('keydown',e);
+				self._key_events.push({type:'down', key: String.fromCharCode(e.which).toLowerCase()});
+			});
+			
+			function relative_mouse_coords(dom_element,event){
+				var total_offset_x = 0;
+				var total_offset_y = 0;
+				
+				do{
+					total_offset_x += dom_element.offsetLeft;
+					total_offset_y += dom_element.offsetTop;
+				}while((dom_element = dom_element.offsetParent));
+				
+				return new Vec2(
+					event.pageX - total_offset_x,
+					event.pageY - total_offset_y );
+			}
+			function event_mousemove(event){
+				self._mouse_pos_system = relative_mouse_coords(this,event);
+				//console.log('mouse:',self._mouse_pos_system.x, self._mouse_pos_system.y);
+			}
+			
+			$elem[0].addEventListener('mousemove',event_mousemove,false);
+			
+			function event_mouseover(event){
+				self._mouse_status_system = 'over';
+			}
+			
+			$elem[0].addEventListener('mouseover',event_mouseover,false);
 
-			$(selector).keyup(function(e){
-                console.log('keyup');
-				this.key_events.push({type:'up', key: e.which});
-			});
-			$(selector).keydown(function(e){
-                console.log('keydown');
-				this.key_events.push({type:'down', key: e.which});
-			});
-            */
+			function event_mouseout(event){
+				self._mouse_status_system = 'out';
+			}
+			$elem[0].addEventListener('mouseout',event_mouseout,false);
+			
+			function event_mousedown(event){
+				self._key_events.push({type:'down', key:'mouse'+event.button});
+				//console.log('mousedown:'+event.button);
+
+			}
+			$elem[0].addEventListener('mousedown',event_mousedown,false);
+
+			function event_mouseup(event){
+				self._key_events.push({type:'up', key:'mouse'+event.button});
+				//console.log('mouseup:'+event.button);
+			}
+			$elem[0].addEventListener('mouseup',event_mouseup,false);
+			
 		},
 		process_events: function(){
+			var time = modula.main.time_system;
+			
             for(var i = 0; i < this._key_events.length; i++){
                 var e =  this._key_events[i];
                 var previous = this._key_status[e.key];
@@ -211,14 +263,51 @@ window.modula = window.modula || {};
                         this._key_status[e.key] = 'up';
                     }
                 }else if(e.type === 'down'){
-                    if(previous === 'up' || previous === 'release' || previous === undefined){
-                        this._key_status[e.key] = 'press';
-                    }else{
-                        this._key_status[e.key] = 'down';
-                    }
-                }
+					if(previous !== 'down'){
+						this._key_status[e.key] = 'press';
+					}
+					if(previous === 'press'){
+						this._key_status[e.key] = 'down';
+					}
+				}
+				this._key_update_time[e.key] = time;
+				//console.log('updated key '+e.key+' from '+previous+' to '+this._key_status[e.key]+' at time '+time);
             }
-        },
+			for(key in this._key_status){
+				//console.log(time,this,this._key_update_time);
+				if(this._key_update_time[key] === undefined || this._key_update_time[key] < time ){
+					var status = this._key_status[key];
+					if(status === 'press'){
+						this._key_status[key] = 'down';
+					}else if(status === 'release'){
+						this._key_status[key] = 'up';
+					}
+					this._key_update_time[key] = time;
+					//console.log('processeed key '+key+' from '+status+' to '+this._key_status[key]+' at time '+time);
+				}
+			}
+			this._key_events = [];
+
+			this._mouse_pos_previous = this._mouse_pos || new Vec2();
+			this._mouse_pos = this._mouse_pos_system || new Vec2();
+			this._mouse_pos_delta = this._mouse_pos.sub(this._mouse_pos_previous);
+			
+			this._mouse_status_previous = this._mouse_status;
+			if(this._mouse_status_system === 'over'){
+				if(this._mouse_status === 'out' || this._mouse_status === 'leaving'){
+					this._mouse_status = 'entering';
+				}else{ // over || entering
+					this._mouse_status = 'over';
+				}
+			}else{ //out
+				if(this._mouse_status === 'over' || this._mouse_status === 'entering'){
+					this._mouse_status = 'leaving';
+				}else{	// leaving || out
+					this._mouse_status = 'out';
+				}
+			}
+			//console.log('MAUS:',this._mouse_status, this._mouse_pos.x, this._mouse_pos.y);
+		},
 
 		/* key: a,b,c,...,y,z,1,2,..0,!,@,$,...,
 		 * 'left','right','up','down','space',
@@ -230,6 +319,7 @@ window.modula = window.modula || {};
 
 		is_key_pressing : function(key){
             key = this.get_alias(key);
+			//console.log(this._key_status[key]);
             return this._key_status[key] === 'press';
         },
 		is_key_releasing : function(key){
@@ -248,10 +338,14 @@ window.modula = window.modula || {};
         },
 		
 		is_mouse_over: function(){
+			return this._mouse_status === 'over' || this._mouse_status === 'entering';
         },
-		is_mouse_entering: function(){},
-		is_mouse_leaving: function(){},
-		
+		is_mouse_entering: function(){
+			return this._mouse_status === 'entering';
+		},
+		is_mouse_leaving: function(){
+			return this._mouse_status === 'leaving';
+		},
 		get_mouse_scroll: function(){
             if ( this.is_key_down('scroll-up')){
                 return 1;

@@ -64,14 +64,33 @@ window.onload = function() {
 			this.rot_speed = this.get_opt(opt,'rot_speed',0);
 		},
 		on_update: function(){
+			var input = modula.main.input;
 			this.transform.translate(this.dir.scale(main.delta_time));
 			this.transform.rotate(this.rot_speed * main.delta_time);
 			this.drawable.alpha = Math.min(main.time - this.start_time, 1);
+			if(input.is_key_pressing('invert')){
+				this.dir = this.dir.neg();
+			}
+			if(input.is_key_down('r')){
+				this.dir = this.dir.scale(1+1*main.delta_time);
+			}
+			if(input.is_key_down('t')){
+				this.dir = this.dir.scale(1-1*main.delta_time);
+			}
+			if(input.is_key_down('f')){
+				this.dir = this.dir.rotate_deg( 45 * main.delta_time);
+			}else if(input.is_key_down('mouse0')){ 
+				var speed = this.dir.len();
+				var newdir = input.get('mouse_pos').sub(this.transform.pos).normalize();
+				var olddir = this.dir.normalize();
+				this.dir = olddir.lerp(newdir,0.05).set_len(speed);
+			}
 		},
 	});
 
-    //main.input = new Input('#test_canvas_1');
-	
+    main.input = new Input('body');
+	//main.set_fps(1);
 	main.add_scene(scene1);
 	main.run();
+	main.input.set_alias('invert','e');
 };
