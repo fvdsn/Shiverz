@@ -51,7 +51,7 @@ window.onload = function() {
 		},
 	}))();
 	
-	window.TestEnt = Ent2.extend({
+	window.TestEnt = Ent.extend({
 		init: function(opt){
 			this._super(opt);
 			this.get_all_opt(opt,{

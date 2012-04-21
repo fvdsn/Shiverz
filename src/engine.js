@@ -457,7 +457,7 @@ window.modula = window.modula || {};
 	
 	modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable.extend({
 		init: function(options){
-			
+			this.z     = options.z || 0;	
 			this.image = this.get_opt(options,'image',null);
 	
 			this.alpha = this.get_opt(options,'alpha',undefined);
@@ -668,7 +668,7 @@ window.modula = window.modula || {};
 
 
 
-	modula.Ent2 = modula.Class.extend({ 
+	modula.Ent = modula.Class.extend({ 
 		init: function( attrs ){
 			this._uid = get_new_uid();
 			this._state = 'new';
@@ -681,12 +681,11 @@ window.modula = window.modula || {};
 			this.transform.pos = get(attrs,'pos',this.transform.pos);
 			
 			this.collision_behaviour = get(attrs,'collision_behaviour', 'none');	// none, receiver, emitter, both
-			this.name	= get(attrs,'name', "Ent2_"+this._uid);
+			this.name	= get(attrs,'name', "Ent_"+this._uid);
 			this.active = get(attrs,'active',true);
 			this.render = get(attrs,'render',true);
 			this.render_childs = get(attrs,'render_childs',true);
 			this.bound	= get(attrs,'bound',undefined);
-			this.pos_z	= get(attrs,'pos_z',0);
 			this.drawable = get(attrs,'drawable',undefined);
 			this.start_time = modula.main.time;
 		},
