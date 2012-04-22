@@ -156,6 +156,7 @@ window.modula = window.modula || {};
 						wait_time = 0;
 					}
 					setTimeout(loop,wait_time);
+					//webkitRequestAnimationFrame(loop);
 				}else{
 					self.run_end();
 					if(self.running){
@@ -443,7 +444,7 @@ window.modula = window.modula || {};
 			this.image = this.get_opt(options,'image',null);
 	
 			this.alpha = this.get_opt(options,'alpha',undefined);
-			this.compositeOperation = this.get_opt(options,'compositeOperation',undefined);
+			this.globalCompositeOperation = this.get_opt(options,'globalCompositeOperation',undefined);
 			this.src   = this.get_opt(options,'src',undefined);
 			
 			if(this.src === undefined){
@@ -461,7 +462,7 @@ window.modula = window.modula || {};
 			r.pos = this.pos.clone();
 			r.src = this.src;
 			r.alpha = this.alpha;
-			r.compositeOperation = this.compositeOperation;
+			r.globalCompositeOperation = this.globalCompositeOperation;
 			return r;
 		},
 		draw: function(renderer,ent){
@@ -469,8 +470,8 @@ window.modula = window.modula || {};
 			if(this.alpha !== undefined){
 				context.globalAlpha *= this.alpha;
 			}
-			if(this.compositeOperation !== undefined){
-				context.globalCompositeOperation = this.compositeOperation;
+			if(this.globalCompositeOperation !== undefined){
+				context.globalCompositeOperation = this.globalCompositeOperation;
 			}
 			renderer.context.drawImage(this.image,this.pos.x, this.pos.y);
 			context.restore();
