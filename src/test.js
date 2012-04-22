@@ -5,9 +5,9 @@ window.onload = function() {
 	
 	modula.use();	
 	
-	window.scene1 = new Scene();
+	window.main   = new Main();
 	
-	scene1.renderer = new RendererCanvas2d({
+	window.renderer = new RendererCanvas2d({
 		canvas:window.canvas,
 		globalAlpha: 0.3,
 		globalCompositeOperation: 'lighter',
@@ -18,16 +18,16 @@ window.onload = function() {
 		src:'img/microbe64.png',
 	});
 	
-	main.game = new (Game.extend({
-		init:function(){
+	window.DemoScene = Scene.extend({
+		on_scene_start: function(){
 			this.last_time = -1;
 		},
 		on_frame_start: function(){
 			context.canvas.width = window.innerWidth;
 			context.canvas.height = window.innerHeight;
 			
-			if(main.time > this.last_time + 0.02){
-				this.last_time = main.time;
+			if(this.main.time > this.last_time + 0.02){
+				this.last_time = this.main.time;
 				var i = 1;
 				while(i--){
 					var ent = new TestEnt({
@@ -42,14 +42,19 @@ window.onload = function() {
 						size: 0.5 + Math.random(),
 						//color: 'rgba(0.1,255,0,1)', 
 					});
-					scene1.add_ent(ent);
+					this.add_ent(ent);
 				}
 			}
 		},
 		on_frame_end: function(){
-		  //console.log('fps:',1/main.delta_time,'ents:',main.scene.get_all_ent().length);
 		},
-	}))();
+	});
+
+	window.scene = new DemoScene({});
+
+	window.scene.renderer = window.renderer;
+
+	window.main.add_scene(scene);
 	
 	window.TestEnt = Ent.extend({
 		init: function(opt){
@@ -64,21 +69,21 @@ window.onload = function() {
 			this.rot_speed = this.get_opt(opt,'rot_speed',0);
 		},
 		on_update: function(){
-			var input = modula.main.input;
-			this.transform.translate(this.dir.scale(main.delta_time));
-			this.transform.rotate(this.rot_speed * main.delta_time);
-			this.drawable.alpha = Math.min(main.time - this.start_time, 1);
+			var input = this.main.input;
+			this.transform.translate(this.dir.scale(this.main.delta_time));
+			this.transform.rotate(this.rot_speed * this.main.delta_time);
+			this.drawable.alpha = Math.min(this.main.time - this.start_time, 1);
 			if(input.is_key_pressing('invert')){
 				this.dir = this.dir.neg();
 			}
 			if(input.is_key_down('r')){
-				this.dir = this.dir.scale(1+1*main.delta_time);
+				this.dir = this.dir.scale(1+1*this.main.delta_time);
 			}
 			if(input.is_key_down('t')){
-				this.dir = this.dir.scale(1-1*main.delta_time);
+				this.dir = this.dir.scale(1-1*this.main.delta_time);
 			}
 			if(input.is_key_down('f')){
-				this.dir = this.dir.rotate_deg( 45 * main.delta_time);
+				this.dir = this.dir.rotate_deg( 45 * this.main.delta_time);
 			}else if(input.is_key_down('mouse0')){ 
 				var speed = this.dir.len();
 				var newdir = input.get('mouse_pos').sub(this.transform.pos).normalize();
@@ -88,9 +93,9 @@ window.onload = function() {
 		},
 	});
 
-    main.input = new Input('body');
+    	window.main.set_input(new Input('body'));
+	window.main.input.set_alias('invert','e');
+
 	//main.set_fps(1);
-	main.add_scene(scene1);
-	main.run();
-	main.input.set_alias('invert','e');
+	window.main.run();
 };

@@ -38,7 +38,6 @@ window.modula = window.modula || {};
 	};
 
 	modula.Main = modula.Class.extend({
-		game:	null,
 		input:	null,
 		scene:	null,
 		scene_list: [],
@@ -57,10 +56,15 @@ window.modula = window.modula || {};
 		resolution:		new Vec2(800,600),
 	
 		add_scene: function(scene){
+			scene.main = this;
 			this.scene_list.push(scene);
 			if(!this.scene){
 				this.scene = scene;
 			}
+		},
+		set_input:	function(input){
+			this.input = input;
+			input.main = this;
 		},
 		set_fps:	function(fps){
 			this.fps = fps;
@@ -79,9 +83,6 @@ window.modula = window.modula || {};
 			this.time_system = date.getTime();
 			this.restart_time = -1;
 			this.frame = 0;
-			if(this.game){
-				this.game.on_game_start();
-			}
 		},
 		run_frame:	function(){
 			var date = new Date();
@@ -89,20 +90,20 @@ window.modula = window.modula || {};
 			this.time_system = date.getTime();
 			this.time_millis = this.time_system - this.start_time;
 			this.time = this.time_millis * 0.001;
-			//console.log("Frame: "+this.frame+" time: "+this.time+" time_system: "+this.time_system+" delta_time: "+this.delta_time);
 
 
 			if(this.input){
 				this.input.process_events();
 			}
-			if(this.game){
-				this.game.on_frame_start();
-			}
 			for(i = 0; i < this.scene_list.length; i++){
 				this.scene = this.scene_list[i];
 				var camera = this.scene.camera;
 				var renderer = this.scene.renderer;
-				
+				if(!this.scene._started){
+					this.scene._started = true;
+					this.scene.on_scene_start();
+				}
+				this.scene.on_frame_start();
 				if(renderer){
 					renderer.draw_init();
 				}
@@ -123,21 +124,14 @@ window.modula = window.modula || {};
 					this.scene.draw();
 					camera.on_render_end();
 				}
+				this.scene.on_frame_end();
 			}
-			if(this.game){
-				this.game.on_frame_end();
-			}
+		
 			this.frame += 1;
 
 		},
 		run_end: function(){
-			if(this.game){
-				this.game.on_game_end();
-			}
 		},
-		run_loop: function(){
-		},
-
 		run: function(){
 			var self = this;
 			if(self.running){
@@ -168,8 +162,6 @@ window.modula = window.modula || {};
 		},
 	});
 
-	modula.main = new modula.Main();
-
 	modula.Input = modula.Class.extend({
 		init: function(selector){
 			var self = this;
@@ -192,16 +184,14 @@ window.modula = window.modula || {};
 			this._key_events = [];
 
 			this._alias = {};
+			this.main   = null;
 			
 			var $elem = $(selector);
-			console.log(selector,$elem, $elem[0]);
 			
 			$elem.keyup(function(e){
-				//console.log('keyup',e);
 				self._key_events.push({type:'up', key: String.fromCharCode(e.which).toLowerCase()});
 			});
 			$elem.keydown(function(e){
-				//console.log('keydown',e);
 				self._key_events.push({type:'down', key: String.fromCharCode(e.which).toLowerCase()});
 			});
 			
@@ -220,7 +210,6 @@ window.modula = window.modula || {};
 			}
 			function event_mousemove(event){
 				self._mouse_pos_system = relative_mouse_coords(this,event);
-				//console.log('mouse:',self._mouse_pos_system.x, self._mouse_pos_system.y);
 			}
 			
 			$elem[0].addEventListener('mousemove',event_mousemove,false);
@@ -238,20 +227,18 @@ window.modula = window.modula || {};
 			
 			function event_mousedown(event){
 				self._key_events.push({type:'down', key:'mouse'+event.button});
-				//console.log('mousedown:'+event.button);
 
 			}
 			$elem[0].addEventListener('mousedown',event_mousedown,false);
 
 			function event_mouseup(event){
 				self._key_events.push({type:'up', key:'mouse'+event.button});
-				//console.log('mouseup:'+event.button);
 			}
 			$elem[0].addEventListener('mouseup',event_mouseup,false);
 			
 		},
 		process_events: function(){
-			var time = modula.main.time_system;
+			var time = this.main.time_system;
 			
 			for(var i = 0; i < this._key_events.length; i++){
 				var e =  this._key_events[i];
@@ -271,10 +258,8 @@ window.modula = window.modula || {};
 					}
 				}
 				this._key_update_time[e.key] = time;
-				//console.log('updated key '+e.key+' from '+previous+' to '+this._key_status[e.key]+' at time '+time);
 			}
 			for(key in this._key_status){
-				//console.log(time,this,this._key_update_time);
 				if(this._key_update_time[key] === undefined || this._key_update_time[key] < time ){
 					var status = this._key_status[key];
 					if(status === 'press'){
@@ -283,7 +268,6 @@ window.modula = window.modula || {};
 						this._key_status[key] = 'up';
 					}
 					this._key_update_time[key] = time;
-					//console.log('processeed key '+key+' from '+status+' to '+this._key_status[key]+' at time '+time);
 				}
 			}
 			this._key_events = [];
@@ -306,7 +290,6 @@ window.modula = window.modula || {};
 					this._mouse_status = 'out';
 				}
 			}
-			//console.log('MAUS:',this._mouse_status, this._mouse_pos.x, this._mouse_pos.y);
 		},
 
 		/* key: a,b,c,...,y,z,1,2,..0,!,@,$,...,
@@ -319,7 +302,6 @@ window.modula = window.modula || {};
 
 		is_key_pressing : function(key){
 			key = this.get_alias(key);
-			//console.log(this._key_status[key]);
 			return this._key_status[key] === 'press';
 		},
 		is_key_releasing : function(key){
@@ -363,13 +345,6 @@ window.modula = window.modula || {};
 			}
 			return alias;
 		},
-	});
-
-	modula.Game = modula.Class.extend({
-		on_game_start  : function(){},
-		on_frame_start : function(){},
-		on_frame_end   : function(){},
-		on_game_end    : function(){},
 	});
 
 	modula.Camera = modula.Class.extend({
@@ -497,6 +472,7 @@ window.modula = window.modula || {};
 	
 	modula.Scene = modula.Class.extend({
 		init: function(params){
+			this._started = false;
 			this._entity_list = [];
 			this._root_entity_list = [];
 			this._new_entity_list = [];
@@ -508,6 +484,7 @@ window.modula = window.modula || {};
 			this.camera = get(params,'camera',null);
 			this.renderer = get(params,'renderer',null);
 			this.name = get(params,'name',"Scene"+get_new_uid());
+			this.main = null;
 
 			this.sequence = get(params,'sequence',[
 				'new',
@@ -520,6 +497,11 @@ window.modula = window.modula || {};
 				]);
 		},
 		add_ent: function(ent){
+			if(ent.main && ent.main !== this.main){
+				return;
+			}else if(this.main){
+				ent.main = this.main;
+			}
 			if(!ent.get('scene_list').contains(this)){
 				this._new_entity_list.push(ent);
 				this._entity_by_uid[ent.get('uid')] = ent;
@@ -584,11 +566,11 @@ window.modula = window.modula || {};
 			if(ent.active){
 				if(ent._state === 'new'){
 					ent._state = 'alive';
-					ent._current_frame = main.frame;
+					ent._current_frame = this.main.frame;
 					ent.on_first_update();
 					ent.on_update();
-				}else if(ent._current_frame != main.frame){
-					ent._current_frame = main.frame;
+				}else if(ent._current_frame != this.main.frame){
+					ent._current_frame = this.main.frame;
 					ent.on_update();
 				}
 			}
@@ -608,6 +590,12 @@ window.modula = window.modula || {};
 				if(ent.is_root()){
 					this._root_entity_list.push(ent);
 				}
+				if(ent.start_time < 0){
+					ent.start_time = this.main.time;
+				}
+				if(!ent.main){
+					ent.main = this.main;
+				}
 				//FIXME make it alive and set current frame ? see J2D
 			}
 			this._new_entity_list = [];
@@ -618,7 +606,7 @@ window.modula = window.modula || {};
 				var ent = this._root_entity_list[i];
 				if(ent._state !== 'destroyed'){
 					this._ent_update(ent);
-					if(ent._destroy_time && ent._destroy_time <= main.time){
+					if(ent._destroy_time && ent._destroy_time <= this.main.time){
 						ent.destroy();
 					}
 				}
@@ -663,6 +651,10 @@ window.modula = window.modula || {};
 		},
 		_ent_draw : function(ent){},
 		draw : function(){},
+		on_frame_start: function(){},
+		on_frame_end:   function(){},
+		on_scene_start: function(){},
+		on_scene_end:   function(){},
 	});
 
 
@@ -687,7 +679,8 @@ window.modula = window.modula || {};
 			this.render_childs = get(attrs,'render_childs',true);
 			this.bound	= get(attrs,'bound',undefined);
 			this.drawable = get(attrs,'drawable',undefined);
-			this.start_time = modula.main.time;
+			this.start_time = -1; // todo modula.main.time;
+			this.main = null;
 		},
 		set_transform: function(tr){
 			this._transform.ent = undefined;
@@ -729,7 +722,7 @@ window.modula = window.modula || {};
 		},
 		destroy: function(delay){
 			if(delay){
-				this._destroy_time = Math.min(this._destroy_time, modula.main.time + delay);
+				this._destroy_time = Math.min(this._destroy_time, this.main.time + delay);
 				for(var i = 0; i < this.transform.get_child_count(); i++){
 					this.transform.get_child(i).ent.destroy(delay);
 				}
@@ -743,7 +736,7 @@ window.modula = window.modula || {};
 		},
 		get_time_before_destruction: function(){ 
 			if(this._destroy_time < Number.MAX_VALUE){
-				return this._destroy_time - modula.main.time;
+				return this._destroy_time - this.main.time;
 			}else{
 				return Number.MAX_VALUE;
 			}
