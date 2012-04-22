@@ -5,8 +5,6 @@ window.onload = function() {
 	
 	modula.use();	
 	
-	window.main   = new Main();
-	
 	window.renderer = new RendererCanvas2d({
 		canvas:window.canvas,
 		globalAlpha: 0.3,
@@ -50,11 +48,13 @@ window.onload = function() {
 		},
 	});
 
-	window.scene = new DemoScene({});
-
-	window.scene.renderer = window.renderer;
-
-	window.main.add_scene(scene);
+	window.main   = new Main({
+		fps: 60,
+		input: new Input('body'),
+		scene: new DemoScene({
+			renderer: window.renderer,
+		}),
+	});
 	
 	window.TestEnt = Ent.extend({
 		init: function(opt){
@@ -93,9 +93,5 @@ window.onload = function() {
 		},
 	});
 
-    	window.main.set_input(new Input('body'));
-	window.main.input.set_alias('invert','e');
-
-	//main.set_fps(1);
 	window.main.run();
 };

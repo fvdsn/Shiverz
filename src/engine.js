@@ -38,22 +38,29 @@ window.modula = window.modula || {};
 	};
 
 	modula.Main = modula.Class.extend({
-		input:	null,
-		scene:	null,
-		scene_list: [],
-		rng:	null,
-		running:	false,
-		restart_time:	-1,
-		frame:	0,
-		time:	0,
-		time_millis:	0,
-		time_system:	0,
-		start_time: 0,
-		fps:	60,
-		fixed_delta_time:	1/60,
-		delta_time:		1/60,
-		
-		resolution:		new Vec2(800,600),
+		init: function(options){
+			this.input = null;
+			this.scene = null;
+			this.scene_list = [];
+			this.rng = null;
+			this.running = false;
+			this.restart_time = -1;
+			this.frame = 0;
+			this.time = 0;
+			this.time_millis = 0;
+			this.time_system = 0;
+			this.start_time = 0;
+			this.fps = options.fps || 60;
+			this.fixed_delta_time = 1 / this.fps;
+			this.delta_time = 1 / this.fps
+			if(options.input){
+				this.set_input(options.input);
+			}
+			if(options.scene){
+				this.add_scene(options.scene);
+			}
+		},
+			
 	
 		add_scene: function(scene){
 			scene.main = this;
