@@ -268,6 +268,10 @@ window.modula = window.modula || {};
         }
         return true;
     };
+	
+	proto.round = function(){
+		return new Vec2(Math.round(this.x), Math.round(this.y));
+	};
     
 })(window.modula);
 
