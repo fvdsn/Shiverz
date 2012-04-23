@@ -15,11 +15,19 @@ window.onload = function() {
 	var missileSprite = new RendererCanvas2d.DrawableSprite({
 		src:'img/projectile.png',
 		globalCompositeOperation: 'lighter',
+		pos: new Vec2(0,20),
 	});
 	
 	var explosionSprite = new RendererCanvas2d.DrawableSprite({
 		src:'img/explosion128blue.png',
 		globalCompositeOperation: 'lighter',
+	});
+	
+	var blockSprite = new RendererCanvas2d.DrawableSprite({
+		src:'img/block.png',
+	});
+	var blockSpriteYellow = new RendererCanvas2d.DrawableSprite({
+		src:'img/blockyellow.png',
 	});
 	
 	var MissileExplosion = Ent.extend({
@@ -37,6 +45,7 @@ window.onload = function() {
 		},
 	});
 	
+	
 	var Missile = Ent.extend({
 		init: function(opt){
 			this._super(opt);
@@ -46,6 +55,9 @@ window.onload = function() {
 			this.speed_vec = this.dir.scale(this.speed).add(this.herit_speed);
 			this.drawable = opt.drawable || missileSprite;
 			this.transform.set_rotation_deg( this.speed_vec.angle_deg() + 90);
+			this.radius = opt.radius || 5;
+			this.collision_behaviour = 'emit';
+			this.bound = BRect.new_centered(0,0,this.radius*2,this.radius*2);
 		},
 		on_first_update:function(){
 			this.destroy(0.7);
@@ -56,6 +68,25 @@ window.onload = function() {
 		},
 		on_destroy: function(){
 			this.main.scene.add_ent(new MissileExplosion({pos:this.transform.pos}) );
+		},
+		on_draw_global: function(){
+	//		draw.centered_rect(this.transform.pos, new Vec2(this.radius*2, this.radius*2), '#F00');
+		},
+		on_collision_emit: function(ent){
+			this.destroy();
+		},
+	});
+	
+	var Block = Ent.extend({
+		init: function(opt){
+			this._super(opt);
+			this.drawable = opt.sprite || Math.random() < 0.5 ? blockSprite : blockSpriteYellow;
+			this.width = 110;
+			this.collision_behaviour = 'receive';
+			this.bound = BRect.new_centered(0,0,this.width,this.width);
+		},
+		on_draw_global: function(){
+	//		draw.centered_rect(this.transform.pos, new Vec2(this.width,this.width), '#F00');
 		},
 	});
 	
@@ -80,6 +111,10 @@ window.onload = function() {
 			
 			this.last_fire_time = 0;
 			this.fire_interval = 0.1;
+			this.collision_behaviour = 'emit';
+			this.bound = BRect.new_centered(0,0,this.radius*2, this.radius*2);
+			this.col_vec = new Vec2();
+
 		},
 	
 		on_update: function(){
@@ -156,12 +191,30 @@ window.onload = function() {
 			
 			this.transform.set_rotation_deg(this.aimdir.angle_deg() + 90);
 		},
+		on_draw_global: function(){
+	//		draw.centered_rect(this.transform.pos, new Vec2(this.radius*2,this.radius*2), '#F00');
+	//		draw.line_at(this.transform.pos, this.col_vec, 'green');
+	//		this.col_vec = new Vec2();
+		},
+		on_collision_emit: function(ent){
+			this.col_vec = this.bound.collision_axis(ent.bound);
+			console.log('collided with:',ent);
+		},
 	});
 	
 	var ShivrzScene = Scene.extend({
 		on_scene_start: function(){
 			this.last_time = -1;
 			this.add_ent(new PlayerShip({}));
+			
+			for(var i = 0; i < 20; i++){
+				this.add_ent(new Block({
+					pos: new Vec2(
+						100 + Math.random()*(window.innerWidth - 200) ,
+						100 + Math.random()*(window.innerHeight - 200)
+					).round() 
+				}));
+			}
 		},
 		on_frame_start: function(){
 			context.canvas.width = window.innerWidth;
@@ -181,7 +234,7 @@ window.onload = function() {
 		scene: new ShivrzScene({
 			renderer: new RendererCanvas2d({
 				canvas:window.canvas,
-				background: '#324',
+				background: '#333',
 				//globalCompositeOperation: 'lighter'
 			}),
 		}),

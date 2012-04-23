@@ -65,6 +65,22 @@ window.modula = window.modula || {};
 		}
 		return modula.draw;
 	};
+	
+	modula.draw.centered_rect = function(center,size,color){
+		var c = modula.draw.context;
+		var hx = size.x * 0.5;
+		var hy = size.y * 0.5;
+		if(color){
+			c.save();
+			c.strokeStyle = color;
+		}
+		
+		c.strokeRect(center.x - size.x*0.5, center.y - size.y * 0.5, size.x, size.y);
+		
+		if(color){
+			c.restore();
+		}
+	};
 
 	if(modula.Vec2){
 		

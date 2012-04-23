@@ -421,7 +421,7 @@ window.modula = window.modula || {};
 					if(ent.drawable){
 						ent.drawable.draw(this,ent);
 					}
-					ent.on_draw();
+					ent.on_draw_local();
 				}
 				if(ent.render_childs){
 					for(var i = 0, len = ent.get_child_count(); i < len; i++){
@@ -434,6 +434,9 @@ window.modula = window.modula || {};
 			for(var i = 0, len = scene._root_entity_list.length; i < len; i++){
 				var ent = scene._root_entity_list[i];
 				draw_entity(ent);
+			}
+			for(var i = 0, len = scene._entity_list.length; i < len; i++){
+				scene._entity_list[i].on_draw_global();
 			}
 		},
 	});
@@ -626,11 +629,11 @@ window.modula = window.modula || {};
 			for(var i = 0, len = this._root_entity_list.length; i < len; i++){
 				var e = this._root_entity_list[i];
 				//only emitters send collision events
-				if( e.collision_behaviour === 'emitter' || e.collision_behaviour === 'both'){
+				if( e.collision_behaviour === 'emit' || e.collision_behaviour === 'both'){
 					for(var j = 0; j < len; j++){
 						var r = this._root_entity_list[j];
 						//only receivers receive collision events
-						if( (r !== e) && (r.collision_behaviour === 'receiver' || e.collision_behaviour === 'both') ){
+						if( (r !== e) && (r.collision_behaviour === 'receive' || e.collision_behaviour === 'both') ){
 							if( e.collides(r) ){
 								e.on_collision_emit(r);
 								r.on_collision_receive(e);
@@ -765,7 +768,8 @@ window.modula = window.modula || {};
 		on_first_update: function(){},
 		on_update: function(){},
 		on_destroy: function(){},
-		on_draw: function(){},
+		on_draw_local: function(){},
+		on_draw_global: function(){},
 		on_collision_emit: function(ent){},
 		on_collision_receive: function(ent){},
 	});
