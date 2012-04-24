@@ -41,7 +41,7 @@ window.onload = function() {
 		},
 		on_update: function(){
 			this.drawable.alpha = Math.max(0,1-(5*(this.main.time - this.start_time)));
-			this.transform.scale *= 1.05;
+			this.transform.scale_fac(1.05);
 		},
 	});
 	
@@ -64,7 +64,7 @@ window.onload = function() {
 		},
 		on_update: function(){
 			this.transform.translate(this.speed_vec.scale(this.main.delta_time));
-			this.transform.scale = Math.max(0.3, Math.min(0.7, 20*(this.main.time - this.start_time) ));
+			this.transform.set_scale_fac(Math.max(0.3, Math.min(0.7, 20*(this.main.time - this.start_time) )));
 		},
 		on_destroy: function(){
 			this.main.scene.add_ent(new MissileExplosion({pos:this.transform.pos}) );
@@ -86,7 +86,7 @@ window.onload = function() {
 			this.bound = BRect.new_centered(0,0,this.width,this.width);
 		},
 		on_draw_global: function(){
-	//		draw.centered_rect(this.transform.pos, new Vec2(this.width,this.width), '#F00');
+			//draw.centered_rect(this.transform.pos, new Vec2(this.width,this.width), '#F00');
 		},
 	});
 	
@@ -192,13 +192,14 @@ window.onload = function() {
 			this.transform.set_rotation_deg(this.aimdir.angle_deg() + 90);
 		},
 		on_draw_global: function(){
-	//		draw.centered_rect(this.transform.pos, new Vec2(this.radius*2,this.radius*2), '#F00');
-	//		draw.line_at(this.transform.pos, this.col_vec, 'green');
-	//		this.col_vec = new Vec2();
+			//draw.centered_rect(this.transform.pos, new Vec2(this.radius*2,this.radius*2), '#F00');
+			//draw.line_at(this.transform.pos, this.col_vec, 'green');
+			//this.col_vec = new Vec2();
 		},
 		on_collision_emit: function(ent){
-			this.col_vec = this.bound.collision_axis(ent.bound);
-			console.log('collided with:',ent);
+			this.col_vec = this.collision_axis(ent);
+			this.transform.translate(this.col_vec.neg());
+			//console.log('collided with:',ent);
 		},
 	});
 	

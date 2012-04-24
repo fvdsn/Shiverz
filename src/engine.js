@@ -415,7 +415,7 @@ window.modula = window.modula || {};
 			function draw_entity(ent){
 				this.context.save();
 				this.context.translate(ent.transform.pos.x, ent.transform.pos.y);
-				this.context.scale(ent.transform.scale, ent.transform.scale);
+				this.context.scale(ent.transform.scale.x, ent.transform.scale.y);
 				this.context.rotate(ent.transform.rotation);
 				if(ent.render){
 					if(ent.drawable){
@@ -756,14 +756,31 @@ window.modula = window.modula || {};
 			return this._state === "destroyed"; 
 		},
 		collides: function(ent){
-			var epos = ent.transform.get_world_pos();
-			var epos = epos.sub(this.transform.get_world_pos());
+			var epos = this.transform.distant_to_local(ent.transform);
+			//var epos = ent.transform.get_world_pos();
+			//var epos = epos.sub(this.transform.get_world_pos());
 			if(ent.bound){
 				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
 				return this.bound.collides(ebound);
 			}else{
 				return this.contains(epos);
 			}
+		},
+		collision_vector: function(ent){
+			var epos = this.transform.distant_to_local(ent.transform);
+			if(ent.bound){
+				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
+				return this.bound.collision_vector(ebound);
+			}
+			return new Vec2();
+		},
+		collision_axis: function(ent){
+			var epos = this.transform.distant_to_local(ent.transform);
+			if(ent.bound){
+				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
+				return this.bound.collision_axis(ebound);
+			}
+			return new Vec2();
 		},
 		on_first_update: function(){},
 		on_update: function(){},

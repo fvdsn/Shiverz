@@ -212,7 +212,7 @@
 			   bound_collides(this.y, this.my, b.y, b.my);
 	};
 	
-	BRect.prototype.collision_vector = function(b){
+	BRect.prototype.collision_axis = function(b){
 		var dx = bound_escape_dist(this.x, this.mx, b.x, b.mx); 
 		var dy = bound_escape_dist(this.y, this.my, b.y, b.my);
 		if( Math.abs(dx) < Math.abs(dy) ){
@@ -222,9 +222,11 @@
 		}
 	};
 	
-	BRect.prototype.collision_axis = function(b){
-		return new Vec2( bound_escape_dist(this.x, this.mx, b.x, b.mx),
-						 bound_escape_dist(this.y, this.my, b.y, b.my)  );
+	BRect.prototype.collision_vector = function(b){
+		return new Vec2( 
+			bound_escape_dist(this.x, this.mx, b.x, b.mx),
+			bound_escape_dist(this.y, this.my, b.y, b.my)  
+		);
 	};
 	
 })(window.modula);

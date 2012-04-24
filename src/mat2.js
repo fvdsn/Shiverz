@@ -77,7 +77,7 @@
 	
 	proto.scale = function(mat){
 		var m = this.clone();
-		if(m.xx != undefined){
+		if(m.xx !== undefined){
 			m.xx *= mat.xx;
 			m.xy *= mat.xy;
 			m.yx *= mat.yx;
@@ -93,7 +93,7 @@
 
 	proto.add = function(mat){
 		var m = this.clone();
-		if(m.xx != undefined){
+		if(m.xx !== undefined){
 			m.xx += mat.xx;
 			m.xy += mat.xy;
 			m.yx += mat.yx;
@@ -109,7 +109,7 @@
 
 	proto.sub = function(mat){
 		var m = this.clone();
-		if(m.xx != undefined){
+		if(m.xx !== undefined){
 			m.xx -= mat.xx;
 			m.xy -= mat.xy;
 			m.yx -= mat.yx;

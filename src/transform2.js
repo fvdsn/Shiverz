@@ -22,7 +22,7 @@
 
 	function Transform2(){
 		this.pos = new Vec2();
-		this.scale = 1.0;
+		this.scale = new Vec2(1,1);
 		this.rotation = 0.0;
 		this.parent = null;
 		this.childs = [];
@@ -40,29 +40,42 @@
 		return  this.full_type === tr.full_type &&
 			this.pos.equals(tr.pos) &&
 			epsilon_equals(this.rotation, tr.rotation) &&
-			epsilon_equals(this.scale, tr.scale);
+			epsilon_equals(this.scale.x, tr.scale.y);
 	};
 
 	proto.clone = function(){
 		var tr = new Transform2();
 		tr.pos  = this.pos.clone();
-		tr.scale = this.scale;
+		tr.scale = this.scale.clone();
 		tr.rotation = this.rotation;
 		return tr;
 	};
 
 	proto.set_pos = function(vec){
-		this.pos = vec.clone();
+		this.pos.x = vec.x;
+		this.pos.y = vec.y;
 		return this;
 	};
 
 	proto.set_pos_xy = function(x,y){
-		this.pos = new Vec2(x,y);
+		this.pos.x = x;
+		this.pos.y = y;
 		return this;
 	};
 
 	proto.set_scale = function(scale){
-		this.scale = scale;
+		this.scale.x = scale.x; 
+		this.scale.y = scale.y; 
+		return this;
+	};
+	proto.set_scale_xy = function(x,y){
+		this.scale.x = x; 
+		this.scale.y = y; 
+		return this;
+	};
+	proto.set_scale_fac = function(f){
+		this.scale.x = f; 
+		this.scale.y = f; 
 		return this;
 	};
 
@@ -76,17 +89,12 @@
 		return this;
 	};
 
-	proto.set_scale = function(scale){
-		this.scale = scale;
-		return this;
-	};
-
 	proto.get_pos = function(){
 		return this.pos.clone();
 	};
 
 	proto.get_scale = function(){
-		return this.scale;
+		return this.scale.clone();
 	};
 
 	proto.get_rotation = function(){
@@ -104,7 +112,7 @@
 	proto.parent_to_local = function(vec){
 		return vec.sub(this.pos)
 			  .rotate(-this.rotation)
-			  .scale(1.0/this.scale);
+			  .mult_xy(1.0/this.scale.x, 1.0/this.scale.y);
 	};
 
 	proto.world_to_local = function(vec){
@@ -116,7 +124,7 @@
 	};
 
 	proto.local_to_parent = function(vec){
-		return vec.scale(this.scale)
+		return vec.mult_xy(this.scale.x, this.scale.y)
 			  .rotate(this.rotation)
 			  .add(this.pos);
 	};
@@ -128,6 +136,16 @@
 			return this.local_to_parent(vec);
 		}
 	};
+	proto.distant_to_local = function(dist_transform, vec){	//TODO Rotation, scale
+		var dist_pos = dist_transform.get_world_pos();
+		var pos = this.get_world_pos();
+		var local_pos = pos.sub(dist_pos);
+		if(vec){
+			return local_pos.add(vec);
+		}else{
+			return local_pos;
+		}
+	}
 
 
 	proto.add_child = function(tr){
@@ -190,7 +208,20 @@
 	};
 
 	proto.scale = function(scale){
-		this.scale *= scale;
+		this.scale.x *= scale.x;
+		this.scale.y *= scale.y;
+		return this;
+	};
+
+	proto.scale_xy = function(x,y){
+		this.scale.x *= x;
+		this.scale.y *= y;
+		return this;
+	};
+
+	proto.scale_fac = function(f){
+		this.scale.x *= f;
+		this.scale.y *= f;
 		return this;
 	};
 

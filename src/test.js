@@ -65,7 +65,7 @@ window.onload = function() {
 				'radius':	20,
 			});
 			this.drawable = this.get_opt(opt,'sprite',microbeSprite).clone();
-			this.transform.scale = this.get_opt(opt,'size',1);
+			this.transform.set_scale_fac(this.get_opt(opt,'size',1));
 			this.rot_speed = this.get_opt(opt,'rot_speed',0);
 		},
 		on_update: function(){
