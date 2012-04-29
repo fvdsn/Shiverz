@@ -112,12 +112,7 @@ window.modula = window.modula || {};
 				}
 				this.scene.on_frame_start();
 				if(renderer){
-					renderer.draw_init();
-				}
-				if(camera){
-					camera.on_render_setup();
-					camera.background_setup();
-					camera.projection_setup();
+					renderer.draw_init(camera);
 				}
 
 				this.scene.run_frame();
@@ -125,11 +120,6 @@ window.modula = window.modula || {};
 				if(renderer){
 					renderer.draw_frame(this.scene,camera);
 					renderer.draw_end();
-				}
-				if(camera){
-					camera.on_render_start();
-					this.scene.draw();
-					camera.on_render_end();
 				}
 				this.scene.on_frame_end();
 			}
@@ -344,6 +334,9 @@ window.modula = window.modula || {};
 			}
 			return 0;
 		},
+        get_mouse_pos: function(){
+            return this._mouse_pos;
+        },
 		set_alias: function(action,key){
 			this._alias[action] = key;
 		},
@@ -356,28 +349,34 @@ window.modula = window.modula || {};
 	});
 
 	modula.Camera = modula.Class.extend({
+        scene: null,
+        main: null, 
 		transform : new Transform2(),
-		renderer  : null,
-		z_near : 100,
-		z_far : -100,
-		_viewport : null,
-		_resolution : new Vec2(),
-		_width2height : 1,
-		_heigth2width : 1,
+        on_update : function(){},
+        get_mouse_world_pos: function(){
+            if(!this.main || !this.main.input){
+                return new Vec2();
+            }
+            var mpos = this.main.input.get_mouse_pos();
+            if(this.scene.renderer){
+                mpos = mpos.sub(this.scene.renderer.get_size().scale(0.5));
+            }
+            mpos = this.transform.local_to_world(mpos);
+            return mpos;
+        },
 	});
 
 	modula.Renderer = modula.Class.extend({
 		render_background: function(){},
-		get_width: function(){},
-		get_height: function(){},
-		draw_init: function(){},
+        get_size  : function(){},
+		draw_init: function(camera){},
 		draw_frame: function(scene,camera){},
 		draw_end: function(){},
 	});
 	
 	modula.Renderer.Drawable = modula.Class.extend({
 		draw: function(renderer, entity){},
-	})
+	});
 	
 	modula.RendererCanvas2d = modula.Renderer.extend({
 		init: function(options){
@@ -388,13 +387,10 @@ window.modula = window.modula || {};
 			this.globalCompositeOperation = this.get_opt(options,'globalCompositeOperation','source-over');
 			this.globalAlpha = this.get_opt(options,'globalAlpha',1);
 		},
-		get_width: function(){
-			return this.canvas.width;
+		get_size: function(){
+			return new Vec2(this.canvas.width, this.canvas.height);
 		},
-		get_height: function(){
-			return this.canvas.height;
-		},
-		draw_init: function(){
+		draw_init: function(camera){
 			if(modula.draw){
 				modula.draw.set_context(this.context);
 			}
@@ -406,6 +402,14 @@ window.modula = window.modula || {};
 			}
 			this.context.globalCompositeOperation = this.globalCompositeOperation;
 			this.context.globalAlpha = this.globalAlpha;
+            if(camera){
+                this.context.translate(
+                    -camera.transform.pos.x + this.canvas.width/2, 
+                    -camera.transform.pos.y + this.canvas.height/2
+                );
+                this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
+                this.context.rotate(-camera.transform.rotation);
+            }
 		},
 		draw_end: function(){
 			context.restore();
@@ -593,6 +597,13 @@ window.modula = window.modula || {};
 			}
 		},
 		run_frame : function(){
+            
+            // Update the camera
+            if(this.camera){
+                this.camera.scene = this;
+                this.camera.main  = this.main;
+                this.camera.on_update();
+            }
 
 			// Adding new entities to the entity_list.
 			for(var i = 0, len = this._new_entity_list.length; i < len; i++){

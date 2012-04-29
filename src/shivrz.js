@@ -89,6 +89,22 @@ window.onload = function() {
 			//draw.centered_rect(this.transform.pos, new Vec2(this.width,this.width), '#F00');
 		},
 	});
+
+    var PlayerCamera = Camera.extend({
+        init: function(player){
+            this.player = player;
+            this.transform.set_pos(player.transform.pos);
+        },
+        on_update: function(){
+            var center = new Vec2( 
+                    window.innerWidth/2,
+                    window.innerHeight/2
+            );
+            var dpos = this.player.transform.pos.sub(this.transform.pos);
+            dpos = dpos.scale(1*this.main.delta_time);
+            this.transform.translate(dpos);
+        },
+    });
 	
 	
 	var PlayerShip = Ent.extend({
@@ -116,10 +132,13 @@ window.onload = function() {
 			this.col_vec = new Vec2();
 
 		},
+        on_first_update: function(){
+            this.main.scene.camera = new PlayerCamera(this);
+        },
 	
 		on_update: function(){
 			var input = this.main.input;
-			this.aimdir = input.get('mouse_pos').sub(this.transform.pos).normalize();
+			this.aimdir = main.scene.camera.get_mouse_world_pos().sub(this.transform.pos).normalize();
 			
 			//console.log('move_speed:', this.move_speed, this.get('move_speed') );
 			
@@ -206,7 +225,12 @@ window.onload = function() {
 	var ShivrzScene = Scene.extend({
 		on_scene_start: function(){
 			this.last_time = -1;
-			this.add_ent(new PlayerShip({}));
+			this.add_ent(new PlayerShip({
+                pos: new Vec2(
+                    window.innerWidth/2,
+                    window.innerHeight/2
+                ),
+            }));
 			
 			for(var i = 0; i < 20; i++){
 				this.add_ent(new Block({
