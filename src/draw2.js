@@ -5,7 +5,7 @@ window.modula = window.modula || {};
 
 	modula.draw = {};
 
-	modula.draw.set_context = function(context){
+	modula.draw.setContext = function(context){
 		modula.draw.context = context;
 		return modula.draw;
 	};
@@ -66,7 +66,7 @@ window.modula = window.modula || {};
 		return modula.draw;
 	};
 	
-	modula.draw.centered_rect = function(center,size,color){
+	modula.draw.centeredRect = function(center,size,color){
 		var c = modula.draw.context;
 		var hx = size.x * 0.5;
 		var hy = size.y * 0.5;
@@ -91,8 +91,8 @@ window.modula = window.modula || {};
 			return this;
 		};
 
-		proto.draw_at = function(pos,color){
-			modula.draw.line_at(pos,this,color);
+		proto.drawAt = function(pos,color){
+			modula.draw.lineAt(pos,this,color);
 			return this;
 		};
 	}
@@ -101,11 +101,11 @@ window.modula = window.modula || {};
 
 		var proto = modula.Transform2.prototype;
 
-		proto.draw_to_world = function(size){
+		proto.drawToWorld = function(size){
 			size = size || 10;
-			var center = this.get_world_pos();
-			var x = this.local_to_world(new Vec2(size,0));
-			var y = this.local_to_world(new Vec2(0,size));
+			var center = this.getWorldPos();
+			var x = this.localToWorld(new Vec2(size,0));
+			var y = this.localToWorld(new Vec2(0,size));
 			var c = modula.draw.context;
 
 			c.save();

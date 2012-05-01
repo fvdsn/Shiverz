@@ -1,6 +1,6 @@
 window.onload = function() {
 
-	window.canvas = document.getElementById('test_canvas_1');
+	window.canvas = document.getElementById('testCanvas1');
 	window.context = canvas.getContext('2d');
 	
 	modula.use();	
@@ -17,21 +17,21 @@ window.onload = function() {
 	});
 	
 	window.DemoScene = Scene.extend({
-		on_scene_start: function(){
-			this.last_time = -1;
+		onSceneStart: function(){
+			this.lastTime = -1;
 		},
-		on_frame_start: function(){
+		onFrameStart: function(){
 			context.canvas.width = window.innerWidth;
 			context.canvas.height = window.innerHeight;
 			
-			if(this.main.time > this.last_time + 0.02){
-				this.last_time = this.main.time;
+			if(this.main.time > this.lastTime + 0.02){
+				this.lastTime = this.main.time;
 				var i = 1;
 				while(i--){
 					var ent = new TestEnt({
-						pos: Vec2.random_positive().mult_xy(canvas.width,canvas.height),
+						pos: Vec2.randomPositive().multXy(canvas.width,canvas.height),
 						dir: Vec2.random().scale(5+Math.random()*50),
-						rot_speed: Math.random() * 2 - 1,
+						rotSpeed: Math.random() * 2 - 1,
 						color: 'rgba('+
 								Math.round(10 + Math.random() * 10)+','+
 								Math.round(1 + Math.random() * 5) +','+
@@ -40,11 +40,11 @@ window.onload = function() {
 						size: 0.5 + Math.random(),
 						//color: 'rgba(0.1,255,0,1)', 
 					});
-					this.add_ent(ent);
+					this.addEnt(ent);
 				}
 			}
 		},
-		on_frame_end: function(){
+		onFrameEnd: function(){
 		},
 	});
 
@@ -58,37 +58,36 @@ window.onload = function() {
 	
 	window.TestEnt = Ent.extend({
 		init: function(opt){
+            opt = opt || {};
 			this._super(opt);
-			this.get_all_opt(opt,{
-				'dir':		new Vec2(3,10),
-				'color':	'#F00',
-				'radius':	20,
-			});
-			this.drawable = this.get_opt(opt,'sprite',microbeSprite).clone();
-			this.transform.set_scale_fac(this.get_opt(opt,'size',1));
-			this.rot_speed = this.get_opt(opt,'rot_speed',0);
+            this.dir = opt.dir || new Vec(3,10);
+            this.color = opt.color || '#F00';
+            this.radius = opt.radius || 20;
+			this.drawable = (opt.sprite || microbeSprite).clone(); 
+			this.transform.setScaleFac(opt.size || 1);
+			this.rotSpeed = opt.rotSpeed || 0;
 		},
-		on_update: function(){
+		onUpdate: function(){
 			var input = this.main.input;
-			this.transform.translate(this.dir.scale(this.main.delta_time));
-			this.transform.rotate(this.rot_speed * this.main.delta_time);
-			this.drawable.alpha = Math.min(this.main.time - this.start_time, 1);
-			if(input.is_key_pressing('invert')){
+			this.transform.translate(this.dir.scale(this.main.deltaTime));
+			this.transform.rotate(this.rotSpeed * this.main.deltaTime);
+			this.drawable.alpha = Math.min(this.main.time - this.startTime, 1);
+			if(input.isKeyPressing('invert')){
 				this.dir = this.dir.neg();
 			}
-			if(input.is_key_down('r')){
-				this.dir = this.dir.scale(1+1*this.main.delta_time);
+			if(input.isKeyDown('r')){
+				this.dir = this.dir.scale(1+1*this.main.deltaTime);
 			}
-			if(input.is_key_down('t')){
-				this.dir = this.dir.scale(1-1*this.main.delta_time);
+			if(input.isKeyDown('t')){
+				this.dir = this.dir.scale(1-1*this.main.deltaTime);
 			}
-			if(input.is_key_down('f')){
-				this.dir = this.dir.rotate_deg( 45 * this.main.delta_time);
-			}else if(input.is_key_down('mouse0')){ 
+			if(input.isKeyDown('f')){
+				this.dir = this.dir.rotateDeg( 45 * this.main.deltaTime);
+			}else if(input.isKeyDown('mouse0')){ 
 				var speed = this.dir.len();
-				var newdir = input.get('mouse_pos').sub(this.transform.pos).normalize();
+				var newdir = input.get('mousePos').sub(this.transform.pos).normalize();
 				var olddir = this.dir.normalize();
-				this.dir = olddir.lerp(newdir,0.05).set_len(speed);
+				this.dir = olddir.lerp(newdir,0.05).setLen(speed);
 			}
 		},
 	});

@@ -2,8 +2,6 @@
 (function(modula){
     // A Bounding Shapes Library
 
-    if(modula.require){ modula.require('Vec2'); }
-
     // A Bounding Ellipse
     // cx,cy : center of the ellipse
     // rx,ry : radius of the ellipse
@@ -24,7 +22,7 @@
 
     // returns an unordered list of vector defining the positions of the intersections between the ellipse's
     // boundary and a line segment defined by the start and end vectors a,b
-    BEllipse.prototype.collide_segment = function(a,b){
+    BEllipse.prototype.collideSegment = function(a,b){
         // http://paulbourke.net/geometry/sphereline/
         var collisions = [];
 
@@ -35,11 +33,11 @@
         // make all computations in a space where the ellipse is a circle 
         // centered on zero
         var c = new Vec2(this.cx,this.cy);
-        a = a.sub(c).mult_xy(1/this.hx,1/this.hy);
-        b = b.sub(c).mult_xy(1/this.hx,1/this.hy);
+        a = a.sub(c).multXY(1/this.hx,1/this.hy);
+        b = b.sub(c).multXY(1/this.hx,1/this.hy);
 
 
-        if(a.len_sq() < 1 && b.len_sq() < 1){   //both points inside the ellipse
+        if(a.lenSq() < 1 && b.lenSq() < 1){   //both points inside the ellipse
             return collisions;
         }
 
@@ -67,19 +65,19 @@
             collisions.push(pos);
         }
         for(var i = 0; i < collisions.length; i++){
-            collisions[i] = collisions[i].mult_xy(this.hx,this.hy);
-            collisions[i] = collisions[i].add_xy(this.cx,this.cy);
+            collisions[i] = collisions[i].multXY(this.hx,this.hy);
+            collisions[i] = collisions[i].addXY(this.cx,this.cy);
         }
         return collisions;
     };
 	
 	// returns true if the ellipse contains the position defined by the vector 'vec'
-    BEllipse.prototype.contains_vec = function(v){
-        v = v.mult_xy(this.hx,this.hy);
-        return v.len_sq() <= 1;
+    BEllipse.prototype.containsVec = function(v){
+        v = v.multXY(this.hx,this.hy);
+        return v.lenSq() <= 1;
     };
     // returns true if the ellipse contains the position (x,y) 
-    BEllipse.prototype.contains_xy = function(x,y){
+    BEllipse.prototype.containsXY = function(x,y){
         return this.contains(new Vec2(x,y));
     };
     
@@ -103,12 +101,12 @@
     modula.BRect = BRect;
     
 	// Static method creating a new bounding rectangle of size (sx,sy) centered on (cx,cy)
-    BRect.new_centered = function(cx,cy,sx,sy){
+    BRect.newCentered = function(cx,cy,sx,sy){
         return new BRect(cx-sx/2,cy-sy/2,sx,sy);
     };
 	
     //intersect line a,b with line c,d, returns null if no intersection
-    function line_intersect(a,b,c,d){
+    function lineIntersect(a,b,c,d){
         // http://paulbourke.net/geometry/lineline2d/
         var f = ((d.y - c.y)*(b.x - a.x) - (d.x - c.x)*(b.y - a.y)); 
         if(f == 0){
@@ -129,17 +127,17 @@
     // returns an unordered list of vector defining the positions of the intersections between the ellipse's
     // boundary and a line segment defined by the start and end vectors a,b
 
-    BRect.prototype.collide_segment = function(a,b){
+    BRect.prototype.collideSegment = function(a,b){
         var collisions = [];
         var corners = [ new Vec2(this.x,this.y), new Vec2(this.x,this.my), 
                         new Vec2(this.mx,this.my), new Vec2(this.mx,this.y) ];
-        var pos = line_intersect(a,b,corners[0],corners[1]);
+        var pos = lineIntersect(a,b,corners[0],corners[1]);
         if(pos) collisions.push(pos);
-        pos = line_intersect(a,b,corners[1],corners[2]);
+        pos = lineIntersect(a,b,corners[1],corners[2]);
         if(pos) collisions.push(pos);
-        pos = line_intersect(a,b,corners[2],corners[3]);
+        pos = lineIntersect(a,b,corners[2],corners[3]);
         if(pos) collisions.push(pos);
-        pos = line_intersect(a,b,corners[3],corners[0]);
+        pos = lineIntersect(a,b,corners[3],corners[0]);
         if(pos) collisions.push(pos);
         return collisions;
     };
@@ -166,22 +164,22 @@
 		return new BRect(this.x,this.y,this.sx,this.sy);
 	};
 	
-	BRect.prototype.clone_at = function(center){
+	BRect.prototype.cloneAt = function(center){
 		return new BRect(center.x - this.sx/2, center.y - this.sy/2, this.sx, this.sy);
 	};
     
 	// returns true if the rectangle contains the position defined by the vector 'vec'
-    BRect.prototype.contains_vec = function(vec){
+    BRect.prototype.containsVec = function(vec){
         return ( vec.x >= this.x && vec.x <= this.mx && 
                  vec.y >= this.y && vec.y <= this.my  );
     };
     // returns true if the rectangle contains the position (x,y) 
-    BRect.prototype.contains_xy = function(x,y){
+    BRect.prototype.containsXY = function(x,y){
         return ( x >= this.x && x <= this.mx && 
                  y >= this.y && y <= this.my  );
     };
 	
-	function bound_collides(amin, amax, bmin, bmax){
+	function boundCollides(amin, amax, bmin, bmax){
 		if(amin + amax < bmin + bmax){
 			return amax > bmin;
 		}else{
@@ -189,7 +187,7 @@
 		}
 	}
 	
-	function bound_escape_dist(amin, amax, bmin, bmax){
+	function boundEscapeDist(amin, amax, bmin, bmax){
 		if(amin + amax < bmin + bmax){
 			var disp = bmin - amax;
 			if(disp >= 0){
@@ -208,13 +206,13 @@
 	}
 	
 	BRect.prototype.collides = function(b){
-		return bound_collides(this.x, this.mx, b.x, b.mx) && 
-			   bound_collides(this.y, this.my, b.y, b.my);
+		return boundCollides(this.x, this.mx, b.x, b.mx) && 
+			   boundCollides(this.y, this.my, b.y, b.my);
 	};
 	
-	BRect.prototype.collision_axis = function(b){
-		var dx = bound_escape_dist(this.x, this.mx, b.x, b.mx); 
-		var dy = bound_escape_dist(this.y, this.my, b.y, b.my);
+	BRect.prototype.collisionAxis = function(b){
+		var dx = boundEscapeDist(this.x, this.mx, b.x, b.mx); 
+		var dy = boundEscapeDist(this.y, this.my, b.y, b.my);
 		if( Math.abs(dx) < Math.abs(dy) ){
 			return new Vec2(dx,0);
 		}else{
@@ -222,10 +220,10 @@
 		}
 	};
 	
-	BRect.prototype.collision_vector = function(b){
+	BRect.prototype.collisionVector = function(b){
 		return new Vec2( 
-			bound_escape_dist(this.x, this.mx, b.x, b.mx),
-			bound_escape_dist(this.y, this.my, b.y, b.my)  
+			boundEscapeDist(this.x, this.mx, b.x, b.mx),
+			boundEscapeDist(this.y, this.my, b.y, b.my)  
 		);
 	};
 	

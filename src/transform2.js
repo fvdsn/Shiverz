@@ -1,20 +1,18 @@
 
 (function(modula){
 
-	modula.require('Transform2','Core','Vec2');
+	// Multiply a number expressed in radiant by radToDeg to convert it in degrees
+	var radToDeg = 57.29577951308232;
+	modula.radToDeg = radToDeg;
 
-	// Multiply a number expressed in radiant by rad2deg to convert it in degrees
-	var rad2deg = 57.29577951308232;
-	modula.rad2deg = rad2deg;
-
-	// Multiply a number expressed in degrees by deg2rad to convert it to radiant
-	var deg2rad = 0.017453292519943295;
-	modula.deg2rad = deg2rad;
+	// Multiply a number expressed in degrees by degToRad to convert it to radiant
+	var degToRad = 0.017453292519943295;
+	modula.degToRad = degToRad;
 
 	// The numerical precision used to compare vector equality
 	modula.epsilon   = 0.0000001;
 
-	var epsilon_equals = function(a,b){
+	var epsilonEquals = function(a,b){
 		return Math.abs(a-b) <= modula.epsilon;
 	};
 
@@ -34,13 +32,13 @@
 
 	proto.type = "transform";
 	proto.dimension = 2;
-	proto.full_type = "transform2";
+	proto.fullType = "transform2";
 
 	proto.equals = function(tr){
-		return  this.full_type === tr.full_type &&
+		return  this.fullType === tr.fullType &&
 			this.pos.equals(tr.pos) &&
-			epsilon_equals(this.rotation, tr.rotation) &&
-			epsilon_equals(this.scale.x, tr.scale.y);
+			epsilonEquals(this.rotation, tr.rotation) &&
+			epsilonEquals(this.scale.x, tr.scale.y);
 	};
 
 	proto.clone = function(){
@@ -51,136 +49,136 @@
 		return tr;
 	};
 
-	proto.set_pos = function(vec){
+	proto.setPos = function(vec){
 		this.pos.x = vec.x;
 		this.pos.y = vec.y;
 		return this;
 	};
 
-	proto.set_pos_xy = function(x,y){
+	proto.setPosXY = function(x,y){
 		this.pos.x = x;
 		this.pos.y = y;
 		return this;
 	};
 
-	proto.set_scale = function(scale){
+	proto.setScale = function(scale){
 		this.scale.x = scale.x; 
 		this.scale.y = scale.y; 
 		return this;
 	};
-	proto.set_scale_xy = function(x,y){
+	proto.setScaleXY = function(x,y){
 		this.scale.x = x; 
 		this.scale.y = y; 
 		return this;
 	};
-	proto.set_scale_fac = function(f){
+	proto.setScaleFac = function(f){
 		this.scale.x = f; 
 		this.scale.y = f; 
 		return this;
 	};
 
-	proto.set_rotation = function(rotation){
+	proto.setRotation = function(rotation){
 		this.rotation = rotation;
 		return this;
 	};
 
-	proto.set_rotation_deg = function(rotation){
-		this.rotation = rotation * deg2rad;
+	proto.setRotationDeg = function(rotation){
+		this.rotation = rotation * degToRad;
 		return this;
 	};
 
-	proto.get_pos = function(){
+	proto.getPos = function(){
 		return this.pos.clone();
 	};
 
-	proto.get_scale = function(){
+	proto.getScale = function(){
 		return this.scale.clone();
 	};
 
-	proto.get_rotation = function(){
+	proto.getRotation = function(){
 		return this.rotation;
 	};
 	
-	proto.get_rotation_deg = function(){
-		return this.rotation * rad2deg;
+	proto.getRotationDeg = function(){
+		return this.rotation * radToDeg;
 	};
 
-	proto.get_world_pos = function(){
-		return this.local_to_world(new Vec2());
+	proto.getWorldPos = function(){
+		return this.localToWorld(new Vec2());
 	};
 
-	proto.parent_to_local = function(vec){
+	proto.parentToLocal = function(vec){
 		return vec.sub(this.pos)
 			  .rotate(-this.rotation)
-			  .mult_xy(1.0/this.scale.x, 1.0/this.scale.y);
+			  .multXY(1.0/this.scale.x, 1.0/this.scale.y);
 	};
 
-	proto.world_to_local = function(vec){
+	proto.worldToLocal = function(vec){
 		if(this.parent){
-			return this.parent_to_local( this.parent.world_to_local(vec) );
+			return this.parentToLocal( this.parent.worldToLocal(vec) );
 		}else{
-			return this.parent_to_local(vec);
+			return this.parentToLocal(vec);
 		}
 	};
 
-	proto.local_to_parent = function(vec){
-		return vec.mult_xy(this.scale.x, this.scale.y)
+	proto.localToParent = function(vec){
+		return vec.multXY(this.scale.x, this.scale.y)
 			  .rotate(this.rotation)
 			  .add(this.pos);
 	};
 
-	proto.local_to_world = function(vec){
+	proto.localToWorld = function(vec){
 		if(this.parent){
-			return this.parent.local_to_world( this.local_to_parent(vec));
+			return this.parent.localToWorld( this.localToParent(vec));
 		}else{
-			return this.local_to_parent(vec);
+			return this.localToParent(vec);
 		}
 	};
-	proto.distant_to_local = function(dist_transform, vec){	//TODO Rotation, scale
-		var dist_pos = dist_transform.get_world_pos();
-		var pos = this.get_world_pos();
-		var local_pos = pos.sub(dist_pos);
+	proto.distantToLocal = function(distTransform, vec){	//TODO Rotation, scale
+		var distPos = distTransform.getWorldPos();
+		var pos = this.getWorldPos();
+		var localPos = pos.sub(distPos);
 		if(vec){
-			return local_pos.add(vec);
+			return localPos.add(vec);
 		}else{
-			return local_pos;
+			return localPos;
 		}
 	}
 
 
-	proto.add_child = function(tr){
+	proto.addChild = function(tr){
 		if(tr.parent != this){
-			tr.make_root();
+			tr.makeRoot();
 			tr.parent = this;
 			this.childs.push(tr);
 		}
 		return this;
 	};
 
-	proto.rem_child = function(tr){
+	proto.remChild = function(tr){
 		if(tr && tr.parent === this){
-			tr.make_root();
+			tr.makeRoot();
 		}
 		return this;
 	};
 
-	proto.get_child_count = function(){
+	proto.getChildCount = function(){
 		return this.childs.length;
 	};
 
-	proto.get_child = function(index){
+	proto.getChild = function(index){
 		return this.childs[index];
 	};
 
-	proto.get_root  = function(){
+	proto.getRoot  = function(){
 		if(this.parent){
-			return this.parent.get_root();
+			return this.parent.getRoot();
 		}else{
 			return this;
 		}
 	};
 
-	proto.make_root = function(){
+	proto.makeRoot = function(){
 		if(this.parent){
 			var pchilds = this.parent.childs;
 			for(var i = 0; i < pchilds.length; i++){
@@ -193,17 +191,17 @@
 		return this;
 	};
 
-	proto.is_leaf   = function(){ return this.childs.length === 0; };
+	proto.isLeaf   = function(){ return this.childs.length === 0; };
 
-	proto.is_root   = function(){ return !this.parent; };
+	proto.isRoot   = function(){ return !this.parent; };
 
 	proto.rotate = function(angle){ 
 		this.rotation += angle;
 		return this;
 	};
 
-	proto.rotate_deg = function(angle){
-		this.rotation += angle * deg2rad;
+	proto.rotateDeg = function(angle){
+		this.rotation += angle * degToRad;
 		return this;
 	};
 
@@ -213,39 +211,29 @@
 		return this;
 	};
 
-	proto.scale_xy = function(x,y){
+	proto.scaleXY = function(x,y){
 		this.scale.x *= x;
 		this.scale.y *= y;
 		return this;
 	};
 
-	proto.scale_fac = function(f){
+	proto.scaleFac = function(f){
 		this.scale.x *= f;
 		this.scale.y *= f;
 		return this;
 	};
 
-	proto.translate = function(delta_pos){
-		this.pos.x += delta_pos.x;
-		this.pos.y += delta_pos.y;
+	proto.translate = function(deltaPos){
+		this.pos.x += deltaPos.x;
+		this.pos.y += deltaPos.y;
 		return this;
 	};
 
-	proto.translate_xy = function(x,y){
+	proto.translateXY = function(x,y){
 		this.pos.x += x;
 		this.pos.y += y;
 		return this;
 	};
 
 })(window.modula);
-	
-
-
-	
-			
-			
-
-
-
-
 

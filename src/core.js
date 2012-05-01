@@ -2,17 +2,6 @@
 window.modula = window.modula || {};
 
 (function(modula){
-
-	modula.Core = {};
-
-	modula.require = function(loader, names){
-		for(var i = 1; i < arguments.length; i++){
-			if(!modula[arguments[i]]){
-				console.log("Missing Module, Could not find the "+arguments[i]+" module required by "+loader);
-			}
-		}
-		return modula;
-	};
 	
 	modula.use = function(){
 		if(arguments.length){
@@ -24,9 +13,7 @@ window.modula = window.modula || {};
 			}
 		}else{
 			for (var prop in modula){
-				if(	prop !== modula.core && 
-					prop !== modula.use &&
-					prop !== modula.require && 
+				if(	prop !== modula.use &&
 					prop !== modula.hasOwnProperty(prop)){
 					
 					window[prop] = modula[prop];
@@ -44,6 +31,10 @@ window.modula = window.modula || {};
 (function(){
 	var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
   	
+    function capitalizeFirstLetter(string){
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
 	// The base Class implementation
   	this.Class = function(){
 		
@@ -53,7 +44,8 @@ window.modula = window.modula || {};
 		//then it will try to find a field 'name'
 		//it returns undefined if everything fails
 		this.get = function(name){
-			var fun = 'get_'+name;
+            var Name = capitalizeFirstLetter(name);
+			var fun = 'get'+Name;
 			if(this[fun]){
 				return this[fun]();
 			}else{
@@ -85,7 +77,7 @@ window.modula = window.modula || {};
 					}
 				}
 			}else{
-				var fun = 'set_'+name;
+				var fun = 'set' + captalizeFirstLetter(name);
 				if(this[fun]){
 					this[fun](name,value);
 				}else{
@@ -99,22 +91,9 @@ window.modula = window.modula || {};
 		
 		//Returns true if the object has a field named 'name', readonly or not
 		this.has = function(name){
-			return this[name] || this['_'+name] || this['get_'+name] ;
-		};
-		
-		this.get_opt = function(options,name,default_value){
-			if(options && options[name]){
-				return options[name];
-			}
-			return default_value;
-		};
-		this.get_all_opt = function(options, defaults){
-			for ( opt in defaults ){
-				if(options.hasOwnProperty(opt)){
-					this[opt] = this.get_opt(options,opt,defaults[opt]);
-				}
-			}
-			return this;
+			return this[name] || 
+                   this['_'+name] || 
+                   this['get'+capitalizeFirstLetter(name)] ;
 		};
   	};
   

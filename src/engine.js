@@ -3,25 +3,17 @@ window.modula = window.modula || {};
 
 (function(modula){
 
-	modula.require('engine','Core','Vec2','Transform2');
-
 	var Vec2 = modula.Vec2;
 	var Mat2 = modula.Mat2;
 	var Transform2 = modula.Transform2;
 
 	var uid = 0;
 
-	function get_new_uid(){
+	function getNewUid(){
 		uid += 1;
 		return uid;
 	}
 
-	function get(params,field,default_value){
-		if(params && params[field]){
-			return params[field];
-		}
-		return default_value;
-	}
 	Object.prototype.remove = function(element){
 		delete this[element];
 		return this;
@@ -41,93 +33,93 @@ window.modula = window.modula || {};
 		init: function(options){
 			this.input = null;
 			this.scene = null;
-			this.scene_list = [];
+			this.sceneList = [];
 			this.rng = null;
 			this.running = false;
-			this.restart_time = -1;
+			this.restartTime = -1;
 			this.frame = 0;
 			this.time = 0;
-			this.time_millis = 0;
-			this.time_system = 0;
-			this.start_time = 0;
+			this.timeMillis = 0;
+			this.timeSystem = 0;
+			this.startTime = 0;
 			this.fps = options.fps || 60;
-			this.fixed_delta_time = 1 / this.fps;
-			this.delta_time = 1 / this.fps
+			this.fixedDeltaTime = 1 / this.fps;
+			this.deltaTime = 1 / this.fps
 			if(options.input){
-				this.set_input(options.input);
+				this.setInput(options.input);
 			}
 			if(options.scene){
-				this.add_scene(options.scene);
+				this.addScene(options.scene);
 			}
 		},
 			
 	
-		add_scene: function(scene){
+		addScene: function(scene){
 			scene.main = this;
-			this.scene_list.push(scene);
+			this.sceneList.push(scene);
 			if(!this.scene){
 				this.scene = scene;
 			}
 		},
-		set_input:	function(input){
+		setInput:	function(input){
 			this.input = input;
 			input.main = this;
 		},
-		set_fps:	function(fps){
+		setFps:	function(fps){
 			this.fps = fps;
-			this.fixed_delta_time = 1/fps;
-			this.delta_time = this.theoric_delta_time;
+			this.fixedDeltaTime = 1/fps;
+			this.deltaTime = this.theoricDeltaTime;
 		},
 		exit:		function(){
 			this.running = false;
 		},
-		run_start:	function(){
+		runStart:	function(){
 			var date = new Date();
 			this.running = true;
-			this.start_time = date.getTime();
+			this.startTime = date.getTime();
 			this.time = 0;
-			this.time_millis = 0;
-			this.time_system = date.getTime();
-			this.restart_time = -1;
+			this.timeMillis = 0;
+			this.timeSystem = date.getTime();
+			this.restartTime = -1;
 			this.frame = 0;
 		},
-		run_frame:	function(){
+		runFrame:	function(){
 			var date = new Date();
-			this.delta_time  = (date.getTime() - this.time_system) * 0.001;
-			this.time_system = date.getTime();
-			this.time_millis = this.time_system - this.start_time;
-			this.time = this.time_millis * 0.001;
+			this.deltaTime  = (date.getTime() - this.timeSystem) * 0.001;
+			this.timeSystem = date.getTime();
+			this.timeMillis = this.timeSystem - this.startTime;
+			this.time = this.timeMillis * 0.001;
 
 
 			if(this.input){
-				this.input.process_events();
+				this.input.processEvents();
 			}
-			for(i = 0; i < this.scene_list.length; i++){
-				this.scene = this.scene_list[i];
+			for(i = 0; i < this.sceneList.length; i++){
+				this.scene = this.sceneList[i];
 				var camera = this.scene.camera;
 				var renderer = this.scene.renderer;
 				if(!this.scene._started){
 					this.scene._started = true;
-					this.scene.on_scene_start();
+					this.scene.onSceneStart();
 				}
-				this.scene.on_frame_start();
+				this.scene.onFrameStart();
 				if(renderer){
-					renderer.draw_init(camera);
+					renderer.drawInit(camera);
 				}
 
-				this.scene.run_frame();
+				this.scene.runFrame();
 				
 				if(renderer){
-					renderer.draw_frame(this.scene,camera);
-					renderer.draw_end();
+					renderer.drawFrame(this.scene,camera);
+					renderer.drawEnd();
 				}
-				this.scene.on_frame_end();
+				this.scene.onFrameEnd();
 			}
 		
 			this.frame += 1;
 
 		},
-		run_end: function(){
+		runEnd: function(){
 		},
 		run: function(){
 			var self = this;
@@ -135,20 +127,20 @@ window.modula = window.modula || {};
 				return;
 			}
 			self.running = true;
-			self.run_start();
+			self.runStart();
 
 			(function loop(){
-				if(self.running && (self.restart_time < 0 || self.time < self.restart_time)){
-					self.run_frame();
-					var elapsed_time_millis = ((new Date).getTime() - self.time_system);
-					var wait_time = (self.fixed_delta_time * 1000) - elapsed_time_millis;
-					if(wait_time < 0){
-						wait_time = 0;
+				if(self.running && (self.restartTime < 0 || self.time < self.restartTime)){
+					self.runFrame();
+					var elapsedTimeMillis = ((new Date).getTime() - self.timeSystem);
+					var waitTime = (self.fixedDeltaTime * 1000) - elapsedTimeMillis;
+					if(waitTime < 0){
+						waitTime = 0;
 					}
-					setTimeout(loop,wait_time);
+					setTimeout(loop,waitTime);
 					//webkitRequestAnimationFrame(loop);
 				}else{
-					self.run_end();
+					self.runEnd();
 					if(self.running){
 						self.run();
 					}
@@ -156,30 +148,30 @@ window.modula = window.modula || {};
 			})();
 		},
 		restart:	function(delay){
-			this.restart_time = this.time;
+			this.restartTime = this.time;
 		},
 	});
 
 	modula.Input = modula.Class.extend({
 		init: function(selector){
 			var self = this;
-			this._mouse_status = 'out'; // 'out' | 'over' | 'entering' | 'leaving'
-			this._mouse_status_previous = 'out';
-			this._mouse_status_system = 'out';
+			this._mouseStatus = 'out'; // 'out' | 'over' | 'entering' | 'leaving'
+			this._mouseStatusPrevious = 'out';
+			this._mouseStatusSystem = 'out';
 
-			this._mouse_pos_system = new Vec2();
-			this._mouse_pos = new Vec2();
-			this._mouse_pos_previous = new Vec2();
-			this._mouse_pos_delta = new Vec2();
+			this._mousePosSystem = new Vec2();
+			this._mousePos = new Vec2();
+			this._mousePosPrevious = new Vec2();
+			this._mousePosDelta = new Vec2();
 
-			this._mouse_drag_pos = new Vec2();
-			this._mouse_drag_delta_pos = new Vec2();
-			this._mouse_drag = 'no'; // 'no' | 'dragging' | 'drag_start' | 'drag_end'
-			this._mouse_events = [];
+			this._mouseDragPos = new Vec2();
+			this._mouseDragDeltaPos = new Vec2();
+			this._mouseDrag = 'no'; // 'no' | 'dragging' | 'dragStart' | 'dragEnd'
+			this._mouseEvents = [];
 
-			this._key_status = {}; // 'up' | 'down' | 'press' | 'release' , undefined == 'up'
-			this._key_update_time = {};
-			this._key_events = [];
+			this._keyStatus = {}; // 'up' | 'down' | 'press' | 'release' , undefined == 'up'
+			this._keyUpdateTime = {};
+			this._keyEvents = [];
 
 			this._alias = {};
 			this.main   = null;
@@ -187,160 +179,160 @@ window.modula = window.modula || {};
 			var $elem = $(selector);
 			
 			$elem.keyup(function(e){
-				self._key_events.push({type:'up', key: String.fromCharCode(e.which).toLowerCase()});
+				self._keyEvents.push({type:'up', key: String.fromCharCode(e.which).toLowerCase()});
 			});
 			$elem.keydown(function(e){
-				self._key_events.push({type:'down', key: String.fromCharCode(e.which).toLowerCase()});
+				self._keyEvents.push({type:'down', key: String.fromCharCode(e.which).toLowerCase()});
 			});
 			
-			function relative_mouse_coords(dom_element,event){
-				var total_offset_x = 0;
-				var total_offset_y = 0;
+			function relativeMouseCoords(domElement,event){
+				var totalOffsetX = 0;
+				var totalOffsetY = 0;
 				
 				do{
-					total_offset_x += dom_element.offsetLeft;
-					total_offset_y += dom_element.offsetTop;
-				}while((dom_element = dom_element.offsetParent));
+					totalOffsetX += domElement.offsetLeft;
+					totalOffsetY += domElement.offsetTop;
+				}while((domElement = domElement.offsetParent));
 				
 				return new Vec2(
-					event.pageX - total_offset_x,
-					event.pageY - total_offset_y );
+					event.pageX - totalOffsetX,
+					event.pageY - totalOffsetY );
 			}
-			function event_mousemove(event){
-				self._mouse_pos_system = relative_mouse_coords(this,event);
-			}
-			
-			$elem[0].addEventListener('mousemove',event_mousemove,false);
-			
-			function event_mouseover(event){
-				self._mouse_status_system = 'over';
+			function eventMousemove(event){
+				self._mousePosSystem = relativeMouseCoords(this,event);
 			}
 			
-			$elem[0].addEventListener('mouseover',event_mouseover,false);
+			$elem[0].addEventListener('mousemove',eventMousemove,false);
+			
+			function eventMouseover(event){
+				self._mouseStatusSystem = 'over';
+			}
+			
+			$elem[0].addEventListener('mouseover',eventMouseover,false);
 
-			function event_mouseout(event){
-				self._mouse_status_system = 'out';
+			function eventMouseout(event){
+				self._mouseStatusSystem = 'out';
 			}
-			$elem[0].addEventListener('mouseout',event_mouseout,false);
+			$elem[0].addEventListener('mouseout',eventMouseout,false);
 			
-			function event_mousedown(event){
-				self._key_events.push({type:'down', key:'mouse'+event.button});
+			function eventMousedown(event){
+				self._keyEvents.push({type:'down', key:'mouse'+event.button});
 
 			}
-			$elem[0].addEventListener('mousedown',event_mousedown,false);
+			$elem[0].addEventListener('mousedown',eventMousedown,false);
 
-			function event_mouseup(event){
-				self._key_events.push({type:'up', key:'mouse'+event.button});
+			function eventMouseup(event){
+				self._keyEvents.push({type:'up', key:'mouse'+event.button});
 			}
-			$elem[0].addEventListener('mouseup',event_mouseup,false);
+			$elem[0].addEventListener('mouseup',eventMouseup,false);
 			
 		},
-		process_events: function(){
-			var time = this.main.time_system;
+		processEvents: function(){
+			var time = this.main.timeSystem;
 			
-			for(var i = 0; i < this._key_events.length; i++){
-				var e =  this._key_events[i];
-				var previous = this._key_status[e.key];
+			for(var i = 0; i < this._keyEvents.length; i++){
+				var e =  this._keyEvents[i];
+				var previous = this._keyStatus[e.key];
 				if(e.type === 'up'){
 					if(previous === 'down' || previous === 'press'){
-						this._key_status[e.key] = 'release';
+						this._keyStatus[e.key] = 'release';
 					}else{
-						this._key_status[e.key] = 'up';
+						this._keyStatus[e.key] = 'up';
 					}
 				}else if(e.type === 'down'){
 					if(previous !== 'down'){
-						this._key_status[e.key] = 'press';
+						this._keyStatus[e.key] = 'press';
 					}
 					if(previous === 'press'){
-						this._key_status[e.key] = 'down';
+						this._keyStatus[e.key] = 'down';
 					}
 				}
-				this._key_update_time[e.key] = time;
+				this._keyUpdateTime[e.key] = time;
 			}
-			for(key in this._key_status){
-				if(this._key_update_time[key] === undefined || this._key_update_time[key] < time ){
-					var status = this._key_status[key];
+			for(key in this._keyStatus){
+				if(this._keyUpdateTime[key] === undefined || this._keyUpdateTime[key] < time ){
+					var status = this._keyStatus[key];
 					if(status === 'press'){
-						this._key_status[key] = 'down';
+						this._keyStatus[key] = 'down';
 					}else if(status === 'release'){
-						this._key_status[key] = 'up';
+						this._keyStatus[key] = 'up';
 					}
-					this._key_update_time[key] = time;
+					this._keyUpdateTime[key] = time;
 				}
 			}
-			this._key_events = [];
+			this._keyEvents = [];
 
-			this._mouse_pos_previous = this._mouse_pos || new Vec2();
-			this._mouse_pos = this._mouse_pos_system || new Vec2();
-			this._mouse_pos_delta = this._mouse_pos.sub(this._mouse_pos_previous);
+			this._mousePosPrevious = this._mousePos || new Vec2();
+			this._mousePos = this._mousePosSystem || new Vec2();
+			this._mousePosDelta = this._mousePos.sub(this._mousePosPrevious);
 			
-			this._mouse_status_previous = this._mouse_status;
-			if(this._mouse_status_system === 'over'){
-				if(this._mouse_status === 'out' || this._mouse_status === 'leaving'){
-					this._mouse_status = 'entering';
+			this._mouseStatusPrevious = this._mouseStatus;
+			if(this._mouseStatusSystem === 'over'){
+				if(this._mouseStatus === 'out' || this._mouseStatus === 'leaving'){
+					this._mouseStatus = 'entering';
 				}else{ // over || entering
-					this._mouse_status = 'over';
+					this._mouseStatus = 'over';
 				}
 			}else{ //out
-				if(this._mouse_status === 'over' || this._mouse_status === 'entering'){
-					this._mouse_status = 'leaving';
+				if(this._mouseStatus === 'over' || this._mouseStatus === 'entering'){
+					this._mouseStatus = 'leaving';
 				}else{	// leaving || out
-					this._mouse_status = 'out';
+					this._mouseStatus = 'out';
 				}
 			}
 		},
 
-		/* key: a,b,c,...,y,z,1,2,..0,!,@,$,...,
+		/* key: a,b,c,...,y,z,1,2,..0,!,	_,$,...,
 		 * 'left','right','up','down','space',
 		 * 'alt','shift','left-shift','right-shift','ctrl','super',
 		 * 'f1','f2','enter','esc','insert','delete','home','end',
 		 * 'pageup','pagedown'
-		 * 'mouse_x','mouse-left','mouse-right','mouse-middle','scroll-up','scroll-down'
+		 * 'mouseX','mouse-left','mouse-right','mouse-middle','scroll-up','scroll-down'
 		 */
 
-		is_key_pressing : function(key){
-			key = this.get_alias(key);
-			return this._key_status[key] === 'press';
+		isKeyPressing : function(key){
+			key = this.getAlias(key);
+			return this._keyStatus[key] === 'press';
 		},
-		is_key_releasing : function(key){
-			key = this.get_alias(key);
-			return this._key_status[key] === 'release';
+		isKeyReleasing : function(key){
+			key = this.getAlias(key);
+			return this._keyStatus[key] === 'release';
 		},
-		is_key_down: function(key){
-			key = this.get_alias(key);
-			var s = this._key_status[key];
+		isKeyDown: function(key){
+			key = this.getAlias(key);
+			var s = this._keyStatus[key];
 			return s === 'down' || s === 'press';
 		},
-		is_key_up: function(key){
-			key = this.get_alias(key);
-			var s = this._key_status[key];
+		isKeyUp: function(key){
+			key = this.getAlias(key);
+			var s = this._keyStatus[key];
 			return s === undefined || s === 'up' || s === 'release';
 		},
 
-		is_mouse_over: function(){
-			return this._mouse_status === 'over' || this._mouse_status === 'entering';
+		isMouseOver: function(){
+			return this._mouseStatus === 'over' || this._mouseStatus === 'entering';
 		},
-		is_mouse_entering: function(){
-			return this._mouse_status === 'entering';
+		isMouseEntering: function(){
+			return this._mouseStatus === 'entering';
 		},
-		is_mouse_leaving: function(){
-			return this._mouse_status === 'leaving';
+		isMouseLeaving: function(){
+			return this._mouseStatus === 'leaving';
 		},
-		get_mouse_scroll: function(){
-			if ( this.is_key_down('scroll-up')){
+		getMouseScroll: function(){
+			if ( this.isKeyDown('scroll-up')){
 				return 1;
-			}else if (this.is_key_down('scroll-down')){
+			}else if (this.isKeyDown('scroll-down')){
 				return -1;
 			}
 			return 0;
 		},
-        get_mouse_pos: function(){
-            return this._mouse_pos;
+        getMousePos: function(){
+            return this._mousePos;
         },
-		set_alias: function(action,key){
+		setAlias: function(action,key){
 			this._alias[action] = key;
 		},
-		get_alias: function(alias){
+		getAlias: function(alias){
 			while(alias in this._alias){
 				alias = this._alias[alias];
 			}
@@ -352,26 +344,26 @@ window.modula = window.modula || {};
         scene: null,
         main: null, 
 		transform : new Transform2(),
-        on_update : function(){},
-        get_mouse_world_pos: function(){
+        onUpdate : function(){},
+        getMouseWorldPos: function(){
             if(!this.main || !this.main.input){
                 return new Vec2();
             }
-            var mpos = this.main.input.get_mouse_pos();
+            var mpos = this.main.input.getMousePos();
             if(this.scene.renderer){
-                mpos = mpos.sub(this.scene.renderer.get_size().scale(0.5));
+                mpos = mpos.sub(this.scene.renderer.getSize().scale(0.5));
             }
-            mpos = this.transform.local_to_world(mpos);
+            mpos = this.transform.localToWorld(mpos);
             return mpos;
         },
 	});
 
 	modula.Renderer = modula.Class.extend({
-		render_background: function(){},
-        get_size  : function(){},
-		draw_init: function(camera){},
-		draw_frame: function(scene,camera){},
-		draw_end: function(){},
+		renderBackground: function(){},
+        getSize  : function(){},
+		drawInit: function(camera){},
+		drawFrame: function(scene,camera){},
+		drawEnd: function(){},
 	});
 	
 	modula.Renderer.Drawable = modula.Class.extend({
@@ -380,19 +372,20 @@ window.modula = window.modula || {};
 	
 	modula.RendererCanvas2d = modula.Renderer.extend({
 		init: function(options){
-			this.canvas = this.get_opt(options,'canvas',undefined);
+            options = options || {};
+			this.canvas = options.canvas; 
 			if(!this.canvas){ console.log('ERROR: please provide a canvas!'); }
 			this.context = this.canvas.getContext('2d');
-			this.background = this.get_opt(options,'background',undefined);
-			this.globalCompositeOperation = this.get_opt(options,'globalCompositeOperation','source-over');
-			this.globalAlpha = this.get_opt(options,'globalAlpha',1);
+			this.background = options.background;
+			this.globalCompositeOperation = options.globalCompositeOperation || 'source-over'; 
+			this.globalAlpha = options.globalAlpha || 1; 
 		},
-		get_size: function(){
+		getSize: function(){
 			return new Vec2(this.canvas.width, this.canvas.height);
 		},
-		draw_init: function(camera){
+		drawInit: function(camera){
 			if(modula.draw){
-				modula.draw.set_context(this.context);
+				modula.draw.setContext(this.context);
 			}
 			this.context.save();
 			this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -411,12 +404,12 @@ window.modula = window.modula || {};
                 this.context.rotate(-camera.transform.rotation);
             }
 		},
-		draw_end: function(){
+		drawEnd: function(){
 			context.restore();
 		},
-		draw_frame: function(scene,camera){
+		drawFrame: function(scene,camera){
 			
-			function draw_entity(ent){
+			function drawEntity(ent){
 				this.context.save();
 				this.context.translate(ent.transform.pos.x, ent.transform.pos.y);
 				this.context.scale(ent.transform.scale.x, ent.transform.scale.y);
@@ -425,34 +418,35 @@ window.modula = window.modula || {};
 					if(ent.drawable){
 						ent.drawable.draw(this,ent);
 					}
-					ent.on_draw_local();
+					ent.onDrawLocal();
 				}
-				if(ent.render_childs){
-					for(var i = 0, len = ent.get_child_count(); i < len; i++){
-						draw_entity(ent.get_child(i));
+				if(ent.renderChilds){
+					for(var i = 0, len = ent.getChildCount(); i < len; i++){
+						drawEntity(ent.getChild(i));
 					}
 				}
 				this.context.restore();
 			}
 			
-			for(var i = 0, len = scene._root_entity_list.length; i < len; i++){
-				var ent = scene._root_entity_list[i];
-				draw_entity(ent);
+			for(var i = 0, len = scene._rootEntityList.length; i < len; i++){
+				var ent = scene._rootEntityList[i];
+				drawEntity(ent);
 			}
-			for(var i = 0, len = scene._entity_list.length; i < len; i++){
-				scene._entity_list[i].on_draw_global();
+			for(var i = 0, len = scene._entityList.length; i < len; i++){
+				scene._entityList[i].onDrawGlobal();
 			}
 		},
 	});
 	
 	modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable.extend({
 		init: function(options){
+            options = options || {};
 			this.z     = options.z || 0;	
-			this.image = this.get_opt(options,'image',null);
+			this.image = options.image || null;
 	
-			this.alpha = this.get_opt(options,'alpha',undefined);
-			this.globalCompositeOperation = this.get_opt(options,'globalCompositeOperation',undefined);
-			this.src   = this.get_opt(options,'src',undefined);
+			this.alpha = options.alpha;
+			this.globalCompositeOperation = options.globalCompositeOperation;
+			this.src   = options.src;
 			
 			if(this.src === undefined){
 				this.src = this.image.src;
@@ -461,8 +455,8 @@ window.modula = window.modula || {};
 				this.image.src = this.src;
 			}
 			
-			this.pos   = this.get_opt(options,'pos',new Vec2());
-			this.pos   = this.pos.add_xy(-this.image.width/2,-this.image.height/2);
+			this.pos   = options.pos || new Vec2(); 
+			this.pos   = this.pos.addXY(-this.image.width/2,-this.image.height/2);
 		},
 		clone: function(){
 			var r = new modula.RendererCanvas2d.DrawableSprite({image:this.image});
@@ -486,22 +480,23 @@ window.modula = window.modula || {};
 	});
 	
 	modula.Scene = modula.Class.extend({
-		init: function(params){
+		init: function(options){
+            options = options || {};
 			this._started = false;
-			this._entity_list = [];
-			this._root_entity_list = [];
-			this._new_entity_list = [];
-			this._destroyed_entity_list = [];
+			this._entityList = [];
+			this._rootEntityList = [];
+			this._newEntityList = [];
+			this._destroyedEntityList = [];
 
-			this._entity_by_uid = {};
-			this._entity_by_name = {};
-			this._entity_by_class = {};
-			this.camera = get(params,'camera',null);
-			this.renderer = get(params,'renderer',null);
-			this.name = get(params,'name',"Scene"+get_new_uid());
+			this._entityByUid = {};
+			this._entityByName = {};
+			this._entityByClass = {};
+			this.camera = options.camera || null; 
+			this.renderer = options.renderer || null;
+			this.name = options.name || 'Scene'+getNewUid();
 			this.main = null;
 
-			this.sequence = get(params,'sequence',[
+			this.sequence = options.sequence || [
 				'new',
 				'update',
 				'remove',
@@ -509,126 +504,126 @@ window.modula = window.modula || {};
 				'collisions',
 				'remove',
 				'draw',
-				]);
+				];
 		},
-		add_ent: function(ent){
+		addEnt: function(ent){
 			if(ent.main && ent.main !== this.main){
 				return;
 			}else if(this.main){
 				ent.main = this.main;
 			}
-			if(!ent.get('scene_list').contains(this)){
-				this._new_entity_list.push(ent);
-				this._entity_by_uid[ent.get('uid')] = ent;
+			if(!ent.get('sceneList').contains(this)){
+				this._newEntityList.push(ent);
+				this._entityByUid[ent.get('uid')] = ent;
 				var name = ent.get('name');
-				if(!(name in this._entity_by_name)){
-					this._entity_by_name[name] = [ent];
+				if(!(name in this._entityByName)){
+					this._entityByName[name] = [ent];
 				}else{
-					this._entity_by_name[name].push(ent);
+					this._entityByName[name].push(ent);
 				}
 				//TODO Class
 			}
-			if(!ent.is_leaf()){
-				for(var i = 0; i < ent.get_child_count(); i++){
-					this.add_ent(ent.get_child(i));
+			if(!ent.isLeaf()){
+				for(var i = 0; i < ent.getChildCount(); i++){
+					this.addEnt(ent.getChild(i));
 				}
 			}
 		},
-		rem_ent : function(ent){
-			if(!ent.is_leaf()){
-				for(var i = 0; i < ent.get_child_count(); i++){
-					this.rem_ent(ent.get_child(i));
+		remEnt : function(ent){
+			if(!ent.isLeaf()){
+				for(var i = 0; i < ent.getChildCount(); i++){
+					this.remEnt(ent.getChild(i));
 				}
 			}
-			if(!ent.get('scene_list').contains(this)){
-				this._new_entity_list.remove(ent);
-				this._entity_list.remove(ent);
-				this._entity_by_uid.remove(ent.get('uid'));
-				var s = this._entity_by_name[ent.get('name')];
+			if(!ent.get('sceneList').contains(this)){
+				this._newEntityList.remove(ent);
+				this._entityList.remove(ent);
+				this._entityByUid.remove(ent.get('uid'));
+				var s = this._entityByName[ent.get('name')];
 				s.remove(ent);
 				if(s.length == 0){
-					this._entity_by_name.remove(ent.get('name'));
+					this._entityByName.remove(ent.get('name'));
 				}
-				if(ent.is_root()){
-					this._root_entity_list.remove(ent);
+				if(ent.isRoot()){
+					this._rootEntityList.remove(ent);
 				}
-				e._scene_list.remove(this);
+				e._sceneList.remove(this);
 			}
 		},
-		get_ent_by_uid : function(uid){
-			return this._entity_by_uid[ent.get('uid')];
+		getEntByUid : function(uid){
+			return this._entityByUid[ent.get('uid')];
 		},
-		get_ent_by_name : function(name){
-			var s = this._entity_by_name[ent.get('name')];
+		getEntByName : function(name){
+			var s = this._entityByName[ent.get('name')];
 			if(s && s.length){
 				return s[0];
 			}else{
 				return undefined;
 			}
 		},
-		get_all_ent_by_name : function(name){
-			return this._entity_by_name[ent.get('name')] || [];
+		getAllEntByName : function(name){
+			return this._entityByName[ent.get('name')] || [];
 		},
-		get_all_ent_by_class : function(klass){
+		getAllEntByClass : function(klass){
 		},
-		get_all_ent : function(){
-			return this._entity_list;
+		getAllEnt : function(){
+			return this._entityList;
 		},
-		get_all_root_ent : function(){
-			return this._root_entity_list;
+		getAllRootEnt : function(){
+			return this._rootEntityList;
 		},
-		_ent_update : function(ent){
+		_entUpdate : function(ent){
 			if(ent.active){
 				if(ent._state === 'new'){
 					ent._state = 'alive';
-					ent._current_frame = this.main.frame;
-					ent.on_first_update();
-					ent.on_update();
-				}else if(ent._current_frame != this.main.frame){
-					ent._current_frame = this.main.frame;
-					ent.on_update();
+					ent._currentFrame = this.main.frame;
+					ent.onFirstUpdate();
+					ent.onUpdate();
+				}else if(ent._currentFrame != this.main.frame){
+					ent._currentFrame = this.main.frame;
+					ent.onUpdate();
 				}
 			}
 			//update child entities too !
-			if(!ent.is_leaf()){
-				for(var i = 0; i < ent.get_child_count();i++){
-					this._ent_update(ent.get_child(i));
+			if(!ent.isLeaf()){
+				for(var i = 0; i < ent.getChildCount();i++){
+					this._entUpdate(ent.getChild(i));
 				}
 			}
 		},
-		run_frame : function(){
+		runFrame : function(){
             
             // Update the camera
             if(this.camera){
                 this.camera.scene = this;
                 this.camera.main  = this.main;
-                this.camera.on_update();
+                this.camera.onUpdate();
             }
 
-			// Adding new entities to the entity_list.
-			for(var i = 0, len = this._new_entity_list.length; i < len; i++){
-				var ent = this._new_entity_list[i];
-				this._entity_list.push(ent);
-				if(ent.is_root()){
-					this._root_entity_list.push(ent);
+			// Adding new entities to the entityList.
+			for(var i = 0, len = this._newEntityList.length; i < len; i++){
+				var ent = this._newEntityList[i];
+				this._entityList.push(ent);
+				if(ent.isRoot()){
+					this._rootEntityList.push(ent);
 				}
-				if(ent.start_time < 0){
-					ent.start_time = this.main.time;
+				if(ent.startTime < 0){
+					ent.startTime = this.main.time;
 				}
 				if(!ent.main){
 					ent.main = this.main;
 				}
 				//FIXME make it alive and set current frame ? see J2D
 			}
-			this._new_entity_list = [];
+			this._newEntityList = [];
 
 			// Updating all entities. root entities updates their childs so that 
 			// they dont update after their childs
-			for(var i = 0, len = this._root_entity_list.length; i < len; i++){
-				var ent = this._root_entity_list[i];
+			for(var i = 0, len = this._rootEntityList.length; i < len; i++){
+				var ent = this._rootEntityList[i];
 				if(ent._state !== 'destroyed'){
-					this._ent_update(ent);
-					if(ent._destroy_time && ent._destroy_time <= this.main.time){
+					this._entUpdate(ent);
+					if(ent._destroyTime && ent._destroyTime <= this.main.time){
 						ent.destroy();
 					}
 				}
@@ -637,17 +632,17 @@ window.modula = window.modula || {};
 			//Applying physics TODO
 			
 			//Applying collisions FIXME: Slow, TODO: port optiomisations from J2D
-			for(var i = 0, len = this._root_entity_list.length; i < len; i++){
-				var e = this._root_entity_list[i];
+			for(var i = 0, len = this._rootEntityList.length; i < len; i++){
+				var e = this._rootEntityList[i];
 				//only emitters send collision events
-				if( e.collision_behaviour === 'emit' || e.collision_behaviour === 'both'){
+				if( e.collisionBehaviour === 'emit' || e.collisionBehaviour === 'both'){
 					for(var j = 0; j < len; j++){
-						var r = this._root_entity_list[j];
+						var r = this._rootEntityList[j];
 						//only receivers receive collision events
-						if( (r !== e) && (r.collision_behaviour === 'receive' || e.collision_behaviour === 'both') ){
+						if( (r !== e) && (r.collisionBehaviour === 'receive' || e.collisionBehaviour === 'both') ){
 							if( e.collides(r) ){
-								e.on_collision_emit(r);
-								r.on_collision_receive(e);
+								e.onCollisionEmit(r);
+								r.onCollisionReceive(e);
 							}
 						}
 					}
@@ -655,151 +650,141 @@ window.modula = window.modula || {};
 			}							
 						
 			//Destroying entities
-			for(var i = 0,len = this._entity_list.length; i < len; i++){
-				var ent = this._entity_list[i];
+			for(var i = 0,len = this._entityList.length; i < len; i++){
+				var ent = this._entityList[i];
 				if(ent._state === "destroyed"){
-					this._destroyed_entity_list.push(ent);
+					this._destroyedEntityList.push(ent);
 				}
 			}
-			for(var i = 0,len = this._destroyed_entity_list.length; i < len; i++){
-				var ent = this._destroyed_entity_list[i];
-				this._entity_list.remove(ent);
-				if(ent.is_root()){
-					this._root_entity_list.remove(ent);
+			for(var i = 0,len = this._destroyedEntityList.length; i < len; i++){
+				var ent = this._destroyedEntityList[i];
+				this._entityList.remove(ent);
+				if(ent.isRoot()){
+					this._rootEntityList.remove(ent);
 				}
-				ent.on_destroy();
+				ent.onDestroy();
 			}
-			this._destroyed_entity_list = [];
+			this._destroyedEntityList = [];
 		},
-		_ent_draw : function(ent){},
+		_entDraw : function(ent){},
 		draw : function(){},
-		on_frame_start: function(){},
-		on_frame_end:   function(){},
-		on_scene_start: function(){},
-		on_scene_end:   function(){},
+		onFrameStart: function(){},
+		onFrameEnd:   function(){},
+		onSceneStart: function(){},
+		onSceneEnd:   function(){},
 	});
 
 
 
 
 	modula.Ent = modula.Class.extend({ 
-		init: function( attrs ){
-			this._uid = get_new_uid();
+		init: function( options ){
+            options = options || {};
+			this._uid = getNewUid();
 			this._state = 'new';
-			this._current_frame = 0;
-			this._destroy_time = get(attrs,'duration')	|| Number.MAX_VALUE; // TODO correct delay
-			this._scene_list   = get(attrs,'scene') ? [attrs.scene] : [];
-			this._transform    = get(attrs,'transform') || new modula.Transform2();
-			this.transform	   = this._transform;	//readonly
+			this._currentFrame = 0;
+			this._destroyTime = options.duration || Number.MAX_VALUE; // TODO correct delay
+			this._sceneList   =  options.scene ? [options.scene] : [];
+			this.transform    = options.transform || new modula.Transform2();
 			this.transform.ent = this;
-			this.transform.pos = get(attrs,'pos',this.transform.pos);
+			this.transform.pos = options.pos || this.transform.pos; 
 			
-			this.collision_behaviour = get(attrs,'collision_behaviour', 'none');	// none, receiver, emitter, both
-			this.name	= get(attrs,'name', "Ent_"+this._uid);
-			this.active = get(attrs,'active',true);
-			this.render = get(attrs,'render',true);
-			this.render_childs = get(attrs,'render_childs',true);
-			this.bound	= get(attrs,'bound',undefined);
-			this.drawable = get(attrs,'drawable',undefined);
-			this.start_time = -1; // todo modula.main.time;
+			this.collisionBehaviour = options.collisionBehaviour || 'none';
+			this.name	= options.name || 'Ent'+this._uid;
+			this.active = options.active || true;
+			this.render = options.render || true;
+			this.renderChilds = options.renderChilds || true;
+			this.bound	= options.bound || undefined;
+			this.drawable = options.drawable || undefined;
+			this.startTime = -1; // todo modula.main.time;
 			this.main = null;
 		},
-		set_transform: function(tr){
-			this._transform.ent = undefined;
-			this._transform = tr;
-			this._transform.ent = this;
-			this.transform = this._transform;
+		isLeaf : function(){
+			return this.transform.isLeaf();
+		},
+		isRoot : function(){
+			return this.transform.isRoot();
+		},
+		addChild: function(ent){
+			this.transform.addChild(ent.transform);
 			return this;
 		},
-		get_transform: function(){
-			return this.transform;
-		},
-		is_leaf : function(){
-			return this.transform.is_leaf();
-		},
-		is_root : function(){
-			return this.transform.is_root();
-		},
-		add_child: function(ent){
-			this.transform.add_child(ent.transform);
+		remChild: function(ent){
+			this.transform.remChild(ent.transform);
 			return this;
 		},
-		rem_child: function(ent){
-			this.transform.rem_child(ent.transform);
-			return this;
-		},
-		get_child: function(index){
-			var tr = this.transform.get_child(index);
+		getChild: function(index){
+			var tr = this.transform.getChild(index);
 			return tr ? tr.ent : undefined;
 		},
-		get_child_count: function(){
-			return this.transform.get_child_count();
+		getChildCount: function(){
+			return this.transform.getChildCount();
 		},
-		set_active_recursively: function(active){
+		setActiveRecursively: function(active){
 			this.active = active;
-			for(var i = 0; i < this.transform.get_child_count(); i++){
-				this.transform.get_child(i).ent.set_active_recursively(active);
+			for(var i = 0; i < this.transform.getChildCount(); i++){
+				this.transform.getChild(i).ent.setActiveRecursively(active);
 			}
 			return this;
 		},
 		destroy: function(delay){
 			if(delay){
-				this._destroy_time = Math.min(this._destroy_time, this.main.time + delay);
-				for(var i = 0; i < this.transform.get_child_count(); i++){
-					this.transform.get_child(i).ent.destroy(delay);
+				this._destroyTime = Math.min(this._destroyTime, this.main.time + delay);
+				for(var i = 0; i < this.transform.getChildCount(); i++){
+					this.transform.getChild(i).ent.destroy(delay);
 				}
 			}else if(this._state !== "destroyed"){
 				this._state = "destroyed";
-				for(var i = 0; i < this.transform.get_child_count(); i++){
-					this.transform.get_child(i).ent.destroy();
+				for(var i = 0; i < this.transform.getChildCount(); i++){
+					this.transform.getChild(i).ent.destroy();
 				}
 			}
 			return this; 
 		},
-		get_time_before_destruction: function(){ 
-			if(this._destroy_time < Number.MAX_VALUE){
-				return this._destroy_time - this.main.time;
+		getTimeBeforeDestruction: function(){ 
+			if(this._destroyTime < Number.MAXvALUE){
+				return this._destroyTime - this.main.time;
 			}else{
-				return Number.MAX_VALUE;
+				return Number.MAXvALUE;
 			}
 		},
-		is_destroyed: function(){
+		isDestroyed: function(){
 			return this._state === "destroyed"; 
 		},
 		collides: function(ent){
-			var epos = this.transform.distant_to_local(ent.transform);
-			//var epos = ent.transform.get_world_pos();
-			//var epos = epos.sub(this.transform.get_world_pos());
+			var epos = this.transform.distantToLocal(ent.transform);
+			//var epos = ent.transform.getWorldPos();
+			//var epos = epos.sub(this.transform.getWorldPos());
 			if(ent.bound){
-				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
+				var ebound = ent.bound.cloneAt(epos.addXY(ent.bound.cx, ent.bound.cy));
 				return this.bound.collides(ebound);
 			}else{
 				return this.contains(epos);
 			}
 		},
-		collision_vector: function(ent){
-			var epos = this.transform.distant_to_local(ent.transform);
+		collisionVector: function(ent){
+			var epos = this.transform.distantToLocal(ent.transform);
 			if(ent.bound){
-				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
-				return this.bound.collision_vector(ebound);
+				var ebound = ent.bound.cloneAt(epos.addXY(ent.bound.cx, ent.bound.cy));
+				return this.bound.collisionVector(ebound);
 			}
 			return new Vec2();
 		},
-		collision_axis: function(ent){
-			var epos = this.transform.distant_to_local(ent.transform);
+		collisionAxis: function(ent){
+			var epos = this.transform.distantToLocal(ent.transform);
 			if(ent.bound){
-				var ebound = ent.bound.clone_at(epos.add_xy(ent.bound.cx, ent.bound.cy));
-				return this.bound.collision_axis(ebound);
+				var ebound = ent.bound.cloneAt(epos.addXY(ent.bound.cx, ent.bound.cy));
+				return this.bound.collisionAxis(ebound);
 			}
 			return new Vec2();
 		},
-		on_first_update: function(){},
-		on_update: function(){},
-		on_destroy: function(){},
-		on_draw_local: function(){},
-		on_draw_global: function(){},
-		on_collision_emit: function(ent){},
-		on_collision_receive: function(ent){},
+		onFirstUpdate: function(){},
+		onUpdate: function(){},
+		onDestroy: function(){},
+		onDrawLocal: function(){},
+		onDrawGlobal: function(){},
+		onCollisionEmit: function(ent){},
+		onCollisionReceive: function(ent){},
 	});
 
 })(window.modula);
