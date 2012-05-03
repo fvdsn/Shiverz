@@ -13,22 +13,13 @@ window.modula = window.modula || {};
 		uid += 1;
 		return uid;
 	}
-
-	Object.prototype.remove = function(element){
-		delete this[element];
-		return this;
-	};
-	Object.prototype.contains = function(element){
-		return element in this;
-	};
-	Array.prototype.remove = function(element){
-		this.splice(this.indexOf(element),1);
-		return this;
-	};
-	Array.prototype.contains = function(element){
-		return this.indexOf(element) >= 0;
-	};
-
+	function array_remove(array, element){
+		array.splice(array.indexOf(element),1);
+		return array;
+	}
+	function array_contains(array, element){
+		return array.indexOf(element) >= 0;
+	}
 	modula.Main = modula.Class.extend({
 		init: function(options){
 			this.input = null;
@@ -512,7 +503,7 @@ window.modula = window.modula || {};
 			}else if(this.main){
 				ent.main = this.main;
 			}
-			if(!ent.get('sceneList').contains(this)){
+			if(!array_contains(ent.get('sceneList'),this)){
 				this._newEntityList.push(ent);
 				this._entityByUid[ent.get('uid')] = ent;
 				var name = ent.get('name');
@@ -535,19 +526,19 @@ window.modula = window.modula || {};
 					this.remEnt(ent.getChild(i));
 				}
 			}
-			if(!ent.get('sceneList').contains(this)){
-				this._newEntityList.remove(ent);
-				this._entityList.remove(ent);
-				this._entityByUid.remove(ent.get('uid'));
+			if(!array_contains(ent.get('sceneList'),this)){
+				array_remove(this._newEntityList,ent);
+				array_remove(this._entityList,ent);
+				delete this._entityByUid[ent.get('uid')];
 				var s = this._entityByName[ent.get('name')];
-				s.remove(ent);
+				array_remove(s.ent);
 				if(s.length == 0){
-					this._entityByName.remove(ent.get('name'));
+					delete this._entityByName[ent.get('name')];
 				}
 				if(ent.isRoot()){
-					this._rootEntityList.remove(ent);
+					array_remove(_rootEntityList,ent);
 				}
-				e._sceneList.remove(this);
+				array_remove(ent._sceneList,this);
 			}
 		},
 		getEntByUid : function(uid){
@@ -658,9 +649,9 @@ window.modula = window.modula || {};
 			}
 			for(var i = 0,len = this._destroyedEntityList.length; i < len; i++){
 				var ent = this._destroyedEntityList[i];
-				this._entityList.remove(ent);
+				array_remove(this._entityList,ent);
 				if(ent.isRoot()){
-					this._rootEntityList.remove(ent);
+					array_remove(this._rootEntityList,ent);
 				}
 				ent.onDestroy();
 			}
