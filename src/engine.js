@@ -86,6 +86,7 @@ window.modula = window.modula || {};
 				this.input.processEvents();
 			}
 			for(i = 0; i < this.sceneList.length; i++){
+				var redraw = false;
 				this.scene = this.sceneList[i];
 				var camera = this.scene.camera;
 				var renderer = this.scene.renderer;
@@ -98,9 +99,9 @@ window.modula = window.modula || {};
 					renderer.drawInit(camera);
 				}
 
-				this.scene.runFrame();
+				redraw = this.scene.runFrame();
 				
-				if(renderer){
+				if(renderer && (redraw || renderer.alwaysRedraw)){
 					renderer.drawFrame(this.scene,camera);
 					renderer.drawEnd();
 				}
@@ -350,6 +351,7 @@ window.modula = window.modula || {};
 	});
 
 	modula.Renderer = modula.Class.extend({
+		alwaysRedraw:true,
 		renderBackground: function(){},
         getSize  : function(){},
 		drawInit: function(camera){},
@@ -432,22 +434,26 @@ window.modula = window.modula || {};
 	modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable.extend({
 		init: function(options){
             options = options || {};
+	    		var self = this;
 			this.z     = options.z || 0;	
 			this.image = options.image || null;
 	
 			this.alpha = options.alpha;
 			this.globalCompositeOperation = options.globalCompositeOperation;
 			this.src   = options.src;
-			
+
 			if(this.src === undefined){
 				this.src = this.image.src;
 			}else{
 				this.image = new Image();
 				this.image.src = this.src;
 			}
-			
 			this.pos   = options.pos || new Vec2(); 
-			this.pos   = this.pos.addXY(-this.image.width/2,-this.image.height/2);
+
+			this.image.onload = function(){
+				self.pos   = self.pos.addXY(-self.image.width/2,-self.image.height/2);
+			};
+			
 		},
 		clone: function(){
 			var r = new modula.RendererCanvas2d.DrawableSprite({image:this.image});
@@ -564,25 +570,28 @@ window.modula = window.modula || {};
 			return this._rootEntityList;
 		},
 		_entUpdate : function(ent){
+			var redraw = false;
 			if(ent.active){
 				if(ent._state === 'new'){
 					ent._state = 'alive';
 					ent._currentFrame = this.main.frame;
 					ent.onFirstUpdate();
-					ent.onUpdate();
+					redraw = redraw || ent.onUpdate();
 				}else if(ent._currentFrame != this.main.frame){
 					ent._currentFrame = this.main.frame;
-					ent.onUpdate();
+					redraw = redraw || ent.onUpdate();
 				}
 			}
 			//update child entities too !
 			if(!ent.isLeaf()){
 				for(var i = 0; i < ent.getChildCount();i++){
-					this._entUpdate(ent.getChild(i));
+					redraw = redraw || this._entUpdate(ent.getChild(i));
 				}
 			}
+			return redraw;
 		},
 		runFrame : function(){
+			var redraw = false;
             
             // Update the camera
             if(this.camera){
@@ -613,7 +622,7 @@ window.modula = window.modula || {};
 			for(var i = 0, len = this._rootEntityList.length; i < len; i++){
 				var ent = this._rootEntityList[i];
 				if(ent._state !== 'destroyed'){
-					this._entUpdate(ent);
+					redraw = redraw || this._entUpdate(ent);
 					if(ent._destroyTime && ent._destroyTime <= this.main.time){
 						ent.destroy();
 					}
@@ -646,6 +655,7 @@ window.modula = window.modula || {};
 				if(ent._state === "destroyed"){
 					this._destroyedEntityList.push(ent);
 				}
+				redraw = true;	//TODO must we always redraw when destroying entities ?
 			}
 			for(var i = 0,len = this._destroyedEntityList.length; i < len; i++){
 				var ent = this._destroyedEntityList[i];
@@ -656,6 +666,7 @@ window.modula = window.modula || {};
 				ent.onDestroy();
 			}
 			this._destroyedEntityList = [];
+			return redraw;
 		},
 		_entDraw : function(ent){},
 		draw : function(){},
@@ -664,9 +675,6 @@ window.modula = window.modula || {};
 		onSceneStart: function(){},
 		onSceneEnd:   function(){},
 	});
-
-
-
 
 	modula.Ent = modula.Class.extend({ 
 		init: function( options ){
