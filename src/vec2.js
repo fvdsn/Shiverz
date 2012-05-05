@@ -71,26 +71,26 @@ window.modula = window.modula || {};
     Vec2.one  = function(){ return new Vec2(1,1); };
     Vec2.x    = function(){ return new Vec2(1,0); };
     Vec2.y    = function(){ return new Vec2(0,1); };
-	
-	// Returns a vector with randomized x and y in [0,1]
-	Vec2.randomPositive = function(){ 
-		return new Vec2(Math.random(),Math.random());
-	};
-	
-	// Returns a vector with randomized x and y in [-1,1]
-	Vec2.random = function(){
-		return new Vec2(Math.random()*2 - 1, Math.random()*2 - 1); 
-	};
-	
-	// Returns  a random position in the unit disc. (vec.len() <= 1) 
-	Vec2.randomDisc = function(){
-		var v = new Vec2();
+    
+    // Returns a vector with randomized x and y in [0,1]
+    Vec2.randomPositive = function(){ 
+        return new Vec2(Math.random(),Math.random());
+    };
+    
+    // Returns a vector with randomized x and y in [-1,1]
+    Vec2.random = function(){
+        return new Vec2(Math.random()*2 - 1, Math.random()*2 - 1); 
+    };
+    
+    // Returns  a random position in the unit disc. (vec.len() <= 1) 
+    Vec2.randomDisc = function(){
+        var v = new Vec2();
         do{
             v.x = Math.random() * 2 - 1;
             v.y = Math.random() * 2 - 1;
         }while(v.len_sq() > 1);
-		return v;
-	};
+        return v;
+    };
     // returns the length or modulus or magnitude of the vector
     proto.len = function(){
         return Math.sqrt(this.x*this.x + this.y*this.y);
@@ -268,10 +268,10 @@ window.modula = window.modula || {};
         }
         return true;
     };
-	
-	proto.round = function(){
-		return new Vec2(Math.round(this.x), Math.round(this.y));
-	};
+    
+    proto.round = function(){
+        return new Vec2(Math.round(this.x), Math.round(this.y));
+    };
     
 })(window.modula);
 

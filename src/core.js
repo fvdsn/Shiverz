@@ -95,9 +95,21 @@ window.modula = window.modula || {};
                    this['_'+name] || 
                    this['get'+capitalizeFirstLetter(name)] ;
 		};
+		this.mixin = function(mixin){
+				if(arguments.length === 1){
+					for( prop in mixin){
+						if(mixin.hasOwnProperty(prop)){
+								this[prop] = mixin[prop];
+						}
+					}
+				}else{
+						for(var i = 0; i < arguments.length; i++){
+								this.mixin(arguments[i]);
+						}
+				}
+		};
   	};
   
-  // Create a new Class that inherits from this class
   this.Class.extend = function(prop) {
     var _super = this.prototype;
     
@@ -137,6 +149,36 @@ window.modula = window.modula || {};
       if ( !initializing && this.init )
         this.init.apply(this, arguments);
     }
+
+ Class.mixin = function (properties) {
+            for (var name in properties) {
+                if (typeof properties[name] !== 'function'
+                        || !fnTest.test(properties[name])) {
+                    prototype[name] = properties[name];
+                } else if (typeof prototype[name] === 'function'
+                           && prototype.hasOwnProperty(name)) {
+                    prototype[name] = (function (name, fn, previous) {
+                        return function () {
+                            var tmp = this._super;
+                            this._super = previous;
+                            var ret = fn.apply(this, arguments);
+                            this._super = tmp;
+                            return ret;
+                        }
+                    })(name, properties[name], prototype[name]);
+                } else if (typeof _super[name] === 'function') {
+                    prototype[name] = (function (name, fn) {
+                        return function () {
+                            var tmp = this._super;
+                            this._super = _super[name];
+                            var ret = fn.apply(this, arguments);
+                            this._super = tmp;
+                            return ret;
+                        }
+                    })(name, properties[name]);
+                }
+            }
+        };
     
     // Populate our constructed prototype object
     Class.prototype = prototype;
@@ -149,6 +191,31 @@ window.modula = window.modula || {};
     
     return Class;
   };
+
+  // Create a new Class that inherits from this class
+ /* this.Class.prototype.mixin = function(mixin) {
+  	if(arguments.length === 1){
+		for(var prop in mixin){
+			if(mixin.hasOwnProperty(prop)){
+				if(typeof(this.prototype[prop]) !== 'undefined'){
+					var fn = this.prototype[prop];
+					this.prototype[prop] = function(){
+						var tmp = this._super;
+						this._super = mixin[prop];
+						fn.apply(this,arguments);
+						this._super = tmp;
+					}
+				}else{
+					this.prototype[prop] = mixin[prop];
+				}
+			}
+		}
+	}else{
+		for(var i = 0; i < arguments.length; i++){
+			this.mixin(arguments[i]);
+		}
+	}
+  };*/
 }).call(modula);
 
 })(window.modula);
