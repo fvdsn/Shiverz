@@ -29,8 +29,8 @@ window.onload = function() {
 				var i = 1;
 				while(i--){
 					var ent = new TestEnt({
-						pos: Vec2.randomPositive().multXy(canvas.width,canvas.height),
-						dir: Vec2.random().scale(5+Math.random()*50),
+						pos: Vec2.newRandomPositive().multXy(canvas.width,canvas.height),
+						dir: Vec2.newRandom().scale(5+Math.random()*50),
 						rotSpeed: Math.random() * 2 - 1,
 						color: 'rgba('+
 								Math.round(10 + Math.random() * 10)+','+
