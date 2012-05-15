@@ -95,15 +95,11 @@ window.modula = window.modula || {};
                     this.scene.onSceneStart();
                 }
                 this.scene.onFrameStart();
-                if(renderer){
-                    renderer.drawInit(camera);
-                }
 
                 redraw = this.scene.runFrame();
                 
-                if(renderer && (redraw || renderer.alwaysRedraw)){
+                if(renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
                     renderer.drawFrame(this.scene,camera);
-                    renderer.drawEnd();
                 }
                 this.scene.onFrameEnd();
             }
@@ -354,9 +350,10 @@ window.modula = window.modula || {};
         alwaysRedraw:true,
         renderBackground: function(){},
         getSize  : function(){},
-        drawInit: function(camera){},
         drawFrame: function(scene,camera){},
-        drawEnd: function(){},
+        mustRedraw: function(){
+            return false;
+        },
     });
     
     modula.Renderer.Drawable = modula.Class.extend({
@@ -366,20 +363,31 @@ window.modula = window.modula || {};
     modula.RendererCanvas2d = modula.Renderer.extend({
         init: function(options){
             options = options || {};
-            this.canvas = options.canvas; 
+            this.canvas = options.canvas || this.canvas; 
+            this.alwaysRedraw = options.alwaysRedraw;
             if(!this.canvas){ console.log('ERROR: please provide a canvas!'); }
             this.context = this.canvas.getContext('2d');
             this.background = options.background;
             this.globalCompositeOperation = options.globalCompositeOperation || 'source-over'; 
             this.globalAlpha = options.globalAlpha || 1; 
+            this.getSize = options.getSize || this.getSize;
+            this._size = new Vec2();
         },
         getSize: function(){
             return new Vec2(this.canvas.width, this.canvas.height);
+        },
+        mustRedraw: function(){
+            return !this._size.equals(this.getSize());
         },
         drawInit: function(camera){
             if(modula.draw){
                 modula.draw.setContext(this.context);
             }
+            
+            this._size = this.getSize();
+            canvas.width = this._size.x;
+            canvas.height = this._size.y;
+
             this.context.save();
             this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
             if(this.background){
@@ -401,6 +409,7 @@ window.modula = window.modula || {};
             context.restore();
         },
         drawFrame: function(scene,camera){
+            this.drawInit(camera);
             
             function drawEntity(ent){
                 this.context.save();
@@ -428,6 +437,8 @@ window.modula = window.modula || {};
             for(var i = 0, len = scene._entityList.length; i < len; i++){
                 scene._entityList[i].onDrawGlobal();
             }
+
+            this.drawEnd();
         },
     });
     
@@ -491,14 +502,14 @@ window.modula = window.modula || {};
             this.renderer = options.renderer || null;
             this.name = options.name || 'Scene'+getNewUid();
             this.main = null;
-
-            this.sequence = options.sequence || [
-                'new',
+            this.passes = options.passes || {};
+            this.passSequence = options.passSequence || [
+                'instantiation',
+                'camera',
                 'update',
-                'remove',
-                'physics',
-                'collisions',
-                'remove',
+                'physic',
+                'collision',
+                'destruction',
                 'draw',
                 ];
         },
@@ -696,37 +707,31 @@ window.modula = window.modula || {};
             return this._rootEntityList;
         },
         _entUpdate : function(ent){
-            var redraw = false;
+            var draw = false;
             if(ent.active){
                 if(ent._state === 'new'){
                     ent._state = 'alive';
                     ent._currentFrame = this.main.frame;
-                    ent.onFirstUpdate();
-                    redraw = redraw || ent.onUpdate();
+                    ent.onInstanciation();
+                    var updated = ent.onUpdate();
+                    draw = draw || updated;
                 }else if(ent._currentFrame != this.main.frame){
                     ent._currentFrame = this.main.frame;
-                    redraw = redraw || ent.onUpdate();
+                    var updated = ent.onUpdate();
+                    draw = draw || updated; 
                 }
             }
             //update child entities too !
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount();i++){
-                    redraw = redraw || this._entUpdate(ent.getChild(i));
+                    var updated = this._entUpdate(ent.getChild(i));
+                    draw = draw || updated;
                 }
             }
-            return redraw;
+            return draw || false;
         },
-        runFrame : function(){
-            var redraw = false;
-            
-            // Update the camera
-            if(this.camera){
-                this.camera.scene = this;
-                this.camera.main  = this.main;
-                this.camera.onUpdate();
-            }
-
-            // Adding new entities to the entityList.
+        instantiationPass: function(){
+            var draw = this._newEntityList.length > 0;
             for(var i = 0, len = this._newEntityList.length; i < len; i++){
                 var ent = this._newEntityList[i];
                 this._entityList.push(ent);
@@ -742,22 +747,24 @@ window.modula = window.modula || {};
                 //FIXME make it alive and set current frame ? see J2D
             }
             this._newEntityList = [];
-
-            // Updating all entities. root entities updates their childs so that 
-            // they dont update after their childs
+            return draw || false;
+        },
+        updatePass: function(){
+            var draw = false;
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
                 var ent = this._rootEntityList[i];
                 if(ent._state !== 'destroyed'){
-                    redraw = redraw || this._entUpdate(ent);
+                    var updated = this._entUpdate(ent);
+                    draw = draw || updated; 
                     if(ent._destroyTime && ent._destroyTime <= this.main.time){
                         ent.destroy();
                     }
                 }
             }
-
-            //Applying physics TODO
-            
-            //Applying collisions FIXME: Slow, TODO: port optiomisations from J2D
+            return draw || false;
+        },
+        collisionPass: function(){
+            var draw = false;
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
                 var e = this._rootEntityList[i];
                 //only emitters send collision events
@@ -767,32 +774,68 @@ window.modula = window.modula || {};
                         //only receivers receive collision events
                         if( (r !== e) && (r.collisionBehaviour === 'receive' || e.collisionBehaviour === 'both') ){
                             if( e.collides(r) ){
-                                e.onCollisionEmit(r);
-                                r.onCollisionReceive(e);
+                                var updated = e.onCollisionEmit(r);
+                                var updated2 = r.onCollisionReceive(e);
+                                draw = draw || updated || updated2; 
                             }
                         }
                     }
                 }
             }                           
-                        
-            //Destroying entities
+            return draw || false;
+        },
+        destructionPass: function(){
+            var draw = false;
             for(var i = 0,len = this._entityList.length; i < len; i++){
                 var ent = this._entityList[i];
                 if(ent._state === "destroyed"){
                     this._destroyedEntityList.push(ent);
                 }
-                redraw = true;  //TODO must we always redraw when destroying entities ?
             }
+
+            draw = this._destroyedEntityList.length > 0;
+
             for(var i = 0,len = this._destroyedEntityList.length; i < len; i++){
                 var ent = this._destroyedEntityList[i];
                 array_remove(this._entityList,ent);
                 if(ent.isRoot()){
                     array_remove(this._rootEntityList,ent);
                 }
-                ent.onDestroy();
+                ent.onDestruction();
             }
             this._destroyedEntityList = [];
-            return redraw;
+            return draw || false;
+        },
+        drawPass: function(){
+            return false;
+        },
+        cameraPass: function(){
+            var draw = false;
+            if(this.camera){
+                this.camera.scene = this;
+                this.camera.main  = this.main;
+                var updated = this.camera.onUpdate();
+                draw = draw || updated;
+            }
+            return draw || false;
+        },
+        runFrame : function(){
+            var draw = false;
+           
+            for(var i = 0, len = this.passSequence.length; i < len; i++){
+                var pass = this.passSequence[i];
+                if(this.passes[pass]){
+                    var updated =  this.passes[pass].process(this);
+                    draw = draw || updated;
+                }else{
+                    var passFun = pass + 'Pass';
+                    if(this[passFun]){
+                        var updated = this[passFun]();
+                        draw = draw || updated;
+                    }
+                }
+            }
+            return draw || false;
         },
         _entDraw : function(ent){},
         draw : function(){},
@@ -800,6 +843,12 @@ window.modula = window.modula || {};
         onFrameEnd:   function(){},
         onSceneStart: function(){},
         onSceneEnd:   function(){},
+    });
+
+    modula.ScenePass = modula.Class.extend({
+        process: function(scene,updated){
+            return false;
+        },
     });
 
     modula.Ent = modula.Class.extend({ 
@@ -905,29 +954,13 @@ window.modula = window.modula || {};
             }
             return new Vec2();
         },
-        onFirstUpdate: function(){},
+        onInstanciation: function(){},
         onUpdate: function(){},
-        onDestroy: function(){},
+        onDestruction: function(){},
         onDrawLocal: function(){},
         onDrawGlobal: function(){},
         onCollisionEmit: function(ent){},
         onCollisionReceive: function(ent){},
     });
 
-/*  modula.PhysicsBehaviour = new Mixin({
-            applyPhysics: function(){},
-            onPhysics: function(){},
-    });
-
-    modula.Physics2DBehaviour = new Mixin(
-        modula.PhysicsBehaviour,{
-        speed: new Vec2(),  //TODO clone ?
-        acceleration: new Vec2(),
-        gravity: 0,
-        gravityInfluence: 1,
-        mass: 1,
-        drag: 0,
-        max_speed:0,
-    });
-*/
 })(window.modula);

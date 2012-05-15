@@ -116,6 +116,13 @@ window.modula = window.modula || {};
         return vd;
     };
 
+    proto.isZero = function(){
+        return this.x === 0 && this.y === 0;
+    };
+    Vec2.setZero = function(vd){
+        vd.x = 0;
+        vd.y = 0;
+    };
     // returns the length or modulus or magnitude of the vector
     proto.len = function(){
         return Math.sqrt(this.x*this.x + this.y*this.y);
@@ -224,6 +231,11 @@ window.modula = window.modula || {};
     proto.addXY = function(x,y){
         return new Vec2(this.x+x,this.y+y);
     };
+
+    Vec2.addScaled = function(vd,v1,v2,scale){
+        vd.x = v1.x + (v2.x * scale);
+        vd.y = v1.y + (v2.y * scale);
+    };
     
     //sets vd to v1 - v2
     Vec2.sub= function(vd,v1,v2){
@@ -241,6 +253,7 @@ window.modula = window.modula || {};
     proto.sub = function(v){
         return new Vec2(this.x-v.x,this.y-v.y);
     };
+
     
     // returns (this - (x,y)) as a new vector where - is vector subtraction
     proto.subXY = function(x,y){
