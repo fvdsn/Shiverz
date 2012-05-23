@@ -1,18 +1,19 @@
 window.modula = window.modula || {};
 
 (function(modula){
+    var Vec2 = modula.Vec2;
 
     modula.PhysicsMixin = modula.Mixin.extend({
         physicsActive : true,
-        speed : null,
+        speed : undefined,
         maxSpeed : -1,
-        acceleration: null,
-        gravity : null,
+        acceleration: undefined,
+        gravity : undefined,
         gravityFactor: 1,
         drag: 0,
         friction: 0,
         mass: 1,
-        force: null,
+        force: undefined,
         initPhysics: function(options){
             if(!options){
                 return;
@@ -37,7 +38,7 @@ window.modula = window.modula || {};
                 if(this.acceleration && !this.acceleration.isZero()){
                     Vec2.addScaled(this.speed,this.speed,this.acceleration,deltaTime);
                 }
-                if(gravityFactor && this.gravity && !this.gravity.isZero){
+                if(this.gravityFactor && this.gravity && !this.gravity.isZero()){
                     Vec2.addScaled(this.speed,this.speed,this.gravity, this.gravityFactor * deltaTime);
                 }
                 var invMass = this.mass;
@@ -66,7 +67,8 @@ window.modula = window.modula || {};
                             Vec2.setLen(tmp,tmp,this.maxSpeed);
                         }
                     }
-                    Vec2.addScaled(tmp,tmp,speed,deltaTime);
+                    Vec2.scale(tmp,this.speed,deltaTime);
+                    //console.log(this.speed.toString(), tmp.toString(), deltaTime);
                     this.transform.translate(tmp);
                     return true;
                 }
@@ -86,14 +88,16 @@ window.modula = window.modula || {};
         process: function(scene,updated){
             var draw = false;
             var entList = scene.getAllEnt();
-            var deltaTime = this.main.deltaTime;
+            var deltaTime = scene.main.deltaTime;
+            //console.log(deltaTime);
             for(var i = 0, len = entList.length; i < len; i++){
                 var ent = entList[i];
                 if(ent.doPhysics){
-                    draw = draw || ent.doPhysics(deltaTime);
+                    var updated = ent.doPhysics(deltaTime);
+                    draw = draw || updated;
                 }
             }
-            return true;
+            return draw;
         }
     });
 

@@ -5,13 +5,6 @@ window.onload = function() {
 	
 	modula.use();	
 	
-	window.renderer = new RendererCanvas2d({
-		canvas:window.canvas,
-		globalAlpha: 0.3,
-		globalCompositeOperation: 'lighter',
-		background:"#324",
-	});
-	
 	window.microbeSprite = new RendererCanvas2d.DrawableSprite({
 		src:'img/microbe64.png',
 	});
@@ -21,15 +14,12 @@ window.onload = function() {
 			this.lastTime = -1;
 		},
 		onFrameStart: function(){
-			context.canvas.width = window.innerWidth;
-			context.canvas.height = window.innerHeight;
-			
 			if(this.main.time > this.lastTime + 0.02){
 				this.lastTime = this.main.time;
 				var i = 1;
 				while(i--){
 					var ent = new TestEnt({
-						pos: Vec2.newRandomPositive().multXy(canvas.width,canvas.height),
+						pos: Vec2.newRandomPositive().multXY(canvas.width,canvas.height),
 						dir: Vec2.newRandom().scale(5+Math.random()*50),
 						rotSpeed: Math.random() * 2 - 1,
 						color: 'rgba('+
@@ -52,7 +42,15 @@ window.onload = function() {
 		fps: 60,
 		input: new Input('body'),
 		scene: new DemoScene({
-			renderer: window.renderer,
+			renderer: new RendererCanvas2d({
+                canvas: window.canvas,
+                getSize: function(){
+                    return new Vec2(window.innerWidth, window.innerHeight);
+                },
+                globalCompositeOperation: 'lighter',
+                globalAlpha: 0.3,
+                background: "#324",
+            }),
 		}),
 	});
 	

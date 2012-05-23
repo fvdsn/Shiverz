@@ -502,16 +502,19 @@ window.modula = window.modula || {};
             this.renderer = options.renderer || null;
             this.name = options.name || 'Scene'+getNewUid();
             this.main = null;
-            this.passes = options.passes || {};
-            this.passSequence = options.passSequence || [
+            this.passes = options.passes || this.passes || {};
+            this.passSequence = options.passSequence || this.passSequence || [
                 'instantiation',
                 'camera',
                 'update',
-                'physic',
+                'physics',
                 'collision',
                 'destruction',
                 'draw',
                 ];
+        },
+        addPass : function(name, pass){
+            this.passes[name] = pass;
         },
         //returns a list of entities matching the url and satisfying the
         //condition:

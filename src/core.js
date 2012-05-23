@@ -94,10 +94,10 @@ window.modula = window.modula || {};
                        this['_'+name] || 
                        this['get'+capitalizeFirstLetter(name)] ;
             };
-            this.mixin = function(mixin){
+            this.mixin = function(mixin){ //TODO match the better mixin function behaviour
                     if(arguments.length === 1){
                         for( prop in mixin){
-                            if(mixin.hasOwnProperty(prop)){
+                            if(this[prop] === undefined && mixin.hasOwnProperty(prop)){
                                     this[prop] = mixin[prop];
                             }
                         }
@@ -158,6 +158,9 @@ window.modula = window.modula || {};
 
             Class.mixin = function (properties) {
                 for (var name in properties) {
+                    if(prototype[name] !== undefined){
+                        continue;
+                    }
                     if (typeof properties[name] !== 'function'
                             || !fnTest.test(properties[name])) {
                         prototype[name] = properties[name];
@@ -215,7 +218,7 @@ window.modula = window.modula || {};
         for(var i = 0; i < arguments.length; i++){
             prop = arguments[i];
             for(attr in prop){
-                if(prop.hasOwnProperty(attr)){
+                if(this[attr] === undefined && prop.hasOwnProperty(attr)){
                     this[attr] = prop[attr];
                 }
             }
