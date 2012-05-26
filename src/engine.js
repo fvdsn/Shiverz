@@ -7,8 +7,6 @@ window.modula = window.modula || {};
     var Mat2 = modula.Mat2;
     var Transform2 = modula.Transform2;
 
-    var uid = 0;
-
     function getNewUid(){
         uid += 1;
         return uid;
@@ -22,6 +20,7 @@ window.modula = window.modula || {};
     }
     modula.Main = modula.Class.extend({
         init: function(options){
+            this._nextUid  = 0;
             this.input = null;
             this.scene = null;
             this.sceneList = [];
@@ -43,13 +42,18 @@ window.modula = window.modula || {};
                 this.addScene(options.scene);
             }
         },
-            
-    
+        getNewUid: function(){
+            this._nextUid += 1;
+            return this._nextUid;
+        },
         addScene: function(scene){
             scene.main = this;
             this.sceneList.push(scene);
             if(!this.scene){
                 this.scene = scene;
+            }
+            if(!scene._uid){
+                scene._uid = this.getNewUid();
             }
         },
         setInput:   function(input){
@@ -495,12 +499,13 @@ window.modula = window.modula || {};
             this._rootEntityList = [];
             this._newEntityList = [];
             this._destroyedEntityList = [];
+            this._uid = options.uid || this._uid || undefined;
 
             this._entityByUid = {};
             this._entityByName = {};
             this.camera = options.camera || null; 
             this.renderer = options.renderer || null;
-            this.name = options.name || 'Scene'+getNewUid();
+            this.name = options.name || 'Scene';
             this.main = null;
             this.passes = options.passes || this.passes || {};
             this.passSequence = options.passSequence || this.passSequence || [
@@ -641,6 +646,9 @@ window.modula = window.modula || {};
                 return;
             }else if(this.main){
                 ent.main = this.main;
+                if(!ent._uid){
+                    ent._uid = this.main.getNewUid();
+                }
             }
             if(!array_contains(ent.get('sceneList'),this)){
                 this._newEntityList.push(ent);
@@ -857,18 +865,18 @@ window.modula = window.modula || {};
     modula.Ent = modula.Class.extend({ 
         init: function( options ){
             options = options || {};
-            this._uid = getNewUid();
+            this._uid = this._uid || options.uid || undefined;
             this._state = 'new';
             this._currentFrame = 0;
-            this._destroyTime = options.duration || Number.MAX_VALUE; // TODO correct delay
-            this._sceneList   =  options.scene ? [options.scene] : [];
+            this._destroyTime = this.get('destroyTime') || options.duration || Number.MAX_VALUE; // TODO correct delay
+            this._sceneList   = [];
             this.transform    = options.transform || new modula.Transform2();
             this.transform.ent = this;
             this.transform.pos = options.pos || this.transform.pos; 
             
             this.collisionBehaviour = options.collisionBehaviour || 'none';
             if(!this.name){
-                this.name   = options.name || 'Ent'+this._uid;
+                this.name   = options.name || 'Ent';
             }
             this.active = options.active || true;
             this.render = options.render || true;
