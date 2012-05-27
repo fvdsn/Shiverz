@@ -649,6 +649,18 @@ window.modula = window.modula || {};
                 }
             }
         },
+        // remove all the entities found by the selector if it is a string,
+        // or removes the entity if selector is an entity
+        remove : function(selector){
+            if( (typeof selector) === 'string'){
+                this.map(selector, function(ent){ 
+                    this._remEnt(ent); 
+                });
+            }else{
+                var ent = selector;
+                this.remEnt(ent);
+            }
+        },
         // adds an entity to the scene. It will be
         // considered present in the scene at the next update.
         addEnt: function(ent){
@@ -701,24 +713,6 @@ window.modula = window.modula || {};
                 }
                 ent.scene = null;
             }
-        },
-        // return the entity with the uid 'uid'
-        getEntByUid : function(uid){
-            return this._entityByUid[ent.get('uid')];
-        },
-        // return one entity with the name 'name'
-        getEntByName : function(name){
-            var s = this._entityByName['name'];
-            if(s && s.length){
-                return s[0];
-            }else{
-                return undefined;
-            }
-        },
-        // return a list of all entities with the name 'name'.
-        // do not modify the list
-        getAllEntByName : function(name){
-            return this._entityByName['name'] || [];
         },
         // return a list of all entities. do not modify the list
         getAllEnt : function(){
