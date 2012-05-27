@@ -878,7 +878,7 @@ window.modula = window.modula || {};
         init: function( options ){
             options = options || {};
 
-            this._uid = this._uid || options.uid || undefined;  //  The uid is unique to each entity
+            this._uid = options.uid || this._uid || undefined;  //  The uid is unique to each entity
             this._state = 'new';    //  'new' | 'alive' | 'destroyed'   
             this._currentFrame = 0;
             this._destroyTime = this.get('destroyTime') || options.duration || Number.MAX_VALUE; // TODO correct delay
@@ -906,17 +906,17 @@ window.modula = window.modula || {};
             // 'receive' : receives collision events from colliding entitites
             // 'both'  : both emit and receive
             this.collisionBehaviour = this.collisionBehaviour || options.collisionBehaviour || 'none';
-            this.name   = this.name   || options.name   || 'Ent';
+            this.name   =  options.name   || this.name   || 'Ent';
             // if not active, the entity is not updated but still rendered
-            this.active = this.active || options.active || true;
+            this.active = options.active || this.active || true;
             // if false, the entity does not render. (but may render its childs)
-            this.render = this.render || options.render || true;
+            this.render = options.render || this.render || true;
             // if false the entity does not render its childs
-            this.renderChilds = this.renderChilds || options.renderChilds || true;
+            this.renderChilds = options.renderChilds || this.renderChilds || true;
             // the bound is used for collisions
-            this.bound    = this.bound || options.bound || undefined;
+            this.bound    = options.bound || this.bound || undefined;
             // what will be drawn
-            this.drawable = this.drawable || options.drawable || undefined;
+            this.drawable = options.drawable || this.drawable || undefined;
             // the time (in seconds) when the entity had its first update
             this.startTime = -1; // todo modula.main.time;
         },
