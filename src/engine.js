@@ -654,7 +654,7 @@ window.modula = window.modula || {};
         remove : function(selector){
             if( (typeof selector) === 'string'){
                 this.map(selector, function(ent){ 
-                    this._remEnt(ent); 
+                    this.remEnt(ent); 
                 });
             }else{
                 var ent = selector;
