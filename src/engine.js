@@ -282,34 +282,42 @@ window.modula = window.modula || {};
          * 'mouseX','mouse-left','mouse-right','mouse-middle','scroll-up','scroll-down'
          */
 
+        // return true the first frame of a key being pressed
         isKeyPressing : function(key){
             key = this.getAlias(key);
             return this._keyStatus[key] === 'press';
         },
+        // return true the first frame of a key being depressed
         isKeyReleasing : function(key){
             key = this.getAlias(key);
             return this._keyStatus[key] === 'release';
         },
+        // return true as long as a key is pressed
         isKeyDown: function(key){
             key = this.getAlias(key);
             var s = this._keyStatus[key];
             return s === 'down' || s === 'press';
         },
+        // return true as long as a key is depressed. equivalent to !isKeyDown() 
         isKeyUp: function(key){
             key = this.getAlias(key);
             var s = this._keyStatus[key];
             return s === undefined || s === 'up' || s === 'release';
         },
 
+        // return true if the mouse is over the canvas
         isMouseOver: function(){
             return this._mouseStatus === 'over' || this._mouseStatus === 'entering';
         },
+        // return true the first frame the mouse is over the canvas
         isMouseEntering: function(){
             return this._mouseStatus === 'entering';
         },
+        // return true the first frame the mouse is outside the canvas
         isMouseLeaving: function(){
             return this._mouseStatus === 'leaving';
         },
+        // return -1 if scrolling down, 1 if scrolling up, 0 if not scrolling
         getMouseScroll: function(){
             if ( this.isKeyDown('scroll-up')){
                 return 1;
@@ -318,6 +326,7 @@ window.modula = window.modula || {};
             }
             return 0;
         },
+        // returns the mouse position over the canvas in pixels
         getMousePos: function(){
             return this._mousePos;
         },
@@ -650,7 +659,10 @@ window.modula = window.modula || {};
                     ent._uid = this.main.getNewUid();
                 }
             }
-            if(!array_contains(ent.get('sceneList'),this)){
+            if(ent.scene && ent.scene !== this){
+                this.remEnt(ent);
+            }
+            if(ent.scene !== this){
                 this._newEntityList.push(ent);
                 this._entityByUid[ent.get('uid')] = ent;
                 var name = ent.get('name');
@@ -659,7 +671,6 @@ window.modula = window.modula || {};
                 }else{
                     this._entityByName[name].push(ent);
                 }
-                //TODO Class
             }
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
@@ -675,7 +686,7 @@ window.modula = window.modula || {};
                     this.remEnt(ent.getChild(i));
                 }
             }
-            if(!array_contains(ent.get('sceneList'),this)){
+            if(ent.scene = this){
                 array_remove(this._newEntityList,ent);
                 array_remove(this._entityList,ent);
                 delete this._entityByUid[ent.get('uid')];
@@ -687,7 +698,7 @@ window.modula = window.modula || {};
                 if(ent.isRoot()){
                     array_remove(_rootEntityList,ent);
                 }
-                array_remove(ent._sceneList,this);
+                ent.scene = null;
             }
         },
         // return the entity with the uid 'uid'
@@ -865,55 +876,91 @@ window.modula = window.modula || {};
     modula.Ent = modula.Class.extend({ 
         init: function( options ){
             options = options || {};
-            this._uid = this._uid || options.uid || undefined;
-            this._state = 'new';
+
+            this._uid = this._uid || options.uid || undefined;  //  The uid is unique to each entity
+            this._state = 'new';    //  'new' | 'alive' | 'destroyed'   
             this._currentFrame = 0;
             this._destroyTime = this.get('destroyTime') || options.duration || Number.MAX_VALUE; // TODO correct delay
-            this._sceneList   = [];
-            this.transform    = options.transform || new modula.Transform2();
+
+            this.scene = null;
+            this.main  = null;
+
+            // The transform contains the position, rotation, scale, and parent/childs of the entity
+            this.transform     = new modula.Transform2();
             this.transform.ent = this;
-            this.transform.pos = options.pos || this.transform.pos; 
-            
-            this.collisionBehaviour = options.collisionBehaviour || 'none';
-            if(!this.name){
-                this.name   = options.name || 'Ent';
+
+            if(options.pos){
+                this.transform.setPos(options.pos);
             }
-            this.active = options.active || true;
-            this.render = options.render || true;
-            this.renderChilds = options.renderChilds || true;
-            this.bound  = options.bound || undefined;
-            this.drawable = options.drawable || undefined;
+            if(options.rotation){
+                this.transform.setRotation(options.rotation);
+            }
+            if(options.scale){
+                this.transform.setScale(options.scale);
+            }
+            
+            // the collisionBehaviour decides how collision events are emitted :
+            // 'none' : ignores collisions
+            // 'emit' : emits collision events to colliding entities
+            // 'receive' : receives collision events from colliding entitites
+            // 'both'  : both emit and receive
+            this.collisionBehaviour = this.collisionBehaviour || options.collisionBehaviour || 'none';
+            this.name   = this.name   || options.name   || 'Ent';
+            // if not active, the entity is not updated but still rendered
+            this.active = this.active || options.active || true;
+            // if false, the entity does not render. (but may render its childs)
+            this.render = this.render || options.render || true;
+            // if false the entity does not render its childs
+            this.renderChilds = this.renderChilds || options.renderChilds || true;
+            // the bound is used for collisions
+            this.bound    = this.bound || options.bound || undefined;
+            // what will be drawn
+            this.drawable = this.drawable || options.drawable || undefined;
+            // the time (in seconds) when the entity had its first update
             this.startTime = -1; // todo modula.main.time;
-            this.main = null;
         },
+        // return true if the entity has no childs
         isLeaf : function(){
             return this.transform.isLeaf();
         },
+        // return true if the entity has no parents
         isRoot : function(){
             return this.transform.isRoot();
         },
+        // adds a child to the entity. The previous coordinates will become local coordinates
         addChild: function(ent){
             this.transform.addChild(ent.transform);
             return this;
         },
+        // removes a child from the entity
         remChild: function(ent){
             this.transform.remChild(ent.transform);
             return this;
         },
+        // returns the child entity of index 'index'
         getChild: function(index){
             var tr = this.transform.getChild(index);
             return tr ? tr.ent : undefined;
         },
+        // returns the number of child entities
         getChildCount: function(){
             return this.transform.getChildCount();
         },
-        setActiveRecursively: function(active){
-            this.active = active;
-            for(var i = 0; i < this.transform.getChildCount(); i++){
-                this.transform.getChild(i).ent.setActiveRecursively(active);
+        // same as 'set'  but applies it recursively to the entity and all its childs
+        setRecursively: function(name, value){
+            if(arguments.length === 2){
+                args = {};
+                args[name] = value;
+                this.setRecursively(args);
+            }else{
+                this.set(arguments[0]);
+                for(var i = 0; i < this.transform.getChildCount(); i++){
+                    this.transform.getChild(i).ent.setRecursively(arguments[0]);
+                }
             }
             return this;
         },
+        // destroys the entity (and all childs) now or after an optional delay (in seconds) 
         destroy: function(delay){
             if(delay){
                 this._destroyTime = Math.min(this._destroyTime, this.main.time + delay);
@@ -928,16 +975,18 @@ window.modula = window.modula || {};
             }
             return this; 
         },
+        // returns the time remaining before the entity is destroyed
         getTimeBeforeDestruction: function(){ 
-            if(this._destroyTime < Number.MAXvALUE){
+            if(this._destroyTime < Number.MAX_VALUE){
                 return this._destroyTime - this.main.time;
             }else{
-                return Number.MAXvALUE;
+                return Number.MAX_VALUE;
             }
         },
         isDestroyed: function(){
             return this._state === "destroyed"; 
         },
+        // returns true if the entity collides with another entity
         collides: function(ent){
             var epos = this.transform.distantToLocal(ent.transform);
             //var epos = ent.transform.getWorldPos();
@@ -949,6 +998,7 @@ window.modula = window.modula || {};
                 return this.contains(epos);
             }
         },
+        // returns the smallest vector that would make this entity not collide 'ent' by translation
         collisionVector: function(ent){
             var epos = this.transform.distantToLocal(ent.transform);
             if(ent.bound){
@@ -957,6 +1007,8 @@ window.modula = window.modula || {};
             }
             return new Vec2();
         },
+        // returns the smallest distance on each axis that would make this entity not collide with
+        // 'ent' by translation on one axis
         collisionAxis: function(ent){
             var epos = this.transform.distantToLocal(ent.transform);
             if(ent.bound){
@@ -965,12 +1017,21 @@ window.modula = window.modula || {};
             }
             return new Vec2();
         },
+        // is called before onUpdate the first time the entity is updated
         onInstanciation: function(){},
+        // is called each frame
         onUpdate: function(){},
+        // is called when the entity is destroyed
         onDestruction: function(){},
+        // is called when the render state has local coordinates. 
+        // (drawing a point centered on (0,0) will draw the point centered on the entity world position
         onDrawLocal: function(){},
+        // is called when the render state has global coordinates
+        // (drawing a point centered on (0,0) will draw it on (0,0)
         onDrawGlobal: function(){},
+        // is called when the entity emits a collision to colliding entity 'ent'
         onCollisionEmit: function(ent){},
+        // is called when the entity receives a collision from the entity 'ent'
         onCollisionReceive: function(ent){},
     });
 
