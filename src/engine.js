@@ -522,6 +522,7 @@ window.modula = window.modula || {};
                 'camera',
                 'update',
                 'physics',
+                'animations',
                 'collision',
                 'destruction',
                 'draw',
@@ -707,7 +708,7 @@ window.modula = window.modula || {};
         },
         // return one entity with the name 'name'
         getEntByName : function(name){
-            var s = this._entityByName[ent.get('name')];
+            var s = this._entityByName['name'];
             if(s && s.length){
                 return s[0];
             }else{
@@ -717,7 +718,7 @@ window.modula = window.modula || {};
         // return a list of all entities with the name 'name'.
         // do not modify the list
         getAllEntByName : function(name){
-            return this._entityByName[ent.get('name')] || [];
+            return this._entityByName['name'] || [];
         },
         // return a list of all entities. do not modify the list
         getAllEnt : function(){
