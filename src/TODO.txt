@@ -1,0 +1,21 @@
+TODO
+----
+
+- Bug in the camera mouse-pos if camera is scaled or rotated
+- The camera must be addable trough the default add
+- The ondemand rerendering system should be reviewed.
+- The engine code needs cleanup
+- The api for canvas size is a bit wtf
+- the bound api is very ugly
+- the bound ellipse api is incomplete and useless, who needs ellipses ?
+- the bound api needs to take transform in consideration
+- Document the engine
+- The animation api should be standardised on the new API
+- the animation api should have an 'animateAfter' feature
+- a lot of public variables should be made private tourough the code
+- the initalisation parameters need to be reviewed and documented
+- the find() method should be merged into the 'modula' object
+- The Main object should be merged into the 'modula' object
+- The find() method must return an iterator object
+
+- I need to sleep
