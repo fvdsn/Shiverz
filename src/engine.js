@@ -36,17 +36,20 @@ window.modula = window.modula || {};
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
             if(options.input){
-                this.setInput(options.input);
+                this.set('input',(options.input));
             }
             if(options.scene){
-                this.addScene(options.scene);
+                this.add(options.scene);
             }
         },
         getNewUid: function(){
             this._nextUid += 1;
             return this._nextUid;
         },
-        addScene: function(scene){
+        _add_default: function(scene){
+            this._add_scene(scene);
+        },
+        _add_scene: function(scene){
             scene.main = this;
             this.sceneList.push(scene);
             if(!this.scene){
@@ -56,11 +59,11 @@ window.modula = window.modula || {};
                 scene._uid = this.getNewUid();
             }
         },
-        setInput:   function(input){
+        _set_input:   function(input){
             this.input = input;
             input.main = this;
         },
-        setFps: function(fps){
+        _set_fps: function(fps){
             this.fps = fps;
             this.fixedDeltaTime = 1/fps;
             this.deltaTime = this.theoricDeltaTime;
@@ -352,17 +355,23 @@ window.modula = window.modula || {};
             }
             var mpos = this.main.input.getMousePos();
             if(this.scene.renderer){
-                mpos = mpos.sub(this.scene.renderer.getSize().scale(0.5));
+                mpos = mpos.sub(this.scene.renderer.get('size').scale(0.5));
             }
             mpos = this.transform.localToWorld(mpos);
             return mpos;
         },
+        _get_pos: function(){
+            return this.transform.getPos();
+        },
+        _set_pos: function(pos){
+            this.transform.setPos(pos);
+        },
     });
 
     modula.Renderer = modula.Class.extend({
+        _size : new Vec2(),
         alwaysRedraw:true,
         renderBackground: function(){},
-        getSize  : function(){},
         drawFrame: function(scene,camera){},
         mustRedraw: function(){
             return false;
@@ -383,21 +392,21 @@ window.modula = window.modula || {};
             this.background = options.background;
             this.globalCompositeOperation = options.globalCompositeOperation || 'source-over'; 
             this.globalAlpha = options.globalAlpha || 1; 
-            this.getSize = options.getSize || this.getSize;
+            this._get_size = options.getSize || this._get_size;
             this._size = new Vec2();
         },
-        getSize: function(){
+        _get_size: function(){
             return new Vec2(this.canvas.width, this.canvas.height);
         },
         mustRedraw: function(){
-            return !this._size.equals(this.getSize());
+            return !this._size.equals(this.get('size'));
         },
         drawInit: function(camera){
             if(modula.draw){
                 modula.draw.setContext(this.context);
             }
             
-            this._size = this.getSize();
+            this._size = this.get('size');
             canvas.width = this._size.x;
             canvas.height = this._size.y;
 
@@ -436,8 +445,8 @@ window.modula = window.modula || {};
                     ent.onDrawLocal();
                 }
                 if(ent.renderChilds){
-                    for(var i = 0, len = ent.getChildCount(); i < len; i++){
-                        drawEntity(ent.getChild(i));
+                    for(var i = 0, len = ent.transform.getChildCount(); i < len; i++){
+                        drawEntity(ent.transform.getChild(i).ent);
                     }
                 }
                 this.context.restore();
@@ -651,19 +660,9 @@ window.modula = window.modula || {};
         },
         // remove all the entities found by the selector if it is a string,
         // or removes the entity if selector is an entity
-        remove : function(selector){
-            if( (typeof selector) === 'string'){
-                this.map(selector, function(ent){ 
-                    this.remEnt(ent); 
-                });
-            }else{
-                var ent = selector;
-                this.remEnt(ent);
-            }
-        },
         // adds an entity to the scene. It will be
         // considered present in the scene at the next update.
-        addEnt: function(ent){
+        _addEnt: function(ent){
             if(ent.main && ent.main !== this.main){
                 return;
             }else if(this.main){
@@ -673,7 +672,7 @@ window.modula = window.modula || {};
                 }
             }
             if(ent.scene && ent.scene !== this){
-                this.remEnt(ent);
+                this._remEnt(ent);
             }
             if(ent.scene !== this){
                 this._newEntityList.push(ent);
@@ -687,16 +686,16 @@ window.modula = window.modula || {};
             }
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
-                    this.addEnt(ent.getChild(i));
+                    this._addEnt(ent.getChild(i));
                 }
             }
         },
         //remove an entity to the scene. It will be considered 
         //removed from the scene after the current or next update
-        remEnt : function(ent){
+        _remEnt : function(ent){
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
-                    this.remEnt(ent.getChild(i));
+                    this._remEnt(ent.getChild(i));
                 }
             }
             if(ent.scene = this){
@@ -715,13 +714,38 @@ window.modula = window.modula || {};
             }
         },
         // return a list of all entities. do not modify the list
-        getAllEnt : function(){
-            return this._entityList;
+        _add_default: function(ent){
+            this._addEnt(ent);
         },
-        // return a list of all root entities. 
-        // do not modify the list
-        getAllRootEnt : function(){
-            return this._rootEntityList;
+       _remove_default : function(selector){
+            if(arguments.length === 1){
+                this.map(selector, function(ent){ 
+                    this._remEnt(ent); 
+                });
+            }else{
+                this._remEnt(arguments[0]);
+            }
+            return this;
+        },
+        _remove_entites: function(ent){
+            this._remEnt();
+        },
+        _add_entities : function(ent){
+            this._addEnt(ent);
+        },
+        _get_entities : function(index){
+            if(index !== undefined && index !== null){
+                return this._entityList[index];
+            }else{
+                return this._entityList;
+            }
+        },
+        _get_rootEntities : function(index){
+            if(index !== undefined && index !== null){
+                return this._rootEntityList[index];
+            }else{
+                return this._rootEntityList;
+            }
         },
         _entUpdate : function(ent){
             var draw = false;
@@ -852,10 +876,14 @@ window.modula = window.modula || {};
                     }
                 }
             }
+            for(var i = 0, len = this._entityList.length; i < len; i++){
+                if(this._entityList[i].__updated__){
+                    var draw = true;
+                    this._entityList[i].__updated__ = false;
+                }
+            }
             return draw || false;
         },
-        _entDraw : function(ent){},
-        draw : function(){},
         onFrameStart: function(){},
         onFrameEnd:   function(){},
         onSceneStart: function(){},
@@ -923,23 +951,33 @@ window.modula = window.modula || {};
             return this.transform.isRoot();
         },
         // adds a child to the entity. The previous coordinates will become local coordinates
-        addChild: function(ent){
+        _add_default : function(ent){
+            this._add_childs(ent);
+        },
+        _remove_default: function(ent){
+            this._remove_childs(ent);
+        },
+        _add_childs : function(ent){
             this.transform.addChild(ent.transform);
             return this;
         },
         // removes a child from the entity
-        remChild: function(ent){
+        _remove_childs : function(ent){
             this.transform.remChild(ent.transform);
             return this;
         },
         // returns the child entity of index 'index'
-        getChild: function(index){
-            var tr = this.transform.getChild(index);
-            return tr ? tr.ent : undefined;
-        },
-        // returns the number of child entities
-        getChildCount: function(){
-            return this.transform.getChildCount();
+        _get_childs: function(index){
+            if(index !== null && index !== undefined){
+                var tr = this.transform.getChild(index);
+                return tr ? tr.ent : undefined;
+            }else{
+                var childs = [];
+                for(var i = 0, len = this.transform.getChildCount(); i < len; i++){
+                    childs.push(this.transform.getChild(index));
+                }
+                return childs;
+            }
         },
         // same as 'set'  but applies it recursively to the entity and all its childs
         setRecursively: function(name, value){
@@ -969,14 +1007,6 @@ window.modula = window.modula || {};
                 }
             }
             return this; 
-        },
-        // returns the time remaining before the entity is destroyed
-        getTimeBeforeDestruction: function(){ 
-            if(this._destroyTime < Number.MAX_VALUE){
-                return this._destroyTime - this.main.time;
-            }else{
-                return Number.MAX_VALUE;
-            }
         },
         isDestroyed: function(){
             return this._state === "destroyed"; 
@@ -1011,6 +1041,36 @@ window.modula = window.modula || {};
                 return this.bound.collisionAxis(ebound);
             }
             return new Vec2();
+        },
+        _get_pos: function(){
+            return this.transform.getPos();
+        },
+        _set_pos: function(pos){
+            this.transform.setPos(pos);
+        },
+        _get_scale: function(){
+            return this.transform.getScale();
+        },
+        _set_scale: function(scale){
+            this.transform.setScale(scale);
+        },
+        _get_scaleFac: function(){
+            return 0.5*(this.transform.getScale().x + this.transform.getScale().y);
+        },
+        _set_scaleFac: function(fac){
+            this.transform.setScaleFac(fac);
+        },
+        _get_rotation: function(){
+            return this.transform.getRotation();
+        },
+        _set_rotation: function(rot){
+            this.transform.setRotation(rot);
+        },
+        _get_rotationDeg: function(){
+            return this.transform.getRotationDeg();
+        },
+        _set_rotationDeg: function(rotDeg){
+            this.transform.setRotationDeg(rotDeg);
         },
         // is called before onUpdate the first time the entity is updated
         onInstanciation: function(){},

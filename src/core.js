@@ -30,34 +30,42 @@ window.modula = window.modula || {};
     (function(){
         var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
 
-        function capitalizeFirstLetter(string){
-            return string.charAt(0).toUpperCase() + string.slice(1);
-        }
-
         // The base Class implementation
         this.Class = function(){
 
+            this.attr = function(name){
+                if((typeof name) === 'string'){
+                    return this.get(name);
+                }else{
+                    this.set(name);
+                    return this;
+                }
+            };
+
             //Returns the value of the field 'name'
-            //it will first try to execute the getter method 'get_name()'
+            //it will first try to execute the getter method '_get_name()'
             //then it will try to find a readonly field '_name'
             //then it will try to find a field 'name'
             //it returns undefined if everything fails
-            this.get = function(name){
-                var Name = capitalizeFirstLetter(name);
-                var fun = 'get'+Name;
+            this.get = function(name,index){
+                var fun = '_get_'+name;
                 if(this[fun]){
-                    return this[fun]();
+                    return this[fun](index);
                 }else{
                     var ret = this['_'+name];
                     if(ret === undefined){
                         ret = this[name];
                     }
-                    return ret;
+                    if(index === undefined || index === null){
+                        return ret;
+                    }else{
+                        return ret[index];
+                    }
                 }
             };
 
             // Tries to set the value of the field 'name' to 'value'
-            // it will first try to use a setter method 'set_name(value)'
+            // it will first try to use a setter method '_set_name(value)'
             // it will then look if the field is writable. if there exist a 
             // readonly field of the same name '_name', then it is not writable
             // and it will do nothing.
@@ -68,7 +76,8 @@ window.modula = window.modula || {};
             // Those are all set in undefined order with the same behaviour as set(name,value) 
             //
             this.set = function(name,value){
-                if(arguments.length == 1 && typeof arguments[0] === "object"){
+                this.__updated__ = true;
+                if(arguments.length === 1){
                     var arg = arguments[0];
                     for (attr in arg){
                         if(arg.hasOwnProperty(attr)){
@@ -76,9 +85,9 @@ window.modula = window.modula || {};
                         }
                     }
                 }else{
-                    var fun = 'set' + captalizeFirstLetter(name);
+                    var fun = '_set_' + name;
                     if(this[fun]){
-                        this[fun](name,value);
+                        this[fun](value);
                     }else{
                         if( this['_' + name] === undefined ){
                             this[name] = value;
@@ -88,12 +97,72 @@ window.modula = window.modula || {};
                 return this;
             };
 
-            //Returns true if the object has a field named 'name', readonly or not
-            this.has = function(name){
-                return this[name] || 
-                       this['_'+name] || 
-                       this['get'+capitalizeFirstLetter(name)] ;
+            this.add = function(name,element){
+                if(arguments.length === 1){
+                    this._add_default(arguments[0]);
+                }else{
+                    var fun = '_add_'+name;
+                    if(this[fun]){
+                        this[fun](element);
+                    }else if(this['_'+name] === undefined){
+                        var field = this.get(name);
+                        if((typeof field) === 'array'){
+                            field.push(element);
+                        }
+                    }
+                }
+                return this;
             };
+
+            this.remove = function(name,element){
+                if(arguments.length === 1){
+                    this._remove_default(argument[0]);
+                }else{
+                    var fun = '_remove_'+name;
+                    if(this[fun]){
+                        this[fun](element);
+                    }else if(this['_'+name] === undefined){
+                        var field = this.get(name);
+                        if((typeof field) === 'array'){
+                            field.splice(field.indexOf(element),1);
+                        }
+                    }
+                }
+                return this;
+            };
+
+            // Increases the value to a field :
+            // if there is a function _increase_name(value) in the object, it will be called.
+            // if the field is a number, the value will be added to the existing value
+            // if the field is an object and has a .add method, the value will be increased
+            // using this method
+            this.increase = function(name,value){
+                this.__updated__ = true;
+                if(arguments.length === 1){
+                    var arg = arguments[0];
+                    for(attr in arg){
+                        if(arg.hasOwnProperty(attr)){
+                            this.add(attr,arg[attr]);
+                        }
+                    }
+                }else{
+                    var fun = '_increase_' + name;
+                    if(this[fun]){
+                        this[fun](value);
+                    }else if(this['_'+name] === undefined){
+                        var field = this.get(name); 
+                        if(field === null || field === undefined){
+                            this.set(name,value);
+                        }else if(typeof field === 'number'){
+                            this.set(name, field + value);
+                        }else if(field.add){
+                            this.set(name, field.add(value));
+                        }
+                    }
+                }
+                return this;
+            };
+
             this.mixin = function(mixin){ //TODO match the better mixin function behaviour
                     if(arguments.length === 1){
                         for( prop in mixin){

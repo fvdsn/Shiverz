@@ -35,7 +35,7 @@ window.onload = function() {
         init: function(opt){
             this._super(opt);
             this.drawable = explosionSprite.clone();
-            this.transform.rotation = Math.random() * 6.28;
+            this.set('rotation', Math.random() * 6.28);
         },
         onInstanciation:function(){
             this.destroy(0.4);
@@ -66,15 +66,12 @@ window.onload = function() {
             this.destroy(0.7);
         },
         onUpdate: function(){
-            this.transform.translate(this.speedVec.scale(this.main.deltaTime));
-            this.transform.setScaleFac(Math.max(0.3, Math.min(0.7, 20*(this.main.time - this.startTime) )));
+            this.increase('pos',this.speedVec.scale(this.main.deltaTime));
+            this.set('scaleFac',Math.max(0.3, Math.min(0.7, 20*(this.main.time - this.startTime) )));
             return true;
         },
         onDestruction: function(){
-            this.main.scene.addEnt(new MissileExplosion({pos:this.transform.pos}) );
-        },
-        onDrawGlobal: function(){
-    //      draw.centeredRect(this.transform.pos, new Vec2(this.radius*2, this.radius*2), '#F00');
+            this.main.scene.add(new MissileExplosion({pos:this.transform.pos}) );
         },
         onCollisionEmit: function(ent){
             this.destroy();
@@ -90,29 +87,23 @@ window.onload = function() {
             this.collisionBehaviour = 'receive';
             this.bound = BRect.newCentered(0,0,this.width,this.width);
         },
-            hello: function(arg1,arg2){
-            console.log('hello',this.transform.pos.toString(),arg1,arg2);
-        },
-        onDrawGlobal: function(){
-            //draw.centeredRect(this.transform.pos, new Vec2(this.width,this.width), '#F00');
-        },
     });
 
     var PlayerCamera = Camera.extend({
     name: 'playerCamera',
         init: function(player){
             this.player = player;
-            this.transform.setPos(player.transform.pos);
+            this.set('pos',player.get('pos'));
         },
         onUpdate: function(){
             var center = new Vec2( 
                     window.innerWidth/2,
                     window.innerHeight/2
             );
-            var dpos = this.player.transform.pos.sub(this.transform.pos);
+            var dpos = this.player.get('pos').sub(this.get('pos'));
             var odpos = dpos;
             dpos = dpos.scale(1*this.main.deltaTime);
-            this.transform.translate(dpos);
+            this.increase('pos',dpos);
             if(odpos.len() > 1){
                 return true;
             }
@@ -124,7 +115,6 @@ window.onload = function() {
         name: 'player',
         init: function(opt){
             this._super(opt);
-            console.log('init');
             
             this.moveSpeed   = new Vec2();
             this.moveDir     = new Vec2();
@@ -212,8 +202,8 @@ window.onload = function() {
                 }
                 this.lastFireTime = this.main.time;
                 if(this.fireSequence < this.clipSize){
-                    this.main.scene.addEnt(new Missile({ 
-                        pos: this.transform.pos.add(this.aimdir.scale(40)), 
+                    this.main.scene.add(new Missile({ 
+                        pos: this.get('pos').add(this.aimdir.scale(40)), 
                         dir: this.aimdir,
                         heritSpeed: this.moveSpeed.scale(0.5),
                     }));
@@ -234,10 +224,10 @@ window.onload = function() {
                 this.moveSpeed = this.moveSpeed.setLen(this.maxSpeed);
             }
             
-            this.transform.translate(this.moveSpeed.scale(this.main.deltaTime));
-            var prevRotation = this.transform.getRotation(); 
-            this.transform.setRotationDeg(this.aimdir.angleDeg() + 90);
-            var deltaRot = Math.abs(prevRotation - this.transform.getRotation());
+            this.increase('pos',this.moveSpeed.scale(this.main.deltaTime));
+            var prevRotation = this.get('rotation'); 
+            this.set('rotationDeg',(this.aimdir.angleDeg() + 90));
+            var deltaRot = Math.abs(prevRotation - this.get('rotation'));
             
             if(this.moveSpeed.len() >= 1 || deltaRot > 0.001){
                 return true;
@@ -250,7 +240,7 @@ window.onload = function() {
         },
         onCollisionEmit: function(ent){
             this.colVec = this.collisionAxis(ent);
-            this.transform.translate(this.colVec.neg());
+            this.add('pos',this.colVec.neg());
             if(this.colVec.len() > 1){
                 return true;
             }
@@ -260,7 +250,7 @@ window.onload = function() {
     var ShivrzScene = Scene.extend({
         onSceneStart: function(){
             this.lastTime = -1;
-            this.addEnt(new PlayerShip({
+            this.add(new PlayerShip({
                 pos: new Vec2(
                     window.innerWidth/2,
                     window.innerHeight/2
@@ -268,7 +258,7 @@ window.onload = function() {
             }));
             
             for(var i = 0; i < 20; i++){
-                this.addEnt(new Block({
+                this.add(new Block({
                     pos: new Vec2(
                         100 + Math.random()*(window.innerWidth - 200) ,
                         100 + Math.random()*(window.innerHeight - 200)
@@ -289,7 +279,6 @@ window.onload = function() {
 
 
     window.main   = new Main({
-        fps: 60,
         input: new Input('body'),
         scene: new ShivrzScene({
             renderer: new RendererCanvas2d({
@@ -305,6 +294,6 @@ window.onload = function() {
     });
     
 
-    window.main.setFps(60);
+    window.main.set('fps',60);
     window.main.run();
 };

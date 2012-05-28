@@ -59,7 +59,6 @@ window.modula = window.modula || {};
         //called to finish an animation
         finish: function(){
             if(!this.finished){
-                console.log('finished');
                 this.finished = true;
                 if(this.callback){
                     return this.callback();
@@ -80,6 +79,9 @@ window.modula = window.modula || {};
 
             if(this.start_val === undefined){
                 var val = obj.get(attr);
+                if(val === null || val === undefined){
+                    return false;
+                }
                 if(val.clone){
                     this.start_val = val.clone();
                 }else{
@@ -141,7 +143,7 @@ window.modula = window.modula || {};
         // 'linear' (default)
         // 'accelerating', 'decelerating', 'smooth'
         // callback (optional) : the callback is called after the animation is over
-        animate: function(attr, value, duration, easing, callback){
+        anim: function(attr, value, duration, easing, callback){
             this.addAnimation(new Animation({
                 attr: attr,
                 value: value,
@@ -155,7 +157,7 @@ window.modula = window.modula || {};
     modula.AnimationsPass = modula.ScenePass.extend({
         process: function(scene,updated){
             var redraw = false;
-            var entList = scene.getAllEnt();
+            var entList = scene.get('entities');
             var time = scene.main.time;
 
             for(var i = 0, len = entList.length; i < len; i++){
