@@ -10,8 +10,6 @@ window.onload = function() {
         centered:true,
     });
 
-    // var shipSprite = spriteMap.get('sprite','ship');
-
     var shipSpriteFiring = new RendererCanvas2d.DrawableSprite({
         src:'img/ship_yellow_firing.png',
         centered:true,
@@ -39,19 +37,28 @@ window.onload = function() {
     });
 
     var grid = new Grid({
-        cellX: 9,
-        cellY: 9,
+        cellX: 18,
+        cellY: 18,
         cellSize: 103,
         cells: [ 
-            2,0,1,0,1,0,1,0,2, 
-            0,0,0,0,0,0,0,0,0, 
-            1,0,1,1,0,1,1,0,1, 
-            0,0,1,2,0,2,1,0,0, 
-            1,0,0,0,0,0,0,0,1, 
-            0,0,1,0,0,0,1,0,0, 
-            1,0,0,1,1,1,0,0,1, 
-            0,0,0,0,0,0,0,0,0, 
-            2,0,1,0,1,0,1,0,2, 
+            2,0,1,0,1,0,1,0,2,2,0,1,0,1,0,1,0,2,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+            1,0,1,1,0,1,1,0,0,0,0,1,1,0,1,1,0,2,
+            0,0,1,2,0,2,1,0,0,0,0,2,1,0,2,1,0,1,
+            1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
+            0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,
+            1,0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,2,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+            2,0,1,0,1,0,1,0,0,2,0,0,1,2,1,2,1,2,
+            2,0,1,0,1,0,1,0,0,2,0,0,2,1,0,1,0,2,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+            1,0,1,1,0,1,1,0,0,0,0,1,1,0,1,1,0,2,
+            0,0,1,2,0,2,1,0,0,0,0,2,1,0,2,1,0,1,
+            1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
+            0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,
+            1,0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,2,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+            2,0,1,0,1,0,1,0,2,2,0,1,1,2,1,2,1,2,
         ],
     });
 
@@ -70,6 +77,8 @@ window.onload = function() {
         bound: new Rect(0,0,grid.get('size').x, grid.get('size').y),
         collisionBehaviour: 'receive',
     });
+
+    var gridEnt = new GridEnt();
 
     var GridCollider = Ent.extend({
         onCollisionEmit: function(ent){
@@ -159,11 +168,43 @@ window.onload = function() {
             );
             var dpos = this.player.get('pos').sub(this.get('pos'));
             var odpos = dpos;
-            dpos = dpos.scale(1*this.main.deltaTime);
+            
+            dpos = dpos.scale( Math.max(1, dpos.len() /40) * this.main.deltaTime);
+
             this.increase('pos',dpos);
-            if(odpos.len() > 1){
-                return true;
+
+            var pos = this.get('pos');
+            var bound = this.get('bound');
+            if(bound.size().x <= grid.get('size').x){
+                if(bound.minX() <= 0){
+                    pos.x -= bound.minX();
+                }else if(bound.maxX() > grid.get('size').x){
+                    pos.x -= (bound.maxX() - grid.get('size').x)
+                }
+            }else{
+                if(bound.maxX() < grid.get('size').x){
+                    pos.x += (grid.get('size').x - bound.maxX());
+                }else if( bound.minX() > 0){
+                    pos.x -= bound.minX();
+                }
             }
+
+            if(bound.size().y <= grid.get('size').y){
+                if(bound.minY() <= 0){
+                    pos.y -= bound.minY();
+                }else if(bound.maxY() > grid.get('size').y){
+                    pos.y -= (bound.maxY() - grid.get('size').y)
+                }
+            }else{
+                if(bound.maxY() < grid.get('size').y){
+                    pos.y += (grid.get('size').y - bound.maxY());
+                }else if( bound.minY() > 0){
+                    pos.y -= bound.minY();
+                }
+            }
+
+            this.set('pos',pos);
+            return true;
         },
     });
     
@@ -176,7 +217,10 @@ window.onload = function() {
             this.moveSpeed   = new Vec2();
             this.moveDir     = new Vec2();
             this.aimdir       = new Vec2();
+            this.realSpeed   = 0;
             this.maxSpeed    = 500;
+            this.ultraSpeed   = 1000;
+            this.ultraAccel   = 100;
             this.acceleration = 100000;
             this.color        = '#F00';
             this.radius       = 20;
@@ -312,7 +356,7 @@ window.onload = function() {
                     window.innerHeight/2
                 ),
             }));
-            this.add(new GridEnt());
+            this.add(gridEnt);
         },
         onFrameEnd: function(){
         },

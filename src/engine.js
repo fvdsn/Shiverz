@@ -366,6 +366,11 @@ window.modula = window.modula || {};
         _set_pos: function(pos){
             this.transform.setPos(pos);
         },
+        _get_bound: function(){
+            var pos = this.transform.getPos();
+            var size = this.scene.renderer.get('size');
+            return new modula.Rect(pos.x,pos.y,size.x,size.y,'centered');
+        },
     });
 
     modula.Renderer = modula.Class.extend({
