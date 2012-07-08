@@ -48,10 +48,6 @@
 
     var proto = Mat2.prototype;
 
-    proto.type  = 'mat';
-    proto.dimension = 2;
-    proto.fullType = 'mat2';
-
     Mat2.zero = function(){ return new Mat2(0,0,0,0); };
     Mat2.id   = function(){ return new Mat2(1,0,0,1); };
     Mat2.one  = function(){ return new Mat2(1,1,1,1); };

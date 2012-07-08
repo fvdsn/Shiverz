@@ -4,30 +4,85 @@ window.onload = function() {
     window.context = canvas.getContext('2d');
     
     modula.use();   
-        
+
     var shipSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/ship_yellow.png',
+        centered:true,
     });
+
+    // var shipSprite = spriteMap.get('sprite','ship');
+
     var shipSpriteFiring = new RendererCanvas2d.DrawableSprite({
         src:'img/ship_yellow_firing.png',
+        centered:true,
     });
     
     var missileSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/projectile.png',
         globalCompositeOperation: 'lighter',
         pos: new Vec2(0,20),
+        centered:true,
     });
     
     var explosionSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/explosion128blue.png',
         globalCompositeOperation: 'lighter',
+        centered:true,
     });
     
     var blockSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/block.png',
     });
+
     var blockSpriteYellow = new RendererCanvas2d.DrawableSprite({
         src:'img/blockyellow.png',
+    });
+
+    var grid = new Grid({
+        cellX: 9,
+        cellY: 9,
+        cellSize: 103,
+        cells: [ 
+            2,0,1,0,1,0,1,0,2, 
+            0,0,0,0,0,0,0,0,0, 
+            1,0,1,1,0,1,1,0,1, 
+            0,0,1,2,0,2,1,0,0, 
+            1,0,0,0,0,0,0,0,1, 
+            0,0,1,0,0,0,1,0,0, 
+            1,0,0,1,1,1,0,0,1, 
+            0,0,0,0,0,0,0,0,0, 
+            2,0,1,0,1,0,1,0,2, 
+        ],
+    });
+
+    var drawgrid = new DrawableGrid({
+        grid: grid,
+        drawables:{
+            1: blockSprite,
+            2: blockSpriteYellow,
+        },
+    });
+
+    var GridEnt = Ent.extend({
+        name: 'TheGrid',
+        drawable: drawgrid,
+        grid: grid,
+        bound: new Rect(0,0,grid.get('size').x, grid.get('size').y),
+        collisionBehaviour: 'receive',
+    });
+
+    var GridCollider = Ent.extend({
+        onCollisionEmit: function(ent){
+            if(ent instanceof GridEnt){
+                var cells = ent.grid.getColldingCells(this.bound.cloneAt(this.get('pos')));
+                for(var i = 0, len = cells.length; i < len; i++){
+                    this.onGridCollision(cells[i]);
+                }
+            }
+        },
+        onGridCollision: function(cell){
+            console.log("GridCollide:",cell);
+        },
     });
     
     var MissileExplosion = Ent.extend({
@@ -48,7 +103,7 @@ window.onload = function() {
     });
     
     
-    var Missile = Ent.extend({
+    var Missile = GridCollider.extend({
         name: 'missile',
         init: function(opt){
             this._super(opt);
@@ -60,7 +115,7 @@ window.onload = function() {
             this.transform.setRotationDeg( this.speedVec.angleDeg() + 90);
             this.radius = opt.radius || 5;
             this.collisionBehaviour = 'emit';
-            this.bound = BRect.newCentered(0,0,this.radius*2,this.radius*2);
+            this.bound = new Rect(0,0,this.radius*2,this.radius*2,'centered');
         },
         onInstanciation:function(){
             this.destroy(0.7);
@@ -73,8 +128,10 @@ window.onload = function() {
         onDestruction: function(){
             this.main.scene.add(new MissileExplosion({pos:this.transform.pos}) );
         },
-        onCollisionEmit: function(ent){
-            this.destroy();
+        onGridCollision: function(cell){
+            if(cell.cell){
+                this.destroy();
+            }
         },
     });
     
@@ -85,12 +142,12 @@ window.onload = function() {
             this.drawable = opt.sprite || Math.random() < 0.5 ? blockSprite : blockSpriteYellow;
             this.width = 110;
             this.collisionBehaviour = 'receive';
-            this.bound = BRect.newCentered(0,0,this.width,this.width);
+            this.bound = new Rect(0,0,this.width,this.width,'centered');
         },
     });
 
     var PlayerCamera = Camera.extend({
-    name: 'playerCamera',
+        name: 'playerCamera',
         init: function(player){
             this.player = player;
             this.set('pos',player.get('pos'));
@@ -111,7 +168,7 @@ window.onload = function() {
     });
     
     
-    var PlayerShip = Ent.extend({
+    var PlayerShip = GridCollider.extend({
         name: 'player',
         init: function(opt){
             this._super(opt);
@@ -135,7 +192,7 @@ window.onload = function() {
             this.clipSize     = 5;
             this.reloadTime   = 2;
             this.collisionBehaviour = 'emit';
-            this.bound = BRect.newCentered(0,0,this.radius*2, this.radius*2);
+            this.bound = new Rect(0,0,this.radius*2, this.radius*2,'centered');
             this.colVec = new Vec2();
 
 
@@ -233,18 +290,17 @@ window.onload = function() {
                 return true;
             }
         },
-        onDrawGlobal: function(){
-            //draw.centeredRect(this.transform.pos, new Vec2(this.radius*2,this.radius*2), '#F00');
-            //draw.lineAt(this.transform.pos, this.colVec, 'green');
-            //this.colVec = new Vec2();
-        },
-        onCollisionEmit: function(ent){
-            this.colVec = this.collisionAxis(ent);
-            this.add('pos',this.colVec.neg());
-            if(this.colVec.len() > 1){
-                return true;
+        onGridCollision: function(cell){
+            var bound = cell.bound;
+            if(cell.cell){
+                this.colVec = this.collisionAxis(bound);
+                this.increase('pos',this.colVec);
+                if(this.colVec.len() > 1){
+                    return true;
+                }
             }
         },
+                
     });
     
     var ShivrzScene = Scene.extend({
@@ -256,27 +312,11 @@ window.onload = function() {
                     window.innerHeight/2
                 ),
             }));
-            
-            for(var i = 0; i < 20; i++){
-                this.add(new Block({
-                    pos: new Vec2(
-                        100 + Math.random()*(window.innerWidth - 200) ,
-                        100 + Math.random()*(window.innerHeight - 200)
-                    ).round() 
-                }));
-            }
+            this.add(new GridEnt());
         },
-        /* onFrameStart: function(){
-            context.canvas.width = window.innerWidth;
-            context.canvas.height = window.innerHeight;
-        }, */
         onFrameEnd: function(){
         },
     });
-
-
-
-
 
     window.main   = new Main({
         input: new Input('body'),
@@ -288,11 +328,9 @@ window.onload = function() {
                 },
                 background: '#333',
                 alwaysRedraw: false,
-                //globalCompositeOperation: 'lighter'
             }),
         }),
     });
-    
 
     window.main.set('fps',60);
     window.main.run();

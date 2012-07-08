@@ -105,7 +105,7 @@ window.modula = window.modula || {};
 
                 redraw = this.scene.runFrame();
                 
-                if(renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
+                if(camera && renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
                     renderer.drawFrame(this.scene,camera);
                 }
                 this.scene.onFrameEnd();
@@ -432,15 +432,16 @@ window.modula = window.modula || {};
         },
         drawFrame: function(scene,camera){
             this.drawInit(camera);
+            var self = this;
             
             function drawEntity(ent){
-                this.context.save();
-                this.context.translate(ent.transform.pos.x, ent.transform.pos.y);
-                this.context.scale(ent.transform.scale.x, ent.transform.scale.y);
-                this.context.rotate(ent.transform.rotation);
+                self.context.save();
+                self.context.translate(ent.transform.pos.x, ent.transform.pos.y);
+                self.context.scale(ent.transform.scale.x, ent.transform.scale.y);
+                self.context.rotate(ent.transform.rotation);
                 if(ent.render){
                     if(ent.drawable){
-                        ent.drawable.draw(this,ent);
+                        ent.drawable.draw(self,ent);
                     }
                     ent.onDrawLocal();
                 }
@@ -449,7 +450,7 @@ window.modula = window.modula || {};
                         drawEntity(ent.transform.getChild(i).ent);
                     }
                 }
-                this.context.restore();
+                self.context.restore();
             }
             
             for(var i = 0, len = scene._rootEntityList.length; i < len; i++){
@@ -464,47 +465,142 @@ window.modula = window.modula || {};
         },
     });
     
+    modula.RendererCanvas2d.SpriteMap = modula.Class.extend({
+        init: function(options){
+            options = options || {};
+            var self = this;
+            this._image = options.image || null;
+            this._src = options.src;
+
+            if(this._src === undefined){
+                this._src = this.image.src;
+            }else{
+                this._image = new Image();
+                this._image.src = this._src;
+            }
+
+            function onload(){
+                self._size = new Vec2(self._image.width, self._image.height);
+            }
+            this._image.onload = onload;
+            onload();
+
+            if(options.cellSize){
+                if(typeof options.cellSize === 'number'){
+                    this._cellSize = new Vec2(options.cellSize, options.cellSize);
+                }else{
+                    this._cellSize = options.cellSize.clone();
+                }
+            }else{ 
+                this._cellSize = this.get('cellSize') || new Vec2(32,32);
+            }
+            this._sprites = {};
+            this._spriteNames = [];
+            if(options.sprites){
+                for(var i = 0, l = options.sprites.length; i < l; i++){
+                    var sub = options.sprites[i];
+                    this._sprites[sub.name] = sub;
+                    this._spriteNames.push(sub.name);
+                }
+            }
+        },
+        _set_sprite: function(name,index,size){
+            this._sprites[name] = { index: index, size: size };
+            this._spriteNames.push(name);
+        },
+        _get_sprite: function(name,options){
+            options = options || {};
+            var sprite = this._sprites[name];
+            if(sprite){
+                arg = {
+                    image: this._image,
+                    src_x: sprite.index[0] * this._cellSize.x,
+                    src_y: sprite.index[1] * this._cellSize.y,
+                    src_sx: (sprite.size ? sprite.size[0] : 1) * this._cellSize.x,
+                    src_sy: (sprite.size ? sprite.size[1] : 1) * this._cellSize.y,
+                };
+                for( key in options){
+                    arg[key] = options[key];
+                }
+                return new modula.RendererCanvas2d.DrawableSprite(arg);
+            }
+        },
+    });
     modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable.extend({
         init: function(options){
             options = options || {};
-                var self = this;
-            this.z     = options.z || 0;    
-            this.image = options.image || null;
-    
-            this.alpha = options.alpha;
-            this.globalCompositeOperation = options.globalCompositeOperation;
-            this.src   = options.src;
+            var self = this;
 
-            if(this.src === undefined){
-                this.src = this.image.src;
+            this._image = options.image || null;
+            this._src   = options.src;
+            this.centered = options.centered || false;
+
+            if(this._src === undefined){
+                this._src = this._image.src;
             }else{
-                this.image = new Image();
-                this.image.src = this.src;
+                this._image = new Image();
+                this._image.src = this._src;
             }
-            this.pos   = options.pos || new Vec2(); 
 
-            this.image.onload = function(){
-                self.pos   = self.pos.addXY(-self.image.width/2,-self.image.height/2);
-            };
-            
+            function onload(){
+                self.z     = options.z || 0;    
+                self.alpha = options.alpha;
+                self.globalCompositeOperation = options.globalCompositeOperation;
+                self._src_x  = options.src_x  || 0;
+                self._src_y  = options.src_y  || 0;
+                self._src_sx = options.src_sx || self._image.width;
+                self._src_sy = options.src_sy || self._image.height;
+                self._dst_x  = options.dst_x  || 0;
+                self._dst_y  = options.dst_y  || 0;
+                self._dst_sx = options.dst_sx || self._src_sx;
+                self._dst_sy = options.dst_sy || self._src_sy;
+
+                self.pos   = options.pos ? options.pos.clone() : new Vec2();
+            }
+            this._image.onload = onload;
+            onload();
         },
         clone: function(){
-            var r = new modula.RendererCanvas2d.DrawableSprite({image:this.image});
-            r.pos = this.pos.clone();
-            r.src = this.src;
-            r.alpha = this.alpha;
-            r.globalCompositeOperation = this.globalCompositeOperation;
-            return r;
+            return new modula.RendererCanvas2d.DrawableSprite({
+                image : this._image,
+                pos   : this.pos,
+                alpha : this.alpha,
+                centered : this.centered,
+                globalCompositeOperation: this.globalCompositeOperation,
+                src_x : this._src_x,
+                src_y : this._src_y,
+                src_sx: this._src_sx,
+                src_sy: this._src_sy,
+                dst_x : this._dst_x,
+                dst_y : this._dst_y,
+                dst_sx: this._dst_sx,
+                dst_sy: this._dst_sy,
+            });
         },
         draw: function(renderer,ent){
+            var context = renderer.get('context');
             context.save();
             if(this.alpha !== undefined){
                 context.globalAlpha *= this.alpha;
             }
-            if(this.globalCompositeOperation !== undefined){
+            if(this.globalCompositeOperation){
                 context.globalCompositeOperation = this.globalCompositeOperation;
             }
-            renderer.context.drawImage(this.image,this.pos.x, this.pos.y);
+            //drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+            if(this.centered){
+                context.drawImage(this._image, 
+                        this._src_x,  this._src_y, 
+                        this._src_sx, this._src_sy,
+                        this._dst_x + this.pos.x - this._dst_sx/2, 
+                        this._dst_y + this.pos.y - this._dst_sy/2,
+                        this._dst_sx, this._dst_sy );
+            }else{
+                context.drawImage(this._image, 
+                        this._src_x,  this._src_y, 
+                        this._src_sx, this._src_sy,
+                        this._dst_x + this.pos.x, this._dst_y + this.pos.y,
+                        this._dst_sx, this._dst_sy );
+            }
             context.restore();
         },
     });
@@ -815,8 +911,8 @@ window.modula = window.modula || {};
                         //only receivers receive collision events
                         if( (r !== e) && (r.collisionBehaviour === 'receive' || e.collisionBehaviour === 'both') ){
                             if( e.collides(r) ){
-                                var updated = e.onCollisionEmit(r);
                                 var updated2 = r.onCollisionReceive(e);
+                                var updated = e.onCollisionEmit(r);
                                 draw = draw || updated || updated2; 
                             }
                         }
@@ -1011,36 +1107,50 @@ window.modula = window.modula || {};
         isDestroyed: function(){
             return this._state === "destroyed"; 
         },
-        // returns true if the entity collides with another entity
+        // returns true if the entity collides with another bound or entity
         collides: function(ent){
-            var epos = this.transform.distantToLocal(ent.transform);
-            //var epos = ent.transform.getWorldPos();
-            //var epos = epos.sub(this.transform.getWorldPos());
-            if(ent.bound){
-                var ebound = ent.bound.cloneAt(epos.addXY(ent.bound.cx, ent.bound.cy));
-                return this.bound.collides(ebound);
-            }else{
-                return this.contains(epos);
+            if(ent instanceof modula.Ent){
+                var epos = ent.transform.getWorldPos();
+                var epos = epos.sub(this.transform.getWorldPos());
+                if(ent.bound){
+                    var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
+                    return this.bound.collides(ebound);
+                }else{
+                    return this.contains(epos);
+                }
+            }else if(ent instanceof Bound){
+                return this.bound.cloneAt(this.get('pos')).collides(ent);
             }
         },
         // returns the smallest vector that would make this entity not collide 'ent' by translation
         collisionVector: function(ent){
-            var epos = this.transform.distantToLocal(ent.transform);
-            if(ent.bound){
-                var ebound = ent.bound.cloneAt(epos.addXY(ent.bound.cx, ent.bound.cy));
-                return this.bound.collisionVector(ebound);
+            if(ent instanceof modula.Ent){
+                var epos = ent.transform.getWorldPos();
+                var epos = epos.sub(this.transform.getWorldPos());
+                if(ent.bound){
+                    var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
+                    return this.bound.collisionVector(ebound);
+                }
+                return new Vec2();
+            }else if(ent instanceof Bound){
+                return this.bound.cloneAt(this.get('pos')).collisionVector(ent);
             }
-            return new Vec2();
         },
         // returns the smallest distance on each axis that would make this entity not collide with
         // 'ent' by translation on one axis
         collisionAxis: function(ent){
-            var epos = this.transform.distantToLocal(ent.transform);
-            if(ent.bound){
-                var ebound = ent.bound.cloneAt(epos.addXY(ent.bound.cx, ent.bound.cy));
-                return this.bound.collisionAxis(ebound);
+            if(ent instanceof modula.Ent){
+                    var epos = ent.transform.getWorldPos();
+                var epos = ent.transform.getWorldPos();
+                var epos = epos.sub(this.transform.getWorldPos());
+                if(ent.bound){
+                    var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
+                    return this.bound.collisionAxis(ebound);
+                }
+                return new Vec2();
+            }else if(ent instanceof Bound){
+                return this.bound.cloneAt(this.get('pos')).collisionAxis(ent);
             }
-            return new Vec2();
         },
         _get_pos: function(){
             return this.transform.getPos();
@@ -1088,6 +1198,16 @@ window.modula = window.modula || {};
         onCollisionEmit: function(ent){},
         // is called when the entity receives a collision from the entity 'ent'
         onCollisionReceive: function(ent){},
+    });
+
+    modula.Ray = modula.Class.extend({
+        start: null,
+        dir: null,
+        maxLength: 0,
+        length: 0,
+        pos: null,
+        next: function(length){
+        },
     });
 
 })(window.modula);

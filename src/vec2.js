@@ -39,11 +39,6 @@ window.modula = window.modula || {};
     modula.Vec2 = Vec2;
 
     var proto = Vec2.prototype;
-
-    proto.type      = 'vec';
-    proto.dimension = 2;
-    proto.fullType  = 'vec2'
-
     
     // Multiply a number expressed in radiant by radToDeg to convert it in degrees
     var radToDeg = 57.29577951308232;
@@ -140,34 +135,15 @@ window.modula = window.modula || {};
         return Math.sqrt(dx*dx + dy*dy);
     };
 
-    // returns the distance between v and [x,y]
-    Vec2.distXY = function(v, x, y){
-        var dx = v.x - x;
-        var dy = v.y - y;
-        return Math.sqrt(dx*dx + dy*dy);
-    };
-
     // return the distance between this vector and the vector v
     proto.dist = function(v){
         return Vec2.dist(this,v);
     };
     
-    // return the distance between this vector and the vector of coordinates (x,y)
-    proto.distXY = function(x,y){
-        return Vec2.distXY(this,x,y);
-    };
-
     //returns the squared distance between v1 and v2
     Vec2.distSq = function(v1,v2){
         var dx = v1.x - v2.x;
         var dy = v1.y - v2.y;
-        return dx*dx + dy*dy;
-    };
-
-    //returns the squared distance between v and [x,y]
-    Vec2.distSqXY = function(v, x, y){
-        var dx = v.x - x;
-        var dy = v.y - y;
         return dx*dx + dy*dy;
     };
 
@@ -177,26 +153,13 @@ window.modula = window.modula || {};
         return Vec2.distSq(this,v);
     };
     
-    // return the squared distance between this vector and the vector of coordinates (x,y)
-    proto.distSqXY = function(x,y){
-        return Vec2.distSqXY(this,x,y);
-    };
-    
     //returns the dot product of v1 and v2
     Vec2.dot = function(v1,v2){
         return v1.x*v2.x + v2.y*v2.y;
     }
-    Vec2.dotXY = function(v,x,y){
-        return v.x*x + v.y*y;
-    }
     // return the dot product between this vector and the vector v
     proto.dot = function(v){
         return this.x*v.x + this.y*v.y;
-    };
-    
-    // return the dot product between this vector and the vector of coordinate (x,y)
-    proto.dotXY = function(x,y){
-        return this.x*x + this.y*y;
     };
     
     //copies v into vd
@@ -216,22 +179,11 @@ window.modula = window.modula || {};
         vd.y = v1.x + v2.y;
     };
 
-    // sets vd to v1 + [x,y]
-    Vec2.addXY = function(vd,v, x, y){
-        vd.x  = v.x + x;
-        vd.y  = v.y + y;
-    };
-    
     // return the sum of this and vector v as a new vector
     proto.add = function(v){
         return new Vec2(this.x+v.x,this.y+v.y);
     };
     
-    // return the sum of this and vector (x,y) as a new vector
-    proto.addXY = function(x,y){
-        return new Vec2(this.x+x,this.y+y);
-    };
-
     Vec2.addScaled = function(vd,v1,v2,scale){
         vd.x = v1.x + (v2.x * scale);
         vd.y = v1.y + (v2.y * scale);
@@ -243,22 +195,11 @@ window.modula = window.modula || {};
         vd.y = v1.x - v2.y;
     };
 
-    //sets vd to v1 - [x,y]
-    Vec2.subXY = function(vd,v, x, y){
-        vd.x  = v.x - x;
-        vd.y  = v.y - y;
-    };
-    
     // returns (this - v) as a new vector where v is a vector and - is the vector subtraction
     proto.sub = function(v){
         return new Vec2(this.x-v.x,this.y-v.y);
     };
 
-    
-    // returns (this - (x,y)) as a new vector where - is vector subtraction
-    proto.subXY = function(x,y){
-        return new Vec2(this.x-x,this.y-y);
-    };
     
     // sets vd to the by component product of v1 and v2
     Vec2.mult= function(vd,v1,v2){
@@ -266,22 +207,11 @@ window.modula = window.modula || {};
         vd.y = v1.x * v2.y;
     };
 
-    // sets vd to the by component product of v and [x,y]
-    Vec2.multXY = function(vd,v, x, y){
-        vd.x  = v.x * x;
-        vd.y  = v.y * y;
-    };
-    
     // return (this * v) as a new vector where v is a vector and * is the by component product
     proto.mult = function(v){
         return new Vec2(this.x*v.x,this.y*v.y);
     };
     
-    // return (this * (x,y)) as a new vector where * is the by component product
-    proto.multXY = function(x,y){
-        return new Vec2(this.x*x,this.y*y);
-    };
-
     // sets vd to v scaled by float factor f
     Vec2.scale = function(vd,v,f){
         vd.x = v.x * f;
@@ -425,16 +355,6 @@ window.modula = window.modula || {};
         if(Math.abs(this.x-v.x) > epsilon){
             return false;
         }else if(Math.abs(this.y-v.y) > epsilon){
-            return false;
-        }
-        return true;
-    };
-    
-    // returns true if this vector is equal to the vector (x,y) with a tolerance defined by the epsilon module constant
-    proto.equalsXY = function(x,y){
-        if(Math.abs(this.x-x) > epsilon){
-            return false;
-        }else if(Math.abs(this.y-y) > epsilon){
             return false;
         }
         return true;

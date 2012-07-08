@@ -33,14 +33,31 @@ window.modula = window.modula || {};
 
         if (arguments.length === 1){
             var arg = arguments[0];
-
-            this.xx = arg.xx || this.xx;    //FIXME Zero values ...
-            this.xy = arg.xy || this.xy;
-            this.yx = arg.yx || this.yx;
-            this.yy = arg.yy || this.yy;
-            this.xz = arg.xz || this.xz;
-            this.yz = arg.yz || this.yz;
-
+            if(arg instanceof Mat2h){
+                this.xx = arg.xx === undefined ? this.xx : arg.xx;
+                this.xy = arg.xy === undefined ? this.xy : arg.xy;
+                this.yx = arg.yx === undefined ? this.yx : arg.yx;
+                this.yy = arg.yy === undefined ? this.yy : arg.yy;
+                this.xz = arg.xz === undefined ? this.xz : arg.xz;
+                this.yz = arg.yz === undefined ? this.yz : arg.yz;
+            }else{
+                if(arg.rotation){
+                    Mat2h.setRotation(this,arg.rotation);
+                }else if(arg.rotationDeg){
+                    Mat2h.setRotation(this,arg.rotationDeg * modula.degToRad);
+                }
+                if(typeof arg.scale === 'number'){
+                    this.xx *= arg.scale;
+                    this.yy *= arg.scale;
+                }else if(arg.scale instanceof Vec2){
+                    this.xx *= arg.scale.x;
+                    this.yy *= arg.scale.y;
+                }
+                if(arg.pos){
+                    this.xz  = arg.pos.x;
+                    this.yz  = arg.pos.y;
+                }
+            }
         } else if (arguments.length === 4){
             this.xx = arguments[0];
             this.xy = arguments[1];
@@ -54,10 +71,6 @@ window.modula = window.modula || {};
     modula.Mat2h = Mat2h;
 
     var proto  = Mat2h.prototype;
-    
-    proto.type      = 'matH';
-    proto.dimension = 2;
-    proto.fullType = 'mat2';
     
     proto.equals = function(mat){
         return  this.fullType === mat.fullType && 
@@ -212,15 +225,6 @@ window.modula = window.modula || {};
         m.yz = 0;
         return m;
     };
-    Mat2h.rotation = function(angle){
-        var m = new Mat2h();
-        Mat2h.setRotation(m,angle);
-        return m;
-    };
-
-    Mat2h.rotationDeg = function(angle){
-        return Mat2h.rotation(angle * modula.degToRad);
-    };
 
     Mat2h.setScale = function(m,scale){
         m.xx = scale.x;
@@ -229,12 +233,6 @@ window.modula = window.modula || {};
         m.yy = scale.y;
         m.xz = 0;
         m.yz = 0;
-        return m;
-    };
-
-    Mat2h.scale = function(scale){
-        var m = new Mat2h();
-        Mat2h.setScale(m,scale);
         return m;
     };
 
@@ -248,25 +246,18 @@ window.modula = window.modula || {};
         return m;
     };
 
-    Mat2h.translation = function(vec){
-        var m = new Mat2h();
-        Mat2h.setTranslation(m,vec);
-        return m;
-    }
-
     Mat2h.transform = function(scale,rotation,translation){
-        var m;
-        if(rotation === 0){
-            m = new Mat2h();
-        }else{
-            m = Mat2h.rotation(rotation);
+        var m = new Mat2h();
+        if(rotation){
+            Mat2h.setRotation(m,rotation);
         }
         m.xx *= scale.x;
-        m.xy *= scale.y;
+        m.yy *= scale.y;
         m.xz  = translation.x;
         m.yz  = translation.y;
         return m;
     };
+    
 })(window.modula);
 
 

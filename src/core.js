@@ -1,5 +1,4 @@
 window.modula = window.modula || {};
-
 (function(modula){
 	
 	modula.use = function(){
@@ -50,16 +49,24 @@ window.modula = window.modula || {};
             this.get = function(name,index){
                 var fun = '_get_'+name;
                 if(this[fun]){
-                    return this[fun](index);
+                    return this[fun].apply(this,Array.prototype.slice.call(arguments,1));
+                    //return this[fun](index);
                 }else{
-                    var ret = this['_'+name];
-                    if(ret === undefined){
-                        ret = this[name];
-                    }
                     if(index === undefined || index === null){
-                        return ret;
+                        var ret = this['_'+name];
+                        if(ret === undefined){
+                            return this[name];
+                        }else if(ret.clone){
+                            return ret.clone();
+                        }else{
+                            return ret;
+                        }
                     }else{
-                        return ret[index];
+                        var ret = this['_'+name];
+                        if(ret === undefined){
+                            ret = this[name];
+                        }
+                        return ret ? ret[index] : undefined;
                     }
                 }
             };
@@ -87,7 +94,8 @@ window.modula = window.modula || {};
                 }else{
                     var fun = '_set_' + name;
                     if(this[fun]){
-                        this[fun](value);
+                        this[fun].apply(this,Array.prototype.slice.call(arguments,1));
+                        //this[fun](value);
                     }else{
                         if( this['_' + name] === undefined ){
                             this[name] = value;

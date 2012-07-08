@@ -18,21 +18,102 @@
 
     var Vec2 = modula.Vec2;
 
-    function Transform2(){
-        this.pos = new Vec2();
-        this.scale = new Vec2(1,1);
-        this.rotation = 0.0;
+    function Transform2(tr){
+        tr = tr || {};
+        this.pos = tr.pos ? tr.pos.clone() : new Vec2();
+        if(tr.scale){
+            if(typeof tr.scale === 'number'){
+                this.scale = new Vec2(tr.scale,tr.scale);
+            }else{
+                this.scale = tr.scale.clone();
+            }
+        }else{
+            this.scale = new Vec2(1,1);
+        }
+        this.rotation = tr.rotation !== undefined ? tr.rotation : 0;
+
         this.parent = null;
         this.childs = [];
+
+        if(tr.parent){
+            tr.parent.addChild(this);
+        }
+        if(tr.childs){
+            for(var i = 0, len = tr.childs.length; i < len; i++){
+                this.addChild(tr.childs[i]);
+            }
+        }
+        this.localToParentMatrix = null;
+        this.parentToLocalMatrix = null;
+        this.localToWorldMatrix  = null;
+        this.worldToLocalMatrix  = null;
     }
 
     modula.Transform2 = Transform2;
 
     var proto = Transform2.prototype;
 
-    proto.type = "transform";
-    proto.dimension = 2;
-    proto.fullType = "transform2";
+    function reset_matrix(tr){
+        if(tr.localToParentMatrix){
+            tr.localToParentMatrix = null;
+            tr.parentToLocalMatrix = null;
+            tr.localToWorldMatrix  = null;
+            tr.worldToLocalMatrix  = null;
+            for(var i = 0, len = tr.childs.length; i < len; i++){
+                reset_matrix(tr.childs[i]);
+            }
+        }
+    }
+    function make_matrix(tr){
+        if(!tr.localToParentMatrix){
+            tr.localToParentMatrix = new Mat2h.transform(tr.scale,tr.rotation,tr.pos);
+            tr.parentToLocalMatrix = tr.localToParentMatrix.invert();
+            if(tr.parent){
+                make_matrix(tr.parent);
+                tr.localToWorldMatrix = tr.parent.localToWorldMatrix.mult(tr.localToParentMatrix);
+                tr.worldToLocalMatrix = tr.localToWorldMatrix.invert();
+            }else{
+                tr.localToWorldMatrix = tr.localToParentMatrix;
+                tr.worldToLocalMatrix = tr.parentToLocalMatrix;
+            }
+        }
+    }
+
+    proto.getLocalToParentMatrix = function(){
+        if(!this.localToParentMatrix){
+            make_matrix(this);
+        }
+        return this.localToParentMatrix;
+    };
+
+    proto.getParentToLocalMatrix = function(){
+        if(!this.parentToLocalMatrix){
+            make_matrix(this);
+        }
+        return this.parentToLocalMatrix;
+    };
+
+    proto.getLocalToWorldMatrix = function(){
+        if(!this.localToWorldMatrix){
+            make_matrix(this);
+        }
+        return this.localToWorldMatrix;
+    };
+
+    proto.getWorldToLocalMatrix = function(){
+        if(!this.worldToLocalMatrix){
+            make_matrix(this);
+        }
+        return this.worldToLocalMatrix;
+    };
+
+    proto.getDistantToLocalMatrix = function(dist){
+        return this.getWorldToLocalMatrix().mult(dist.getLocalToWorldMatrix());
+    }
+
+    proto.getLocalToDistantMatrix = function(dist){
+        return this.getLocalToWorldMatrix().mult(dist.getWorldToLocalMatrix());
+    }
 
     proto.equals = function(tr){
         return  this.fullType === tr.fullType &&
@@ -52,38 +133,32 @@
     proto.setPos = function(vec){
         this.pos.x = vec.x;
         this.pos.y = vec.y;
-        return this;
-    };
-
-    proto.setPosXY = function(x,y){
-        this.pos.x = x;
-        this.pos.y = y;
+        reset_matrix(this);
         return this;
     };
 
     proto.setScale = function(scale){
         this.scale.x = scale.x; 
         this.scale.y = scale.y; 
-        return this;
-    };
-    proto.setScaleXY = function(x,y){
-        this.scale.x = x; 
-        this.scale.y = y; 
+        reset_matrix(this);
         return this;
     };
     proto.setScaleFac = function(f){
         this.scale.x = f; 
         this.scale.y = f; 
+        reset_matrix(this);
         return this;
     };
 
     proto.setRotation = function(rotation){
         this.rotation = rotation;
+        reset_matrix(this);
         return this;
     };
 
     proto.setRotationDeg = function(rotation){
         this.rotation = rotation * degToRad;
+        reset_matrix(this);
         return this;
     };
 
@@ -104,46 +179,34 @@
     };
 
     proto.getWorldPos = function(){
-        return this.localToWorld(new Vec2());
+        return this.getLocalToWorldMatrix().multVec(new Vec2());
     };
 
     proto.parentToLocal = function(vec){
-        return vec.sub(this.pos)
-              .rotate(-this.rotation)
-              .multXY(1.0/this.scale.x, 1.0/this.scale.y);
+        return this.getParentToLocalMatrix().multVec(vec);
     };
 
     proto.worldToLocal = function(vec){
-        if(this.parent){
-            return this.parentToLocal( this.parent.worldToLocal(vec) );
-        }else{
-            return this.parentToLocal(vec);
-        }
+        return this.getWorldToLocalMatrix().multVec(vec);
     };
 
     proto.localToParent = function(vec){
-        return vec.multXY(this.scale.x, this.scale.y)
-              .rotate(this.rotation)
-              .add(this.pos);
+        return this.getLocalToParentMatrix().multVec(vec);
     };
 
     proto.localToWorld = function(vec){
-        if(this.parent){
-            return this.parent.localToWorld( this.localToParent(vec));
-        }else{
-            return this.localToParent(vec);
-        }
+        return this.getLocalToWorldMatrix().multVec(vec);
     };
-    proto.distantToLocal = function(distTransform, vec){    //TODO Rotation, scale
-        var distPos = distTransform.getWorldPos();
-        var pos = this.getWorldPos();
-        var localPos = pos.sub(distPos);
-        if(vec){
-            return localPos.add(vec);
-        }else{
-            return localPos;
-        }
-    }
+    
+    proto.distantToLocal = function(distTransform, vec){
+        vec = distTransform.localToWorld(vec);
+        return this.worldToLocal(vec);
+    };
+
+    proto.localToDistant = function(dist, vec){
+        vec = this.localToWorld(vec);
+        return dist.worldToLocal(vec);
+    };
 
 
     proto.addChild = function(tr){
@@ -197,43 +260,37 @@
 
     proto.rotate = function(angle){ 
         this.rotation += angle;
+        reset_matrix(this);
         return this;
     };
 
     proto.rotateDeg = function(angle){
         this.rotation += angle * degToRad;
+        reset_matrix(this);
         return this;
     };
 
     proto.scale = function(scale){
         this.scale.x *= scale.x;
         this.scale.y *= scale.y;
-        return this;
-    };
-
-    proto.scaleXY = function(x,y){
-        this.scale.x *= x;
-        this.scale.y *= y;
+        reset_matrix(this);
         return this;
     };
 
     proto.scaleFac = function(f){
         this.scale.x *= f;
         this.scale.y *= f;
+        reset_matrix(this);
         return this;
     };
 
     proto.translate = function(deltaPos){
         this.pos.x += deltaPos.x;
         this.pos.y += deltaPos.y;
+        reset_matrix(this);
         return this;
     };
 
-    proto.translateXY = function(x,y){
-        this.pos.x += x;
-        this.pos.y += y;
-        return this;
-    };
 
 })(window.modula);
 

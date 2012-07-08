@@ -1,110 +1,48 @@
 
 (function(modula){
-    // A Bounding Shapes Library
 
-    // A Bounding Ellipse
-    // cx,cy : center of the ellipse
-    // rx,ry : radius of the ellipse
-    function BEllipse(cx,cy,rx,ry){
-        this.type = 'ellipse';
-        this.x = cx-rx;     // minimum x coordinate contained in the ellipse     
-        this.y = cy-ry;     // minimum y coordinate contained in the ellipse
-        this.sx = 2*rx;     // width of the ellipse on the x axis
-        this.sy = 2*ry;     // width of the ellipse on the y axis
-        this.hx = rx;       // half of the ellipse width on the x axis
-        this.hy = ry;       // half of the ellipse width on the y axis
-        this.cx = cx;       // x coordinate of the ellipse center
-        this.cy = cy;       // y coordinate of the ellipse center
-        this.mx = cx + rx;  // maximum x coordinate contained in the ellipse
-        this.my = cy + ry;  // maximum x coordinate contained in the ellipse
+    function Bound(){
     }
-    modula.BEllipse = BEllipse;
-
-    // returns an unordered list of vector defining the positions of the intersections between the ellipse's
-    // boundary and a line segment defined by the start and end vectors a,b
-    BEllipse.prototype.collideSegment = function(a,b){
-        // http://paulbourke.net/geometry/sphereline/
-        var collisions = [];
-
-        if(a.equals(b)){  //we do not compute the intersection in this case. TODO ?     
-            return collisions;
-        }
-
-        // make all computations in a space where the ellipse is a circle 
-        // centered on zero
-        var c = new Vec2(this.cx,this.cy);
-        a = a.sub(c).multXY(1/this.hx,1/this.hy);
-        b = b.sub(c).multXY(1/this.hx,1/this.hy);
-
-
-        if(a.lenSq() < 1 && b.lenSq() < 1){   //both points inside the ellipse
-            return collisions;
-        }
-
-        // compute the roots of the intersection
-        var ab = b.sub(a);
-        var A = (ab.x*ab.x + ab.y*ab.y);
-        var B = 2*( ab.x*a.x + ab.y*a.y);
-        var C = a.x*a.x + a.y*a.y - 1;
-        var u  = B * B - 4*A*C;
-        
-        if(u < 0){
-            return collisions;
-        }
-
-        u = Math.sqrt(u);
-        var u1 = (-B + u) / (2*A);
-        var u2 = (-B - u) / (2*A);
-
-        if(u1 >= 0 && u1 <= 1){
-            var pos = a.add(ab.scale(u1));
-            collisions.push(pos);
-        }
-        if(u1 != u2 && u2 >= 0 && u2 <= 1){
-            var pos = a.add(ab.scale(u2));
-            collisions.push(pos);
-        }
-        for(var i = 0; i < collisions.length; i++){
-            collisions[i] = collisions[i].multXY(this.hx,this.hy);
-            collisions[i] = collisions[i].addXY(this.cx,this.cy);
-        }
-        return collisions;
-    };
-    
-    // returns true if the ellipse contains the position defined by the vector 'vec'
-    BEllipse.prototype.containsVec = function(v){
-        v = v.multXY(this.hx,this.hy);
-        return v.lenSq() <= 1;
-    };
-    // returns true if the ellipse contains the position (x,y) 
-    BEllipse.prototype.containsXY = function(x,y){
-        return this.contains(new Vec2(x,y));
-    };
-    
+    modula.Bound = Bound;
     // A bounding rectangle
     // x,y the minimum coordinate contained in the rectangle
     // sx,sy the size of the rectangle along the x,y axis
-    function BRect(x,y,sx,sy){
-        this.type = 'rect';
-        this.x = x;              // minimum x coordinate contained in the rectangle  
-        this.y = y;              // minimum y coordinate contained in the rectangle
-        this.sx = sx;            // width of the rectangle on the x axis
-        this.sy = sy;            // width of the rectangle on the y axis
-        this.hx = sx/2;          // half of the rectangle width on the x axis
-        this.hy = sy/2;          // half of the rectangle width on the y axis
+    function Rect(x,y,sx,sy,centered){
+        this.sx = sx;           // width of the rectangle on the x axis
+        this.sy = sy;           // width of the rectangle on the y axis
+        this.hx = sx/2;         // half of the rectangle width on the x axis
+        this.hy = sy/2;         // half of the rectangle width on the y axis
+        this.x  = x;            // minimum x coordinate contained in the rectangle  
+        this.y  = y;            // minimum y coordinate contained in the rectangle
         this.cx = x + this.hx;   // x coordinate of the rectangle center
         this.cy = y + this.hy;   // y coordinate of the rectangle center
-        this.mx = x + sx;        // maximum x coordinate contained in the rectangle
-        this.my = y + sy;        // maximum x coordinate contained in the rectangle
+        this.mx = this.x + sx;   // maximum x coordinate contained in the rectangle
+        this.my = this.y + sy;   // maximum x coordinate contained in the rectangle
+        if(centered){
+            this.x -= this.hx;
+            this.cx -= this.hx;
+            this.mx -= this.hx;
+            this.y -= this.hy;
+            this.cy -= this.hy;
+            this.my -= this.hy;
+        }
     }
 
-    modula.BRect = BRect;
-    
-    // Static method creating a new bounding rectangle of size (sx,sy) centered on (cx,cy)
-    BRect.newCentered = function(cx,cy,sx,sy){
-        return new BRect(cx-sx/2,cy-sy/2,sx,sy);
-    };
-    
+    modula.Rect = Rect;
+
+    Rect.prototype = new Bound();
+    Rect.prototype.min = function(){  return new Vec2(this.x, this.y); };
+    Rect.prototype.minX = function(){ return this.x; };
+    Rect.prototype.minY = function(){ return this.y; };
+    Rect.prototype.max = function(){  return new Vec2(this.mx, this.my); };
+    Rect.prototype.maxX = function(){ return this.mx; };
+    Rect.prototype.maxY = function(){ return this.my; };
+    Rect.prototype.size = function(){ return new Vec2(this.sx, this.sy); };
+    Rect.prototype.center = function(){return new Vec2(this.cx, this.cy); };
+    Rect.prototype.equals = function(b){ return ( this.cx === b.cx && this.cy === b.cy && this.sx === b.sx && this.sy === b.sy); };
+    Rect.prototype.clone  = function(){  return new Rect(this.x,this.y,this.sx, this.sy)};
+    Rect.prototype.cloneAt = function(center){ return new Rect(center.x - this.hx, center.y -this.hy, this.sx, this.sy); };
+
     //intersect line a,b with line c,d, returns null if no intersection
     function lineIntersect(a,b,c,d){
         // http://paulbourke.net/geometry/lineline2d/
@@ -127,7 +65,7 @@
     // returns an unordered list of vector defining the positions of the intersections between the ellipse's
     // boundary and a line segment defined by the start and end vectors a,b
 
-    BRect.prototype.collideSegment = function(a,b){
+    Rect.prototype.collideSegment = function(a,b){
         var collisions = [];
         var corners = [ new Vec2(this.x,this.y), new Vec2(this.x,this.my), 
                         new Vec2(this.mx,this.my), new Vec2(this.mx,this.y) ];
@@ -141,44 +79,22 @@
         if(pos) collisions.push(pos);
         return collisions;
     };
-    
-    BRect.prototype.translate = function(dpos){
-        this.x  += dpos.x;
-        this.mx += dpos.x;  
-        this.y  += dpos.y;
-        this.my += dpos.y;
+    Rect.prototype.contains = function(arg){
+        if(arg instanceof Vec2){
+            return ( arg.x >= this.x && arg.x <= this.mx &&
+                     arg.y >= this.y && arg.y <= this.my );
+        }else if(arguments.length === 2){
+            return this.contains(new Vec2(arguments[0],arguments[1]));
+        }else if( arg instanceof Rect){
+            return (arg.x >= this.x && arg.mx <= this.mx &&
+                    arg.y >= this.y && arg.my <= this.my );
+        }else if(arg instanceof Bound){
+            return (arg.minX() >= this.x && arg.maxX() <= this.mx &&
+                    arg.minY() >= this.y && arg.maxY() <= this.my );
+        }
+        return false;
     };
-    
-    BRect.prototype.scale = function(vec){
-        this.hx *= vec.x;
-        this.hy *= vec.y;
-        this.sx  = this.hx * 2;
-        this.sy  = this.hy * 2;
-        this.x   = this.cx - this.hx;
-        this.mx  = this.cx + this.hx;
-        this.y   = this.cy - this.hy;
-        this.my  = this.cy + this.hy;
-    };
-    
-    BRect.prototype.clone = function(){
-        return new BRect(this.x,this.y,this.sx,this.sy);
-    };
-    
-    BRect.prototype.cloneAt = function(center){
-        return new BRect(center.x - this.sx/2, center.y - this.sy/2, this.sx, this.sy);
-    };
-    
-    // returns true if the rectangle contains the position defined by the vector 'vec'
-    BRect.prototype.containsVec = function(vec){
-        return ( vec.x >= this.x && vec.x <= this.mx && 
-                 vec.y >= this.y && vec.y <= this.my  );
-    };
-    // returns true if the rectangle contains the position (x,y) 
-    BRect.prototype.containsXY = function(x,y){
-        return ( x >= this.x && x <= this.mx && 
-                 y >= this.y && y <= this.my  );
-    };
-    
+
     function boundCollides(amin, amax, bmin, bmax){
         if(amin + amax < bmin + bmax){
             return amax > bmin;
@@ -204,13 +120,13 @@
             }
         }
     }
-    
-    BRect.prototype.collides = function(b){
+
+    Rect.prototype.collides = function(b){
         return boundCollides(this.x, this.mx, b.x, b.mx) && 
                boundCollides(this.y, this.my, b.y, b.my);
     };
     
-    BRect.prototype.collisionAxis = function(b){
+    Rect.prototype.collisionAxis = function(b){
         var dx = boundEscapeDist(this.x, this.mx, b.x, b.mx); 
         var dy = boundEscapeDist(this.y, this.my, b.y, b.my);
         if( Math.abs(dx) < Math.abs(dy) ){
@@ -220,11 +136,33 @@
         }
     };
     
-    BRect.prototype.collisionVector = function(b){
+    Rect.prototype.collisionVector = function(b){
         return new Vec2( 
             boundEscapeDist(this.x, this.mx, b.x, b.mx),
             boundEscapeDist(this.y, this.my, b.y, b.my)  
         );
     };
-    
+    Rect.prototype.transform = function(mat){
+        if(Transform2 && (mat instanceof Transform2)){
+            mat = mat.getLocalToWorldMatrix();
+        }else if(!(mat instanceof Mat2h)){
+            mat = new Mat2h(mat);
+        }
+        var v1,v2,v3,v4,x,y,mx,my;
+
+        v1 = mat.multVec(new Vec2(this.cx-this.hx, this.cy-this.hy));
+        v2 = mat.multVec(new Vec2(this.cx-this.hx, this.cy+this.hy));
+        v3 = mat.multVec(new Vec2(this.cx+this.hx, this.cy-this.hy));
+        v4 = mat.multVec(new Vec2(this.cx+this.hx, this.cy+this.hy));
+
+        x = Math.min(Math.min(v1.x,v2.x),Math.min(v3.x,v4.x));
+        y = Math.min(Math.min(v1.y,v2.y),Math.min(v3.y,v4.y));
+        mx = Math.max(Math.max(v1.x,v2.x),Math.max(v3.x,v4.x));
+        my = Math.max(Math.max(v1.y,v2.y),Math.max(v3.y,v4.y));
+
+        return new Rect((x+mx)*0.5,(y+my)*0.5,mx-x,my-y);
+    };
+    Rect.prototype.toString = function(){
+        return "["+this.cx+","+this.cy+"|"+this.sx+","+this.sy+"]";
+    };
 })(window.modula);
