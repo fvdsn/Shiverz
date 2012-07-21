@@ -36,11 +36,19 @@ window.modula = window.modula || {};
                 return this._cell[index[1]*this._cellX+index[0]]; 
             }
         },
-        fill: function(){
+        fill: function(cell){
             for(var x = 0; x < this._cellX; x++){
                 for (var y = 0; y < this._cellY; y++){
-                    this.set('cell',[x,y],'['+x+','+y+']');
+                    this.set('cell',[x,y],cell);
                 }
+            }
+        },
+        _get_bound: function(index){
+            if(index){
+                var csize = this.get('cellSize');
+                return new modula.Rect(index[0] * csize.x, index[1] * csize.x, csize.x, csize.y );
+            }else{
+                return new modula.Rect(0,0,this.get('size').x, this.get('size').y);
             }
         },
         getCellAtPixel: function(pos){
@@ -49,8 +57,9 @@ window.modula = window.modula || {};
                 return undefined;
             }else{
                 var csize = this.get('cellSize');
-                return this.get('cell', [Math.floor(pos.x / csize.x),
-                                        Math.floor(pos.y / csize.y)]  );
+                var x = Math.max(0,Math.min(this._cellX - 1,Math.floor(pos.x/csize.x)));
+                var y = Math.max(0,Math.min(this._cellY - 1,Math.floor(pos.y/csize.y)));
+                return { x:x, y:y, cell:this.get('cell',x,y) };
             }
         },
         getCellsInRect: function(minx, miny, maxx, maxy){

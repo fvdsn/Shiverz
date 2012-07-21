@@ -366,6 +366,18 @@ window.modula = window.modula || {};
         _set_pos: function(pos){
             this.transform.setPos(pos);
         },
+        _get_scale: function(){
+            return this.transform.scale;
+        },
+        _set_scale: function(scale){
+            this.transform.setScale(scale);
+        },
+        _get_rotation: function(){
+            return this.transform.rotation;
+        },
+        _set_rotation: function(rot){
+            this.transform.setRotation(rot);
+        },
         _get_bound: function(){
             var pos = this.transform.getPos();
             var size = this.scene.renderer.get('size');
@@ -424,12 +436,12 @@ window.modula = window.modula || {};
             this.context.globalCompositeOperation = this.globalCompositeOperation;
             this.context.globalAlpha = this.globalAlpha;
             if(camera){
-                this.context.translate(
-                    -camera.transform.pos.x + this.canvas.width/2, 
-                    -camera.transform.pos.y + this.canvas.height/2
-                );
-                this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
                 this.context.rotate(-camera.transform.rotation);
+                this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
+                this.context.translate(
+                    -camera.transform.pos.x + (this.canvas.width/2 *camera.transform.scale.x), 
+                    -camera.transform.pos.y + this.canvas.height/2 *camera.transform.scale.x
+                );
             }
         },
         drawEnd: function(){
@@ -1168,12 +1180,6 @@ window.modula = window.modula || {};
         },
         _set_scale: function(scale){
             this.transform.setScale(scale);
-        },
-        _get_scaleFac: function(){
-            return 0.5*(this.transform.getScale().x + this.transform.getScale().y);
-        },
-        _set_scaleFac: function(fac){
-            this.transform.setScaleFac(fac);
         },
         _get_rotation: function(){
             return this.transform.getRotation();

@@ -30,10 +30,12 @@ window.onload = function() {
     
     var blockSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/block.png',
+        pos:new Vec2(-12,-12),
     });
 
     var blockSpriteYellow = new RendererCanvas2d.DrawableSprite({
         src:'img/blockyellow.png',
+        pos:new Vec2(-12,-12),
     });
 
     var grid = new Grid({
@@ -89,6 +91,41 @@ window.onload = function() {
                 }
             }
         },
+        gridCollision: function(){
+            var grid  = gridEnt.grid;
+            var centercell  = grid.getCellAtPixel(this.get('pos'));
+            var bound = this.get('bound').cloneAt(this.get('pos'));
+            var cells = [[],[],[]];
+            if(!centercell){
+                return {outside:true};
+            }
+            for(var x = -1; x <=1; x++){
+                for(var y = -1; y <= 1; y++){
+                    var px = centercell.x + x;
+                    var py = centercell.y + y;
+                    var c  = grid.get('cell',[px,py]);
+                    var b =  grid.get('bound',[px,py]);
+                    cells[x+1][y+1] = {
+                        x:px,
+                        y:py,
+                        out: px < 0 || px >= grid.get('cellX') || py < 0 || py >= grid.get('cellY'),
+                        cell:c,
+                        bound:b,
+                        solid: !!c,
+                        collides: bound.collides(b),
+                        cvec:bound.collisionVector(b),
+                        caxis:bound.collisionAxis(b),
+                    };
+                }
+            }
+            return {
+                outside:false,
+                cells: cells,
+            };
+        },
+
+
+            
         onGridCollision: function(cell){
             console.log("GridCollide:",cell);
         },
@@ -169,7 +206,7 @@ window.onload = function() {
             var dpos = this.player.get('pos').sub(this.get('pos'));
             var odpos = dpos;
             
-            dpos = dpos.scale( Math.max(1, dpos.len() /40) * this.main.deltaTime);
+            dpos = dpos.scale( Math.max(1, dpos.len() /10) * this.main.deltaTime);
 
             this.increase('pos',dpos);
 
@@ -218,12 +255,23 @@ window.onload = function() {
             this.moveDir     = new Vec2();
             this.aimdir       = new Vec2();
             this.realSpeed   = 0;
-            this.maxSpeed    = 500;
+            this.maxSpeed    = 350;
             this.ultraSpeed   = 1000;
             this.ultraAccel   = 100;
             this.acceleration = 100000;
             this.color        = '#F00';
             this.radius       = 20;
+
+            this.startSpeed   = 160;
+            this.accel        = 4;
+            this.turnDrag     = 1;
+
+            this.boost        = 1.5;
+
+            this.incSpeed = function(cspeed,dt){
+                var t = Math.log(1 - cspeed/this.maxSpeed)/-this.accel;
+                return this.maxSpeed * ( 1 - Math.exp(-this.accel*(t+dt)));
+            }
             
             this.shipSprite   = shipSprite.clone();
             this.shipSpriteFiring = shipSpriteFiring.clone();
@@ -249,55 +297,60 @@ window.onload = function() {
             var input = this.main.input;
             this.aimdir = main.scene.camera.getMouseWorldPos().sub(this.transform.pos).normalize();
             
-            //console.log('moveSpeed:', this.moveSpeed, this.get('moveSpeed') );
+
+            if(input.isKeyDown(' ')){
+                this.boosting = true;
+            }else{
+                this.boosting = false;
+            }
             
             if(input.isKeyDown('a')){
-                //console.log('A : left');
                 this.moveDir.x = -1;
             }else if(input.isKeyDown('d')){
-                //console.log('D : right');
                 this.moveDir.x = 1;
             }else{
                 this.moveDir.x = 0;
             }
             if(input.isKeyDown('w')){
             
-                //console.log('W : up');
                 this.moveDir.y = -1;
             }else if(input.isKeyDown('s')){
                 
-                //console.log('S : down');
                 this.moveDir.y = 1;
             }else{
                 this.moveDir.y = 0;
             }
-            if(this.moveDir.x === 0){
+
+            if(this.moveDir.len() === 0){
                 this.moveSpeed.x = 0;
-            }else{
-                if(this.moveDir.x * this.moveSpeed.x < 0){
-                    this.moveSpeed.x = 0;
-                }
-                this.moveSpeed.x += (this.moveDir.x * this.acceleration) * this.main.deltaTime;
-                
-                if(Math.abs( this.moveSpeed.x ) > this.maxSpeed){
-                    this.moveSpeed.x = this.moveDir.x * this.maxSpeed;
-                }
-            }
-            if(this.moveDir.y === 0){
                 this.moveSpeed.y = 0;
+                this.prevDir = this.moveDir.clone();
             }else{
-                if(this.moveDir.y * this.moveSpeed.y < 0){
-                    this.moveSpeed.y = 0;
+                var factor  = 1;
+                this.moveDir = this.moveDir.normalize();
+                var dot = this.moveDir.dot(this.prevDir || this.moveDir);
+                if(dot < 0){
+                    factor = 0;
+                }else if(dot < 0.1){
+                    factor = 0.81;
+                }else if(dot < 0.9){
+                    factor = 0.9;
                 }
-                this.moveSpeed.y += (this.moveDir.y * this.acceleration) * this.main.deltaTime;
-                
-                if(Math.abs( this.moveSpeed.y ) > this.maxSpeed){
-                    this.moveSpeed.y = this.moveDir.y * this.maxSpeed;
+                if(factor < 1){
+                    this.moveSpeed = this.moveSpeed.scale(factor);
                 }
-                    
+
+
+                if(this.moveSpeed.len() < this.startSpeed){
+                    this.moveSpeed = this.moveDir.scale(this.startSpeed*1.01);
+                }else{
+                    var cspeed = this.moveSpeed.len();
+                    this.moveSpeed = this.moveDir.scale(this.incSpeed(cspeed,this.main.deltaTime));
+                }
+                this.prevDir = this.moveDir.clone();
             }
             
-            if(input.isKeyDown('mouse0') && this.main.time > this.lastFireTime + this.fireInterval){
+            if(!this.boosting && input.isKeyDown('mouse0') && this.main.time > this.lastFireTime + this.fireInterval){
                 if(this.main.time > this.lastFireTime + this.fireInterval*1.5){
                     this.fireSequence = 0;
                 }
@@ -324,8 +377,12 @@ window.onload = function() {
             if(this.moveSpeed.len() > this.maxSpeed){
                 this.moveSpeed = this.moveSpeed.setLen(this.maxSpeed);
             }
+            if(this.boosting){
+                this.increase('pos',this.moveSpeed.scale(this.boost * this.main.deltaTime));
+            }else{
+                this.increase('pos',this.moveSpeed.scale(this.main.deltaTime));
+            }
             
-            this.increase('pos',this.moveSpeed.scale(this.main.deltaTime));
             var prevRotation = this.get('rotation'); 
             this.set('rotationDeg',(this.aimdir.angleDeg() + 90));
             var deltaRot = Math.abs(prevRotation - this.get('rotation'));
@@ -339,6 +396,11 @@ window.onload = function() {
             if(cell.cell){
                 this.colVec = this.collisionAxis(bound);
                 this.increase('pos',this.colVec);
+                if(this.colVec.x){
+                    this.moveSpeed.x = 0;
+                }else{
+                    this.moveSpeed.y = 0;
+                }
                 if(this.colVec.len() > 1){
                     return true;
                 }
