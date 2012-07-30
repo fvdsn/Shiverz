@@ -28,11 +28,18 @@ window.modula = window.modula || {};
            this.x = 0;
            this.y = 0;
         }else if (arguments.length === 1){
-           this.x = arguments[0].x;
-           this.y = arguments[0].y;
+            if(typeof arguments[0] === 'number'){
+                this.x = arguments[0];
+                this.y = arguments[0];
+            }else{
+                this.x = arguments[0].x;
+                this.y = arguments[0].y;
+            }
         }else if (arguments.length === 2){
            this.x = arguments[0];
            this.y = arguments[1];
+        }else{
+            console.error("new Vec2(): wrong number of arguments:",arguments.length);
         }
     }
 

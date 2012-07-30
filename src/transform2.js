@@ -207,6 +207,17 @@
         return dist.worldToLocal(vec);
     };
 
+    proto.X = function(){
+        return this.localToWorld(new Vec2(1,0)).sub(this.getWorldPos()).normalize();
+    };
+
+    proto.Y = function(){
+        return this.localToWorld(new Vec2(0,1)).sub(this.getWorldPos()).normalize();
+    };
+
+    proto.dist = function(tr){
+        return tr.getWorldPos().sub(this.getWorldPos());
+    };
 
     proto.addChild = function(tr){
         if(tr.parent != this){

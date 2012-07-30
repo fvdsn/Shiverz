@@ -23,6 +23,9 @@ window.modula = window.modula || {};
                                   this._cellY * this._cellSize.y  );
 
             this._cell = this._cell || options.cells || [];
+            if(options.fill && !options.cells){
+                this.fill(options.fill);
+            }
         },
         _set_cell: function(index,cell){
             if(index[0] >= 0 && index[0] < this._cellX && index[1] >= 0 && index[1] < this._cellY){
@@ -30,7 +33,9 @@ window.modula = window.modula || {};
             }
         },
         _get_cell: function(index){
-            if(index[0] < 0 || index[0] >= this._cellX || index[1] < 0 || index[1] >= this._cellY){
+            if(!index){
+                return this._cell;
+            }else if(index[0] < 0 || index[0] >= this._cellX || index[1] < 0 || index[1] >= this._cellY){
                 return undefined;
             }else{
                 return this._cell[index[1]*this._cellX+index[0]]; 

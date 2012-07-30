@@ -369,6 +369,9 @@ window.modula = window.modula || {};
         _get_scale: function(){
             return this.transform.scale;
         },
+        _get_scaleFac: function(){
+            return Math.max(this.transform.scale.x,this.transform.scale.y);
+        },
         _set_scale: function(scale){
             this.transform.setScale(scale);
         },
@@ -381,7 +384,9 @@ window.modula = window.modula || {};
         _get_bound: function(){
             var pos = this.transform.getPos();
             var size = this.scene.renderer.get('size');
-            return new modula.Rect(pos.x,pos.y,size.x,size.y,'centered');
+            return new modula.Rect(pos.x,pos.y,
+                    size.x*this.transform.scale.x,
+                    size.y*this.transform.scale.y,'centered');
         },
     });
 
@@ -436,12 +441,10 @@ window.modula = window.modula || {};
             this.context.globalCompositeOperation = this.globalCompositeOperation;
             this.context.globalAlpha = this.globalAlpha;
             if(camera){
-                this.context.rotate(-camera.transform.rotation);
+                this.context.translate(this.canvas.width/2, this.canvas.height/2);
                 this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
-                this.context.translate(
-                    -camera.transform.pos.x + (this.canvas.width/2 *camera.transform.scale.x), 
-                    -camera.transform.pos.y + this.canvas.height/2 *camera.transform.scale.x
-                );
+                this.context.rotate(-camera.transform.rotation);
+                this.context.translate(-camera.transform.pos.x,-camera.transform.pos.y);
             }
         },
         drawEnd: function(){
