@@ -18,13 +18,13 @@ window.onload = function() {
     var missileSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/projectile-green.png',
         globalCompositeOperation: 'lighter',
-        pos: new Vec2(20,0),
+        pos: new Vec2(-20,0),
         centered:true,
     });
     var boltSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/projectile-red.png',
         globalCompositeOperation: 'lighter',
-        pos: new Vec2(20,0),
+        pos: new Vec2(-20,0),
         centered:true,
     });
     
@@ -90,10 +90,10 @@ window.onload = function() {
         editCell: 1,
         onUpdate: function(){
             var input = this.main.input;
-            if(!this.main.scene.camera){
+            if(!this.scene.camera){
                 return;
             }
-            var mouse = this.transform.worldToLocal(this.main.scene.camera.getMouseWorldPos());
+            var mouse = this.transform.worldToLocal(this.scene.camera.getMouseWorldPos());
             var cell = this.grid.getCellAtPixel(mouse);
             if(cell && this.editing){
                 if(input.isKeyDown('mouse0')){
@@ -159,7 +159,7 @@ window.onload = function() {
         },
         explode: function(){
             if(this.explDamage && this.explRadius){
-                var ents = this.main.scene.get('entities');
+                var ents = this.scene.get('entity');
                 for(var i = 0, len = ents.length; i < len; i++){
                     var ent = ents[i];
                     if(ent instanceof PlayerShip){
@@ -176,12 +176,12 @@ window.onload = function() {
                 }
             }
             if(this.Expl){
-                this.main.scene.add(new this.Expl({pos:this.transform.pos}) );
+                this.scene.add(new this.Expl({pos:this.transform.pos}) );
             }
         },
         onUpdate: function(){
             this._super();
-            this.increase('pos',this.speedVec.scale(this.main.deltaTime));
+            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
             return true;
         },
         onGridCollision: function(cell){
@@ -204,7 +204,7 @@ window.onload = function() {
             this.destroy(0.4);
         },
         onUpdate: function(){
-            this.drawable.alpha = Math.max(0,1-(5*(this.main.time - this.startTime)));
+            this.drawable.alpha = Math.max(0,1-(5*(this.scene.time - this.startTime)));
             this.transform.scaleFac(1.05);
             return true;
         },
@@ -216,7 +216,7 @@ window.onload = function() {
         Expl: MissileExplosion,
         onUpdate: function(){
             this._super();
-            this.increase('pos',this.speedVec.scale(this.main.deltaTime));
+            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
             return true;
         },
     });
@@ -228,7 +228,7 @@ window.onload = function() {
         Expl: MissileExplosion,
         onUpdate: function(){
             this._super();
-            this.increase('pos',this.speedVec.scale(this.main.deltaTime));
+            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
             return true;
         },
     });
@@ -254,10 +254,12 @@ window.onload = function() {
             if(!this.main){
                 this.main = this.owner.main;
             }
-            if(this.main.time < this.lastFire + this.delay){
+            var scene = this.main.scene;
+
+            if(scene.time < this.lastFire + this.delay){
                 return false;
             }else if(   this.index === this.sequence - 1 &&
-                        this.main.time < this.lastFire + this.delay + this.cooldown){
+                        scene.time < this.lastFire + this.delay + this.cooldown){
                 return false;
             }
             if(this.ammo === 0){
@@ -265,7 +267,7 @@ window.onload = function() {
             }else if(this.ammo > 0){
                 this.ammo--;
             }
-            if(   this.main.time > this.lastFire + this.delay + this.cooldown*0.5 || 
+            if(   scene.time > this.lastFire + this.delay + this.cooldown*0.5 || 
                   this.index >= this.sequence -1 ){
                 this.index = 0;
             }else{
@@ -280,7 +282,7 @@ window.onload = function() {
                 });
                 this.main.scene.add(proj);
             }
-            this.lastFire = this.main.time;
+            this.lastFire = scene.time;
             
         },
     });
@@ -436,13 +438,13 @@ window.onload = function() {
         },
 
         onInstanciation: function(){
-            this.main.scene.camera = new PlayerCamera(this);
+            this.scene.camera = new PlayerCamera(this);
         },
     
         onUpdate: function(){
             var input = this.main.input;
-            var dt = this.main.deltaTime;
-            this.aimdir = main.scene.camera.getMouseWorldPos().sub(this.transform.pos).normalize();
+            var dt = this.scene.deltaTime;
+            this.aimdir = this.scene.camera.getMouseWorldPos().sub(this.transform.pos).normalize();
 
             if(input.isKeyPressing('q')){
                 this.set('weapon','missile');
@@ -518,27 +520,27 @@ window.onload = function() {
             
             if(!this.boosting && !gridEnt.editing &&input.isKeyDown('mouse0')){
                 if(this.weapon.fire(this.get('pos'), this.aimdir, this.moveSpeed.scale(0.5))){
-                    this.lastFireTime = this.main.time;
+                    this.lastFireTime = this.scene.time;
                 }
             }
 
-            if( this.main.time - this.lastFireTime < 0.05 ){
+            if( this.scene.time - this.lastFireTime < 0.05 ){
                 this.drawable = this.shipSpriteFiring;
             }else{
                 this.drawable = this.shipSprite;
             }
             if(this.knockFac > 0){
                 this.moveSpeed = this.moveSpeed.lerp(this.knockSpeed,this.knockFac);
-                this.knockFac *= (1 - this.knockRecovery*this.main.deltaTime);
+                this.knockFac *= (1 - this.knockRecovery*this.scene.deltaTime);
                 if(this.knockFac < 0.01){
                     this.knockFac = 0;
                 }
             }
             
             if(this.boosting){
-                this.increase('pos',this.moveSpeed.scale(this.boost * this.main.deltaTime));
+                this.increase('pos',this.moveSpeed.scale(this.boost * this.scene.deltaTime));
             }else{
-                this.increase('pos',this.moveSpeed.scale(this.main.deltaTime));
+                this.increase('pos',this.moveSpeed.scale(this.scene.deltaTime));
             }
             
             var prevRotation = this.get('rotation'); 

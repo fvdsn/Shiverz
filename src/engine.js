@@ -29,7 +29,6 @@ window.modula = window.modula || {};
             this.restartTime = -1;
             this.frame = 0;
             this.time = 0;
-            this.timeMillis = 0;
             this.timeSystem = 0;
             this.startTime = 0;
             this.fps = options.fps || 60;
@@ -66,7 +65,7 @@ window.modula = window.modula || {};
         _set_fps: function(fps){
             this.fps = fps;
             this.fixedDeltaTime = 1/fps;
-            this.deltaTime = this.theoricDeltaTime;
+            this.deltaTime = 1/fps;
         },
         exit:       function(){
             this.running = false;
@@ -74,20 +73,17 @@ window.modula = window.modula || {};
         runStart:   function(){
             var date = new Date();
             this.running = true;
-            this.startTime = date.getTime();
+            this.startTime = date.getTime() * 0.001;
             this.time = 0;
-            this.timeMillis = 0;
-            this.timeSystem = date.getTime();
+            this.timeSystem = this.startTime;
             this.restartTime = -1;
             this.frame = 0;
         },
         runFrame:   function(){
             var date = new Date();
-            this.deltaTime  = (date.getTime() - this.timeSystem) * 0.001;
-            this.timeSystem = date.getTime();
-            this.timeMillis = this.timeSystem - this.startTime;
-            this.time = this.timeMillis * 0.001;
-
+            this.deltaTime  = date.getTime() * 0.001 - this.timeSystem;
+            this.timeSystem = date.getTime() * 0.001;
+            this.time = this.timeSystem - this.startTime;
 
             if(this.input){
                 this.input.processEvents();
@@ -99,11 +95,13 @@ window.modula = window.modula || {};
                 var renderer = this.scene.renderer;
                 if(!this.scene._started){
                     this.scene._started = true;
+                    this.scene.time = this.time;
+                    this.scene.startTime = this.time;
                     this.scene.onSceneStart();
                 }
                 this.scene.onFrameStart();
 
-                redraw = this.scene.runFrame();
+                redraw = this.scene.runFrame(this.deltaTime);
                 
                 if(camera && renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
                     renderer.drawFrame(this.scene,camera);
@@ -472,7 +470,6 @@ window.modula = window.modula || {};
                 }
                 self.context.restore();
             }
-            
             for(var i = 0, len = scene._rootEntityList.length; i < len; i++){
                 var ent = scene._rootEntityList[i];
                 drawEntity(ent);
@@ -635,6 +632,12 @@ window.modula = window.modula || {};
             this._destroyedEntityList = [];
             this._uid = options.uid || this._uid || undefined;
 
+            this.frame = 0;
+            this.time = 0;
+            this.startTime = -1;
+            this.timeSpeed = 1;
+            this.deltaTime = 1;
+
             this._entityByUid = {};
             this._entityByName = {};
             this.camera = options.camera || null; 
@@ -780,6 +783,7 @@ window.modula = window.modula || {};
         // considered present in the scene at the next update.
         _addEnt: function(ent){
             if(ent.main && ent.main !== this.main){
+                throw new Error('Cannot add an entity to the scene: it belongs to another modula instance');
                 return;
             }else if(this.main){
                 ent.main = this.main;
@@ -788,9 +792,10 @@ window.modula = window.modula || {};
                 }
             }
             if(ent.scene && ent.scene !== this){
-                this._remEnt(ent);
+                ent.scene._remEnt(ent);
             }
             if(ent.scene !== this){
+                ent.scene = this;
                 this._newEntityList.push(ent);
                 this._entityByUid[ent.get('uid')] = ent;
                 var name = ent.get('name');
@@ -806,8 +811,7 @@ window.modula = window.modula || {};
                 }
             }
         },
-        //remove an entity to the scene. It will be considered 
-        //removed from the scene after the current or next update
+        //remove an entity to the scene. 
         _remEnt : function(ent){
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
@@ -829,7 +833,6 @@ window.modula = window.modula || {};
                 ent.scene = null;
             }
         },
-        // return a list of all entities. do not modify the list
         _add_default: function(ent){
             this._addEnt(ent);
         },
@@ -843,13 +846,13 @@ window.modula = window.modula || {};
             }
             return this;
         },
-        _remove_entites: function(ent){
-            this._remEnt();
+        _remove_entity: function(ent){
+            this._remEnt(ent);
         },
-        _add_entities : function(ent){
+        _add_entity : function(ent){
             this._addEnt(ent);
         },
-        _get_entities : function(index){
+        _get_entity : function(index){
             if(index !== undefined && index !== null){
                 return this._entityList[index];
             }else{
@@ -866,6 +869,12 @@ window.modula = window.modula || {};
         _entUpdate : function(ent){
             var draw = false;
             if(ent.active){
+                if(!ent.main){
+                    ent.main = this.main;
+                }
+                if(!ent.scene){
+                    ent.scene = this.scene;
+                }
                 if(ent._state === 'new'){
                     ent._state = 'alive';
                     ent._currentFrame = this.main.frame;
@@ -896,7 +905,7 @@ window.modula = window.modula || {};
                     this._rootEntityList.push(ent);
                 }
                 if(ent.startTime < 0){
-                    ent.startTime = this.main.time;
+                    ent.startTime = this.time;
                 }
                 if(!ent.main){
                     ent.main = this.main;
@@ -976,8 +985,12 @@ window.modula = window.modula || {};
             }
             return draw || false;
         },
-        runFrame : function(){
+        runFrame : function(deltaTime){
             var draw = false;
+
+            this.deltaTime = deltaTime * this.timeSpeed;
+            this.time += this.deltaTime;
+            this.frame++;
            
             for(var i = 0, len = this.passSequence.length; i < len; i++){
                 var pass = this.passSequence[i];
@@ -1057,6 +1070,7 @@ window.modula = window.modula || {};
             this.drawable = options.drawable || this.drawable || undefined;
             // the time (in seconds) when the entity had its first update
             this.startTime = -1; // todo modula.main.time;
+        
         },
         // return true if the entity has no childs
         isLeaf : function(){
@@ -1073,17 +1087,17 @@ window.modula = window.modula || {};
         _remove_default: function(ent){
             this._remove_childs(ent);
         },
-        _add_childs : function(ent){
+        _add_child : function(ent){
             this.transform.addChild(ent.transform);
             return this;
         },
         // removes a child from the entity
-        _remove_childs : function(ent){
+        _remove_child : function(ent){
             this.transform.remChild(ent.transform);
             return this;
         },
         // returns the child entity of index 'index'
-        _get_childs: function(index){
+        _get_child: function(index){
             if(index !== null && index !== undefined){
                 var tr = this.transform.getChild(index);
                 return tr ? tr.ent : undefined;
@@ -1171,6 +1185,12 @@ window.modula = window.modula || {};
             }else if(ent instanceof Bound){
                 return this.bound.cloneAt(this.get('pos')).collisionAxis(ent);
             }
+        },
+        _get_X: function(){
+            return this.transform.X();
+        },
+        _get_Y: function(){
+            return this.transform.Y();
         },
         _get_pos: function(){
             return this.transform.getPos();
