@@ -23,7 +23,7 @@ window.modula = window.modula || {};
                                   this._cellY * this._cellSize.y  );
 
             this._cell = this._cell || options.cells || [];
-            if(options.fill && !options.cells){
+            if(options.fill !== undefined && !options.cells){
                 this.fill(options.fill);
             }
         },
@@ -41,10 +41,20 @@ window.modula = window.modula || {};
                 return this._cell[index[1]*this._cellX+index[0]]; 
             }
         },
+        getCellUnsafe: function(x,y){
+            return this._cell[y*this._cellX+x];
+        },
+        getCell: function(x,y){
+            if(x >= 0 && y >= 0 && x < this._cellX && y < this._cellY){
+                return this._cell[y*this._cellX+x];
+            }else{
+                return undefined;
+            }
+        },
         fill: function(cell){
             for(var x = 0; x < this._cellX; x++){
                 for (var y = 0; y < this._cellY; y++){
-                    this.set('cell',[x,y],cell);
+                    this._cell[y*this._cellX + x] = cell;
                 }
             }
         },
@@ -56,6 +66,9 @@ window.modula = window.modula || {};
                 return new modula.Rect(0,0,this.get('size').x, this.get('size').y);
             }
         },
+        getBoundUnsafe: function(x,y){
+            return new modula.Rect(x * this._cellSize.x, y * this._cellSize.y, this._cellSize.x, this._cellSize.y);
+        },
         getCellAtPixel: function(pos){
             var size = this.get('size');
             if(pos.x < 0 || pos.x >= size.x || pos.y < 0 || pos.y >= size.y){
@@ -64,17 +77,17 @@ window.modula = window.modula || {};
                 var csize = this.get('cellSize');
                 var x = Math.max(0,Math.min(this._cellX - 1,Math.floor(pos.x/csize.x)));
                 var y = Math.max(0,Math.min(this._cellY - 1,Math.floor(pos.y/csize.y)));
-                return { x:x, y:y, cell:this.get('cell',x,y) };
+                return { x:x, y:y, cell:this.getCellUnsafe(x,y)};
             }
         },
         getCellsInRect: function(minx, miny, maxx, maxy){
-            var size = this.get('size');
+            var size = this._size;
             if(maxx <= 0 || maxy <= 0){
                 return [];
             }else if(minx >= size.x || miny >= size.y){
                 return [];
             }else{
-                var csize = this.get('cellSize').clone();
+                var csize = this._cellSize.clone();
                 csize.x = 1.0 / csize.x;
                 csize.y = 1.0 / csize.y;
                 minx = Math.floor(Math.max(minx,0) * csize.x);
@@ -84,8 +97,8 @@ window.modula = window.modula || {};
                 var cells = [];
                 for(var x = minx; x <= maxx; x++){
                     for(var y = miny; y <= maxy; y++){
-                        cells.push({x:x, y:y, cell: this.get('cell',[x,y])});
-                    }
+                        cells.push({x:x, y:y, cell: this.getCellUnsafe(x,y)});
+                       }
                 }
                 return cells;
             }
@@ -96,7 +109,7 @@ window.modula = window.modula || {};
                 return [];
             }else{
                 var cells = this.getCellsInRect(bound.minX(), bound.minY(), bound.maxX(), bound.maxY());
-                var csize = this.get('cellSize');
+                var csize = this._cellSize;
                 var ccells = [];
                 for(var i = 0, len = cells.length; i < len; i++){
                     var cell = cells[i];
@@ -113,9 +126,13 @@ window.modula = window.modula || {};
             }
         },
     });
-    modula.DrawableGrid = modula.Renderer.Drawable.extend({
+    modula.DrawableGrid = modula.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
+            this.pass = options.pass || this.pass;
+            this.height = options.height || this.height;
+            this.zindex = options.zindex || this.zindex;
+            console.log(this.pass);
             this.grid = options.grid;
             this._drawables = options.drawables || {};
             if(options.spriteMap){
@@ -127,17 +144,20 @@ window.modula = window.modula || {};
         },
         clone: function(){
             return new modula.DrawableGrid({
+                height: this.height,
+                zindex: this.zindex,
                 drawables: this._drawables,
                 grid: this.grid,
             });
         },
-        draw: function(renderer, ent){
-            var cx = this.grid.get('cellX');
-            var cy = this.grid.get('cellY');
-            var size = this.grid.get('cellSize');
+        draw: function(renderer, ent, camera){
+            var cx = this.grid._cellX;
+            var cy = this.grid._cellY;
+            var size = this.grid._cellSize; 
+
             for(var x = 0; x < cx; x++){
                 for(var y = 0; y < cy; y++){
-                    var cell = this.grid.get('cell',[x,y]);
+                    var cell = this.grid.getCellUnsafe(x,y);
                     var drawable = this._drawables[cell];
                     if(drawable){
                         var px = x * size.x;

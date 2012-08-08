@@ -104,6 +104,13 @@ window.modula = window.modula || {};
                 redraw = this.scene.runFrame(this.deltaTime);
                 
                 if(camera && renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
+                    if(renderer.zsort){
+                        scene._rootEntityList.sort(function(a,b){
+                            var za = a.zindex || 0;
+                            var zb = b.zindex || 0;
+                            return (za - zb);
+                        });
+                    }
                     renderer.drawFrame(this.scene,camera);
                 }
                 this.scene.onFrameEnd();
@@ -122,7 +129,7 @@ window.modula = window.modula || {};
             self.running = true;
             self.runStart();
 
-            (function loop(){
+            function loop(){
                 if(self.running && (self.restartTime < 0 || self.time < self.restartTime)){
                     self.runFrame();
                     var elapsedTimeMillis = ((new Date).getTime() - self.timeSystem);
@@ -138,7 +145,8 @@ window.modula = window.modula || {};
                         self.run();
                     }
                 }
-            })();
+            }
+            loop();
         },
         restart:    function(delay){
             this.restartTime = this.time;
@@ -388,19 +396,32 @@ window.modula = window.modula || {};
         },
     });
 
+    modula.Camera2d = modula.Camera.extend({
+        height: 1,
+        parallax: false,
+    });
+
     modula.Renderer = modula.Class.extend({
         _size : new Vec2(),
         alwaysRedraw:true,
         renderBackground: function(){},
         drawFrame: function(scene,camera){},
+        passes : [],
         mustRedraw: function(){
             return false;
         },
     });
     
     modula.Renderer.Drawable = modula.Class.extend({
-        draw: function(renderer, entity){},
+        pass: null,
+        draw: function(renderer, entity, camera){},
     });
+
+    modula.Renderer.Drawable2d = modula.Renderer.Drawable.extend({
+        zindex: 0,
+        height: 0,
+    });
+
     
     modula.RendererCanvas2d = modula.Renderer.extend({
         init: function(options){
@@ -414,6 +435,7 @@ window.modula = window.modula || {};
             this.globalAlpha = options.globalAlpha || 1; 
             this._get_size = options.getSize || this._get_size;
             this._size = new Vec2();
+            this.passes = options.passes || this.passes;
         },
         _get_size: function(){
             return new Vec2(this.canvas.width, this.canvas.height);
@@ -440,7 +462,12 @@ window.modula = window.modula || {};
             this.context.globalAlpha = this.globalAlpha;
             if(camera){
                 this.context.translate(this.canvas.width/2, this.canvas.height/2);
-                this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
+                if(camera.parallax && camera.height){
+                    this.context.scale( 1/(camera.transform.scale.x * camera.height), 
+                                        1/(camera.transform.scale.y * camera.height));
+                }else{
+                    this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
+                }
                 this.context.rotate(-camera.transform.rotation);
                 this.context.translate(-camera.transform.pos.x,-camera.transform.pos.y);
             }
@@ -450,35 +477,66 @@ window.modula = window.modula || {};
         },
         drawFrame: function(scene,camera){
             this.drawInit(camera);
+            for(var i = 0, len = this.passes.length; i < len; i++){
+                this.drawPass(scene,camera,this.passes[i]);
+            }
+            this.drawPass(scene,camera,null);
+            for(var i = 0, len = scene._entityList.length; i < len; i++){
+                scene._entityList[i].onDrawGlobal();
+            }
+            this.drawEnd();
+        },
+        drawPass: function(scene,camera,pass){
             var self = this;
             
-            function drawEntity(ent){
+            function drawEntity(ent,pass){
                 self.context.save();
                 self.context.translate(ent.transform.pos.x, ent.transform.pos.y);
                 self.context.scale(ent.transform.scale.x, ent.transform.scale.y);
                 self.context.rotate(ent.transform.rotation);
                 if(ent.render){
-                    if(ent.drawable){
-                        ent.drawable.draw(self,ent);
+                    var drawables = ent.drawable;
+                    if(!drawables){
+                        drawables = [];
+                    }else if (!(drawables instanceof Array)){
+                        drawables = [drawables];
                     }
-                    ent.onDrawLocal();
+                    for(var i = 0, len = drawables.length; i < len; i++){
+                        var drawable = drawables[i];
+                        self.context.save();
+                        if(camera.parallax && camera.height && drawable.height){
+                            var fac = camera.height / (camera.height - drawable.height);
+                            var cpos = camera.transform.pos;
+                            cpos = cpos.scale(1-fac);
+                            context.translate(cpos.x,cpos.y);
+                            context.scale(fac,fac);
+                        }
+                        if(pass){
+                            if(drawable.pass === pass){
+                                drawable.draw(self,ent,camera);
+                            }
+                        }else{
+                            if(!drawable.pass){
+                                drawable.draw(self,ent,camera);
+                            }
+                        }
+                        self.context.restore();
+                    }
+                    if(!pass){
+                            ent.onDrawLocal();
+                    }
                 }
                 if(ent.renderChilds){
                     for(var i = 0, len = ent.transform.getChildCount(); i < len; i++){
-                        drawEntity(ent.transform.getChild(i).ent);
+                        drawEntity(ent.transform.getChild(i).ent,pass);
                     }
                 }
                 self.context.restore();
             }
             for(var i = 0, len = scene._rootEntityList.length; i < len; i++){
                 var ent = scene._rootEntityList[i];
-                drawEntity(ent);
+                drawEntity(ent,pass);
             }
-            for(var i = 0, len = scene._entityList.length; i < len; i++){
-                scene._entityList[i].onDrawGlobal();
-            }
-
-            this.drawEnd();
         },
     });
     
@@ -543,7 +601,7 @@ window.modula = window.modula || {};
             }
         },
     });
-    modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable.extend({
+    modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
             var self = this;
@@ -551,6 +609,11 @@ window.modula = window.modula || {};
             this._image = options.image || null;
             this._src   = options.src;
             this.centered = options.centered || false;
+            this.pass   = options.pass || this.pass;
+            this.scale  = options.scale || this.scale;
+            this.rotation  = options.rotation || this.rotation;
+            this.height    = options.height || this.height;
+            this.zindex    = options.zindex || this.zindex;
 
             if(this._src === undefined){
                 this._src = this._image.src;
@@ -582,7 +645,12 @@ window.modula = window.modula || {};
                 image : this._image,
                 pos   : this.pos,
                 alpha : this.alpha,
+                scale: this.scale,
+                rotation: this.rotation,
+                pass  : this.pass,
                 centered : this.centered,
+                height: this.height,
+                zindex: this.zindex,
                 globalCompositeOperation: this.globalCompositeOperation,
                 src_x : this._src_x,
                 src_y : this._src_y,
@@ -594,14 +662,20 @@ window.modula = window.modula || {};
                 dst_sy: this._dst_sy,
             });
         },
-        draw: function(renderer,ent){
-            var context = renderer.get('context');
+        draw: function(renderer,ent,camera){
+            var context = renderer.context;
             context.save();
             if(this.alpha !== undefined){
                 context.globalAlpha *= this.alpha;
             }
             if(this.globalCompositeOperation){
                 context.globalCompositeOperation = this.globalCompositeOperation;
+            }
+            if(this.scale){
+                context.scale(this.scale,this.scale);
+            }
+            if(this.rotation){
+                context.rotate(this.rotation);
             }
             //drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
             if(this.centered){
@@ -621,6 +695,7 @@ window.modula = window.modula || {};
             context.restore();
         },
     });
+
     
     modula.Scene = modula.Class.extend({
         init: function(options){
@@ -679,7 +754,27 @@ window.modula = window.modula || {};
         //  false, the entity will be removed from the matched entities.
         //
         //  if the condition is === true, then all entities match
-        find: function(url,condition){
+        query: function(query){
+            if(!modula.Collection){
+                return undefined;
+            }
+            if(query instanceof modula.Camera){
+                return new modula.Collection([this.camera]);
+            }else if(query instanceof modula.Class){
+                var matches = [];
+                for(var i = 0, len = this._entityList.length; i < len; i++){
+                    if(this._entityList[i] instanceof query){
+                        matches.push(this._entityList[i]);
+                    }
+                }
+                return new modula.Collection(matches);
+            }else if(typeof query === 'string'){
+                return this._urlquery(query);
+            }else{
+                return new modula.Collection();
+            }
+        },
+        _urlquery: function(url){
             var matches = [];
             var path = url.split('/');
             for(var i = 0; i < path.length; i++){
@@ -722,60 +817,7 @@ window.modula = window.modula || {};
                     matches = nmatches;
                 }
             }
-            if(condition && condition !== true){
-                var nmatches = [];
-                for(var i = 0; i < matches.length; i++){
-                    if( condition(matches[i])){
-                        nmatches.push(matches[i]);
-                    }
-                }
-                matches = nmatches;
-            }
-            return matches;
-        },
-        // calls the function fun(ent) on every ent matched by
-        // the url and the optional condition (see find()) 
-        map: function(url,condition,fun){
-            if(arguments.length == 2){
-                fun = condition;
-                condition = undefined;
-            }
-            var matches = this.find(url,condition);
-            for(var i = 0; i < matches.length; i++){
-                fun(matches[i]);
-            }
-        },
-        // calls the method 'method' with the arguments
-        // supplied in the argument list 'args' on
-        // all entities matched by the url and the condition.
-        // the condition is not optional, set it to null,
-        // undefined or true to match all entities
-        mapApply: function(url,condition,method,args){
-            var matches = this.find(url,condition);
-            for(var i = 0; i < matches.length; i++){
-                var ent = matches[i];
-                if(ent[method]){
-                    ent[method].apply(ent,args);
-                }
-            }
-        },
-        // calls the method 'method with the arguments
-        // supplied at and after args on all entities matched
-        // by the url and the condition.
-        // the condition is not optional, set it to null,
-        // undefined or true to match all entities
-        mapCall: function(url, condition, method, args){
-            var matches = this.find(url,condition);
-            var arglist = [];
-            for(var i = 3; i < arguments.length; i++){
-                arglist.push(arguments[i]);
-            }
-            for(var i = 0; i < matches.length; i++){
-                var ent = matches[i];
-                if(ent[method]){
-                    ent[method].apply(ent,arglist);
-                }
-            }
+            return new modula.Collection(matches);
         },
         // remove all the entities found by the selector if it is a string,
         // or removes the entity if selector is an entity
@@ -1153,7 +1195,7 @@ window.modula = window.modula || {};
                     return this.contains(epos);
                 }
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.get('pos')).collides(ent);
+                return this.bound.cloneAt(this.transform.getPos()).collides(ent);
             }
         },
         // returns the smallest vector that would make this entity not collide 'ent' by translation
@@ -1167,7 +1209,7 @@ window.modula = window.modula || {};
                 }
                 return new Vec2();
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.get('pos')).collisionVector(ent);
+                return this.bound.cloneAt(this.transform.getPos()).collisionVector(ent);
             }
         },
         // returns the smallest distance on each axis that would make this entity not collide with
@@ -1183,7 +1225,7 @@ window.modula = window.modula || {};
                 }
                 return new Vec2();
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.get('pos')).collisionAxis(ent);
+                return this.bound.cloneAt(this.transform.getPos()).collisionAxis(ent);
             }
         },
         _get_X: function(){

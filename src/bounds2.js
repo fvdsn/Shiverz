@@ -162,6 +162,10 @@
 
         return new Rect((x+mx)*0.5,(y+my)*0.5,mx-x,my-y);
     };
+    Rect.prototype.translate = function(vec){
+        return new Rect(this.x+vec.x,this.y+vec.y,this.sx,this.sy);
+    };
+
     Rect.prototype.toString = function(){
         return "["+this.cx+","+this.cy+"|"+this.sx+","+this.sy+"]";
     };

@@ -5,6 +5,7 @@
         <title>Modula Test</title>
         <script src="jquery.js"></script>
         <script src="core.js"></script>
+        <script src="collection.js"></script>
         <script src="vec2.js"></script>
         <script src="mat2.js"></script>
         <script src="mat2h.js"></script>
@@ -29,11 +30,21 @@
 				height:100%;
 				//-webkit-box-shadow: 0px 3px 20px #000;
 			}
+			.fps{
+				position:absolute;
+				color:white;
+				font-size:10px;
+				bottom:0;
+				top:0;
+			}
         </style>
     </head>
     <body>
     	<canvas id="test_canvas_1">
     		Canvas not supported :(
     	</canvas>
+	<div class='fps'>
+		60.0
+	</div>
     </body>
 </html>
