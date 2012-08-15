@@ -97,7 +97,9 @@ window.onload = function() {
         'editlvl':  'l',
         'suicide':  'k',
         'special':  'space',
-    };
+        'pause'  :  'p',
+        'exit'   :  'esc',
+     };
 
     var Item = Ent.extend({
         name:'item',
@@ -229,10 +231,10 @@ window.onload = function() {
             var mouse = this.transform.worldToLocal(this.scene.camera.getMouseWorldPos());
             var cell = this.grid.getCellAtPixel(mouse);
             if(cell && this.editing){
-                if(input.isKeyDown('mouse0')){
+                if(input.isKeyDown('mouse-left')){
                     this.grid.set('cell',[cell.x,cell.y],this.editCell);
                     this.save();
-                }else if(input.isKeyDown('mouse1')){
+                }else if(input.isKeyDown('mouse-middle')){
                     this.grid.set('cell',[cell.x,cell.y],0);
                     this.save();
                 }
@@ -247,7 +249,7 @@ window.onload = function() {
                 this.editCell = -2;
             }else if(input.isKeyDown('0')){
                 this.editCell = 0;
-            }else if(input.isKeyPressing('m')){
+            }else if(input.isKeyPressing('editlvl')){
                 this.editing = !this.editing;
             }
         },
@@ -468,9 +470,38 @@ window.onload = function() {
         init: function(player){
             this.player = player;
             this.set('pos',player.get('pos'));
+            this.fpses = [60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+        },
+        getMinFPS: function(){
+            var min = Number.MAX_VALUE;
+            for(var i = 0; i < this.fpses.length; i++){
+                min = Math.min(min,this.fpses[i]);
+            }
+            return min;
+        },
+        getMaxFPS: function(){
+            var max = 0;
+            for(var i = 0; i < this.fpses.length; i++){
+                max = Math.max(max,this.fpses[i]);
+            }
+            return max;
+        },
+        getAvgFPS: function(){
+            var avg = 0;
+            for(var i = 0; i < this.fpses.length; i++){
+                avg += this.fpses[i];
+            }
+            return Math.round(avg / this.fpses.length);
+        },
+        recordFPS: function(fps){
+            this.fpses.shift();
+            this.fpses.push(fps);
         },
         onUpdate: function(){
             var input = this.main.input;
+            this.recordFPS(1/this.main.deltaTime);
+            $('.fps').html(''+this.getAvgFPS()+ ' fps');
+
             if(input.isKeyDown('z')){
                 this.increase('scale',new Vec2(1*this.main.deltaTime));
             }else if(input.isKeyDown('x')){
@@ -616,30 +647,27 @@ window.onload = function() {
             var dt = this.scene.deltaTime;
             var knocked = this.knockTime > this.scene.time;
             this.aimdir = this.scene.camera.getMouseWorldPos().sub(this.transform.pos).normalize();
-            $('.fps').html(''+Math.round(1/this.main.deltaTime)+ ' fps');
 
-            if(input.isKeyPressing('q')){
+            if(input.isKeyPressing('weapon-missile')){
                 this.set('weapon','missile');
-            }else if(input.isKeyPressing('e')){
+            }else if(input.isKeyPressing('weapon-bolter')){
                 this.set('weapon','bolter');
             }
 
-            if(input.isKeyDown('p')){
+            if(input.isKeyDown('pause')){
                 this.main.exit();
             }
             
-            if(input.isKeyDown('a')){
+            if(input.isKeyDown('left')){
                 this.moveDir.x = -1;
-            }else if(input.isKeyDown('d')){
+            }else if(input.isKeyDown('right')){
                 this.moveDir.x = 1;
             }else{
                 this.moveDir.x = 0;
             }
-            if(input.isKeyDown('w')){
-            
+            if(input.isKeyDown('up')){
                 this.moveDir.y = -1;
-            }else if(input.isKeyDown('s')){
-                
+            }else if(input.isKeyDown('down')){
                 this.moveDir.y = 1;
             }else{
                 this.moveDir.y = 0;
@@ -688,7 +716,7 @@ window.onload = function() {
                 }
             }
             
-            if(!knocked && !lvl.editing &&input.isKeyDown('mouse0')){
+            if(!knocked && !lvl.editing &&input.isKeyDown('fire')){
                 if(this.weapon.fire(this.get('pos'), this.aimdir, this.moveSpeed.scale(0.5))){
                     this.lastFireTime = this.scene.time;
                 }
@@ -763,7 +791,9 @@ window.onload = function() {
     });
 
     window.main   = new Main({
-        input: new Input('body'),
+        input: new Input({
+            alias: bindings,
+        }),
         scene: new ShivrzScene({
             renderer: new RendererCanvas2d({
                 passes:[

@@ -137,8 +137,8 @@ window.modula = window.modula || {};
                     if(waitTime < 0){
                         waitTime = 0;
                     }
-                    setTimeout(loop,waitTime);
-                    //webkitRequestAnimationFrame(loop);
+                    //setTimeout(loop,waitTime);
+                    webkitRequestAnimationFrame(loop,waitTime);
                 }else{
                     self.runEnd();
                     if(self.running){
@@ -154,7 +154,8 @@ window.modula = window.modula || {};
     });
 
     modula.Input = modula.Class.extend({
-        init: function(selector){
+        init: function(options){
+            options = options || {};
             var self = this;
             this._mouseStatus = 'out'; // 'out' | 'over' | 'entering' | 'leaving'
             this._mouseStatusPrevious = 'out';
@@ -176,8 +177,15 @@ window.modula = window.modula || {};
 
             this._alias = {};
             this.main   = null;
+            this.setAlias({
+                'mouse-left'  : 'mouse0',
+                'mouse-middle': 'mouse1',
+                'mouse-right' : 'mouse2',
+            });
+            this.setAlias(options.alias || {});
+
             
-            var $elem = $(selector);
+            var $elem = options.$elem || $(options.selector || 'body');
             
             $elem.keyup(function(e){
                 self._keyEvents.push({type:'up', key: String.fromCharCode(e.which).toLowerCase()});
@@ -197,7 +205,8 @@ window.modula = window.modula || {};
                 
                 return new Vec2(
                     event.pageX - totalOffsetX,
-                    event.pageY - totalOffsetY );
+                    event.pageY - totalOffsetY 
+                );
             }
             function eventMousemove(event){
                 self._mousePosSystem = relativeMouseCoords(this,event);
@@ -340,6 +349,12 @@ window.modula = window.modula || {};
             return this._mousePos;
         },
         setAlias: function(action,key){
+            if(typeof action === 'object'){
+                var aliases = action;
+                for(act in aliases){
+                    this.setAlias(act,aliases[act]);
+                }
+            }
             this._alias[action] = key;
         },
         getAlias: function(alias){
