@@ -78,66 +78,149 @@ window.onload = function() {
         pos:new Vec2(-12,16),
     });
 
-    var grid = new Grid({
-        cellX: 50,
-        cellY: 50,
-        cellSize: 103,
-        fill:0,
-        /*
-        cells: [ 
-            2,0,1,0,1,0,1,0,2,2,0,1,0,1,0,1,0,2,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-            1,0,1,1,0,1,1,0,0,0,0,1,1,0,1,1,0,2,
-            0,0,1,2,0,2,1,0,0,0,0,2,1,0,2,1,0,1,
-            1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
-            0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,
-            1,0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,2,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-            2,0,1,0,1,0,1,0,0,2,0,0,1,2,1,2,1,2,
-            2,0,1,0,1,0,1,0,0,2,0,0,2,1,0,1,0,2,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-            1,0,1,1,0,1,1,0,0,0,0,1,1,0,1,1,0,2,
-            0,0,1,2,0,2,1,0,0,0,0,2,1,0,2,1,0,1,
-            1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
-            0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,
-            1,0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,2,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-            2,0,1,0,1,0,1,0,2,2,0,1,1,2,1,2,1,2,
-        ],*/
-    });
+    var bindings = {
+        'fire':     'mouse-left',
+        'altfire':  'mouse-right',
+        'left':     'a',
+        'right':    'd',
+        'down':     's',
+        'up':       'w',
+        'weapon-missile':   'q',
+        'weapon-bolter':    'e',
+        'weapon-pewpew':    '2',
+        'weapon-blade' :    '1',
+        'weapon-shotgun':   '3',
+        'weapon-grenades':  'r',
+        'weapon-mines':     '4',
+        'weapon-vulcan':    'f',
+        'weapon-shock':     'c',
+        'editlvl':  'l',
+        'suicide':  'k',
+        'special':  'space',
+    };
 
-    var drawgrid = new DrawableGrid({
-        pass:'blocks',
-        grid: grid,
-        drawables:{
-            1: blockSprite,
-            2: blockSpritePurple,
+    var Item = Ent.extend({
+        name:'item',
+        spawn: 0,
+        delay: 5,
+        collisionBehaviour:'emit',
+        bound: new Rect(0,0,50,50,'centered'),
+        effect: function(player){
         },
     });
 
-    var bgdrawgrid = new DrawableGrid({
-        pass:'bgblocks',
-        grid: grid,
-        drawables:{
-            '-1': blockSpriteGray,
-            '-2': blockSpriteDark,
-            1: blockSpriteUnder,
-            2: blockSpritePurpleUnder,
-        },
+    var Flag = Item.extend({
+        name:'flag',
+        team:'zen',
     });
 
-    var GridEnt = Ent.extend({
-        name: 'TheGrid',
-        drawable: [
-            bgdrawgrid,
-            drawgrid,
-        ],
-            
-        grid: grid,
-        bound: new Rect(0,0,grid.get('size').x, grid.get('size').y),
-        collisionBehaviour: 'receive',
-        editing:  false,
-        editCell: 1,
+    var Armor = Item.extend({
+        name: 'armor',
+        armor: 5,
+    });
+
+    var HealthKit = Item.extend({
+        name:'healthkit',
+    });
+
+    var SuperPower = Item.extend({
+    });
+
+    var QuadDamage = Item.extend({
+        name:'quad',
+        spawn: 20,
+        delay: 20,
+    });
+
+    var Ammo = Item.extend({
+        name:'ammo',
+        weapon:'none',
+        ammo:10,
+    });
+
+    var WeaponItem = Ammo.extend({
+        name:'weaponItem',
+        weapon:'none',
+        ammo:10,
+    });
+
+    var Level = Ent.extend({
+        init: function(options){
+            options = options || {};
+            this._super(options);
+            this.spawns = {
+                zen: [],
+                aku: [],
+            };
+            this.flags = {
+                zen: null,
+                aku: null,
+            };
+            this.theme = {
+                grid:{
+                    1: blockSprite,
+                    2: blockSpritePurple,
+                },
+                gridbg:{
+                    '-1': blockSpriteGray,
+                    '-2': blockSpriteDark,
+                      1 : blockSpriteUnder,
+                      2 : blockSpritePurpleUnder,
+                },
+                bgcolor: '#333',
+            };
+            if(options.theme){
+                for(x in options.theme){
+                    this.theme[x] = options.theme[x];
+                }
+            }
+            this.collisionBehaviour = 'receive';
+            this.name     = options.name || 'default';
+            this.editing  = false;
+            this.editCell = 1;
+            this.grid     = new Grid({
+                cellX: 50,
+                cellY: 50,
+                cellSize: 103,
+                fill:0,
+            });
+            this.load();
+        },
+        save: function(){
+            localStorage['shivrz_lvl_'+ this.name] = JSON.stringify({
+                cellX:    this.grid.get('cellX'),
+                cellY:    this.grid.get('cellY'),
+                cellSize: this.grid.get('cellSize'),
+                cells:    this.grid.get('cells'),
+            });
+        },
+        load: function(){
+            var lvl  = localStorage['shivrz_lvl_'+this.name];
+            if(lvl){
+                lvl = JSON.parse(lvl);
+                if(lvl){
+                    this.grid = new Grid({
+                        cellX: lvl.cellX,
+                        cellY: lvl.cellY,
+                        cellSize: new Vec2(lvl.cellSize),
+                        cells: lvl.cells,
+                    });
+                }
+            }
+            this.bound   = new Rect(0,0,this.grid.get('size').x, this.grid.get('size').y);
+            this.drawable = [
+                new DrawableGrid({
+                    pass:'bgblocks',
+                    grid: this.grid,
+                    drawables: this.theme.gridbg,
+                }),
+                new DrawableGrid({
+                    pass:'blocks',
+                    grid: this.grid,
+                    drawables: this.theme.grid,
+                }),
+            ];
+        },
         onUpdate: function(){
             var input = this.main.input;
             if(!this.scene.camera){
@@ -148,8 +231,10 @@ window.onload = function() {
             if(cell && this.editing){
                 if(input.isKeyDown('mouse0')){
                     this.grid.set('cell',[cell.x,cell.y],this.editCell);
+                    this.save();
                 }else if(input.isKeyDown('mouse1')){
                     this.grid.set('cell',[cell.x,cell.y],0);
+                    this.save();
                 }
             }
             if(input.isKeyDown('1')){
@@ -168,156 +253,25 @@ window.onload = function() {
         },
     });
 
-    var gridEnt = new GridEnt();
+    var lvl = new Level();
 
     var GridCollider = Ent.extend({
         onCollisionEmit: function(ent){
-            if(ent instanceof GridEnt){
-                var vec = this.collideGrid(ent.grid);
+            var self = this;
+            if(ent instanceof Level){
+                var vec = ent.grid.collisionVec(
+                    this.bound.cloneAt(this.transform.getPos()),
+                    function(cell,x,y){ return self.isSolid(cell,x,y); }
+                );
                 if(vec){
                     this.onGridCollision(ent.grid,vec);
                 }
             }
         },
-        collideGrid: function(grid){
-           //o var pos  = this.transform.getPos().sub(grid.transform.getPos());
-            var pos  = this.transform.getPos();
-            var minX  = this.bound.minX() + pos.x;
-            var minY  = this.bound.minY() + pos.y;
-            var maxX  = this.bound.maxX() + pos.x;
-            var maxY  = this.bound.maxY() + pos.y;
-     
-            var cx    = grid._cellX;
-            var cy    = grid._cellY;
-            var csx   = grid._cellSize.x;
-            var csy   = grid._cellSize.y;
-
-
-            if(maxX <= 0 || maxY <= 0 || minX >= cx*csx || minY >= cy*csy){
-                return;
-            }
-
-            //we transform everything so that the cells are squares of size 1.
-
-            var isx   = 1 / csx;
-            var isy   = 1 / csy;
-
-            minX *= isx;
-            minY *= isy;
-            maxX *= isx;
-            maxY *= isy
-
-            var min_px = Math.floor(minX);
-            var max_px = Math.floor(maxX);
-            var min_py = Math.floor(minY);
-            var max_py = Math.floor(maxY);
-
-            // these are the distances the entity should be displaced to escape
-            // left blocks, right blocks, up ... 
-
-            var esc_l = (min_px + 1 - minX) * csx;
-            var esc_r = -( maxX - max_px )  * csx;  
-            var esc_u = (min_py + 1 - minY) * csy;
-            var esc_d = -( maxY - max_py )  * csy;
-
-            // at this point we are back in world sizes 
-
-            if(min_px === max_px && min_py === max_py){
-                // in the middle of one block
-                if(this._is_solid(grid,min_px,min_py)){
-                    var dx = esc_l < -esc_r ? esc_l : esc_r;
-                    var dy = esc_u < -esc_d ? esc_u : esc_d;
-                    if(Math.abs(dx) < Math.abs(dy)){
-                        return new Vec2(dx,0);
-                    }else{
-                        return new Vec2(0,dy);
-                    }
-                }else{
-                    return undefined;
-                }
-            }else if(min_px === max_px){
-                // in the middle of one vertical two-block rectangle
-                var solid_u = this._is_solid(grid,min_px,min_py);
-                var solid_d = this._is_solid(grid,min_px,max_py);
-                if(solid_u && solid_d){
-                    return null; // error
-                }else if(solid_u){
-                    return new Vec2(0,esc_u);
-                }else if(solid_d){
-                    return new Vec2(0,esc_d);
-                }else{
-                    return undefined;
-                }
-            }else if(min_py === max_py){
-                // in the middle of one horizontal two-block rectangle
-                var solid_l = this._is_solid(grid,min_px,min_py);
-                var solid_r = this._is_solid(grid,max_px,min_py);
-                if(solid_l && solid_r){
-                    return null; // error
-                }else if(solid_l){
-                    return new Vec2(esc_l,0);
-                }else if(solid_r){
-                    return new Vec2(esc_r,0);
-                }else{
-                    return undefined;
-                }
-            }else{
-                // touching four blocks
-                var solid_ul = this._is_solid(grid,min_px,min_py);
-                var solid_ur = this._is_solid(grid,max_px,min_py);
-                var solid_dl = this._is_solid(grid,min_px,max_py);
-                var solid_dr = this._is_solid(grid,max_px,max_py);
-                var count = 0 + solid_ul + solid_ur + solid_dl + solid_dr;
-                if(count === 0){
-                    return undefined;
-                }else if(count === 4){
-                    return null; // error
-                }else if(count >= 2){
-                    var dx = 0;
-                    var dy = 0;
-                    if(solid_ul && solid_ur){
-                        dy = esc_u;
-                    }
-                    if(solid_dl && solid_dr){
-                        dy = esc_d;
-                    }
-                    if(solid_dl && solid_ul){
-                        dx = esc_l;
-                    }
-                    if(solid_dr && solid_ur){
-                        dx = esc_r;
-                    }
-                    if(count === 2){
-                        if(solid_dr && solid_ul){
-                            return null; //WIP
-                        }else if(solid_dl && solid_ur){
-                            return null; //WIP
-                        }
-                    }
-                    return new Vec2(dx,dy);
-                }else{
-                    if(solid_dl){
-                        return -esc_d < esc_l ? new Vec2(0,esc_d) : new Vec2(esc_l,0);
-                    }else if(solid_dr){
-                        return -esc_d < -esc_r ? new Vec2(0,esc_d) : new Vec2(esc_r,0);
-                    }else if(solid_ur){
-                        return esc_u < -esc_r ? new Vec2(0,esc_u) : new Vec2(esc_r, 0);
-                    }else{
-                        return esc_u < esc_l ? new Vec2(0,esc_u) : new Vec2(esc_l,0);
-                    }
-                }
-            }
-        },
-        _is_solid: function(grid,x,y){
-            var cell = grid.getCell(x,y);
-            return cell && this.isSolid(cell,x,y);
-        },
         isSolid: function(cell,x,y){
             return cell > 0;
         },
-        onGridCollision: function(cells){
-            console.log("GridCollide:",cells);
-        },
+        onGridCollision: function(cells){},
     });
 
     var Projectile = GridCollider.extend({
@@ -497,8 +451,6 @@ window.onload = function() {
         ammo: -1,
     });
     
-    
-    
     var Block = Ent.extend({
         name: 'block',
         init: function(opt){
@@ -544,7 +496,7 @@ window.onload = function() {
             var pos = this.get('pos');
 
             var cscale = this.get('scaleFac');
-            if(!gridEnt.editing){
+            if(!lvl.editing){
                 if (this.player.moveSpeed.len() > 1){
                     this.set('scale',Math.min(2,cscale+0.15*this.main.deltaTime));
                 }else{
@@ -556,25 +508,54 @@ window.onload = function() {
     });
     
     
+    var ShipSpec = Class.extend({
+        name:  'basic',
+        type:  'fighter',  // 'fighter' | 'tank' | 'dpm' | 'scout' | 'defense' | 'skills' 
+        startSpeed:  160,
+        maxSpeed:    350,
+        accel:       500,
+        deccel:      1500,
+        drag:        50,
+        radius:      45,
+        innerRadius: 45,
+        knockDuration: 0.005,
+        knockSpeed:  1,
+        knockAccel:  50,
+        knockBounce: 0.9,
+
+        healthStart: 125,
+        healthBase : 100,
+        healthDecay: 5,
+        healthBleed: 200,
+        healthMax:   200,
+
+        armorStart:  0,
+        armorLimit:  100,
+        armorMax:    200,
+        armorDecay:  0,
+        armorBleed:  0.666,
+
+        regenDelay:  5,
+        regenSpeed:  5,
+
+        respawnSpeed: 1,
+
+    });
+
     var PlayerShip = GridCollider.extend({
         name: 'player',
         init: function(opt){
+            var opt = opt || {};
             this._super(opt);
             
+            this.spec = opt.spec || this.spec || new ShipSpec();
+
             this.moveSpeed    = new Vec2();
             this.moveDir      = new Vec2();
             this.aimdir       = new Vec2();
-            this.startSpeed   = 160;
-            this.maxSpeed     = 350;
-            this.accel        = 500;
-            this.deccel       = 1500;
-            this.color        = '#F00';
-            this.radius       = 45;
 
             this.knockSpeed    = new Vec2();
             this.knockTime     = 0;
-            this.knockDuration = 0.005;
-            this.knockBounce   = 0.9;
 
             this.weapons  = {
                 'missile': new MissileLauncher({ owner:this, main:this.main }),
@@ -585,33 +566,19 @@ window.onload = function() {
                 'bolter',
             ];
             this.weapon = this.get('weapon',0);
-
-            this.boost        = 1.5;
-
-            this.incSpeed = function(cspeed,dt){
-                var t = Math.log(1 - cspeed/this.maxSpeed)/-this.accel;
-                return this.maxSpeed * ( 1 - Math.exp(-this.accel*(t+dt)));
-            }
             
             this.shipSprite   = shipSprite.clone();
             this.shipSpriteFiring = shipSpriteFiring.clone();
             this.shipHover    = shipHover.clone();
             this.shipHover2    = shipHover.clone();
-            this.drawable     = [
+            this.drawable     = opt.drawable || [
                 this.shipHover,
                 this.shipHover2,
                 this.shipSprite,
             ];
-            console.log('drawable:',this.drawable);
-            
-            
-            this.lastFireTime = 0;
-            this.fireInterval = 0.1;
-            this.fireSequence = 0;
-            this.clipSize     = 5;
-            this.reloadTime   = 2;
+
             this.collisionBehaviour = 'emit';
-            this.bound = new Rect(0,0,this.radius*2, this.radius*2,'centered');
+            this.bound = new Rect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
             this.colVec = new Vec2();
 
 
@@ -629,9 +596,8 @@ window.onload = function() {
             this.weapon = this.get('weapon',weapon);
         },
         damage: function(damage,knockback,dir){
-            console.log('damage',damage,knockback,dir.toString());
-            var knockTime = Math.max(0.5,Math.min(1.5,knockback * this.knockDuration));
-            var knockSpeed = dir.scale(knockback);
+            var knockTime = Math.max(0.5,Math.min(1.5,knockback * this.spec.knockDuration));
+            var knockSpeed = dir.scale(knockback*this.spec.knockSpeed);
             if(this.knockTime > this.scene.time){
                 this.knockSpeed = this.knockSpeed.add(knockSpeed);
                 this.knockTime += knockTime;
@@ -681,48 +647,48 @@ window.onload = function() {
 
             if(this.moveDir.x === 0){
                 if(this.moveSpeed.x > 0){
-                    this.moveSpeed.x = Math.max(0,this.moveSpeed.x-this.deccel*dt);
+                    this.moveSpeed.x = Math.max(0,this.moveSpeed.x-this.spec.deccel*dt);
                 }else{
-                    this.moveSpeed.x = Math.min(0,this.moveSpeed.x+this.deccel*dt);
+                    this.moveSpeed.x = Math.min(0,this.moveSpeed.x+this.spec.deccel*dt);
                 }
             }else{
                 if(this.moveDir.x > 0){
-                    if(this.moveSpeed.x < this.startSpeed){
-                        this.moveSpeed.x = this.startSpeed;
+                    if(this.moveSpeed.x < this.spec.startSpeed){
+                        this.moveSpeed.x = this.spec.startSpeed;
                     }else{
-                        this.moveSpeed.x = Math.min(this.maxSpeed,this.moveSpeed.x+this.accel*dt);
+                        this.moveSpeed.x = Math.min(this.spec.maxSpeed,this.moveSpeed.x+this.spec.accel*dt);
                     }
                 }else{
-                    if(this.moveSpeed.x > -this.startSpeed){
-                        this.moveSpeed.x = -this.startSpeed;
+                    if(this.moveSpeed.x > -this.spec.startSpeed){
+                        this.moveSpeed.x = -this.spec.startSpeed;
                     }else{
-                        this.moveSpeed.x = Math.max(-this.maxSpeed,this.moveSpeed.x-this.accel*dt);
+                        this.moveSpeed.x = Math.max(-this.spec.maxSpeed,this.moveSpeed.x-this.spec.accel*dt);
                     }
                 }
             }
             if(this.moveDir.y === 0){
                 if(this.moveSpeed.y > 0){
-                    this.moveSpeed.y = Math.max(0,this.moveSpeed.y-this.deccel*dt);
+                    this.moveSpeed.y = Math.max(0,this.moveSpeed.y-this.spec.deccel*dt);
                 }else{
-                    this.moveSpeed.y = Math.min(0,this.moveSpeed.y+this.deccel*dt);
+                    this.moveSpeed.y = Math.min(0,this.moveSpeed.y+this.spec.deccel*dt);
                 }
             }else{
                 if(this.moveDir.y > 0){
-                    if(this.moveSpeed.y < this.startSpeed){
-                        this.moveSpeed.y = this.startSpeed;
+                    if(this.moveSpeed.y < this.spec.startSpeed){
+                        this.moveSpeed.y = this.spec.startSpeed;
                     }else{
-                        this.moveSpeed.y = Math.min(this.maxSpeed,this.moveSpeed.y+this.accel*dt);
+                        this.moveSpeed.y = Math.min(this.spec.maxSpeed,this.moveSpeed.y+this.spec.accel*dt);
                     }
                 }else{
-                    if(this.moveSpeed.y > -this.startSpeed){
-                        this.moveSpeed.y = -this.startSpeed;
+                    if(this.moveSpeed.y > -this.spec.startSpeed){
+                        this.moveSpeed.y = -this.spec.startSpeed;
                     }else{
-                        this.moveSpeed.y = Math.max(-this.maxSpeed,this.moveSpeed.y-this.accel*dt);
+                        this.moveSpeed.y = Math.max(-this.spec.maxSpeed,this.moveSpeed.y-this.spec.accel*dt);
                     }
                 }
             }
             
-            if(!this.boosting && !knocked && !gridEnt.editing &&input.isKeyDown('mouse0')){
+            if(!knocked && !lvl.editing &&input.isKeyDown('mouse0')){
                 if(this.weapon.fire(this.get('pos'), this.aimdir, this.moveSpeed.scale(0.5))){
                     this.lastFireTime = this.scene.time;
                 }
@@ -764,14 +730,14 @@ window.onload = function() {
             this.increase('pos',this.colVec);
             if(this.colVec.x){
                 if(knocked){
-                    this.knockSpeed.x = - this.knockSpeed.x * this.knockBounce;
+                    this.knockSpeed.x = - this.knockSpeed.x * this.spec.knockBounce;
                     this.moveSpeed.x = this.knockSpeed.x ;
                 }else{
                     this.moveSpeed.x = 0;
                 }
             }else{
                 if(knocked){
-                    this.knockSpeed.y = - this.knockSpeed.y * this.knockBounce;
+                    this.knockSpeed.y = - this.knockSpeed.y * this.spec.knockBounce;
                     this.moveSpeed.y = this.knockSpeed.y ;
                 }else{
                     this.moveSpeed.y = 0;
@@ -790,7 +756,7 @@ window.onload = function() {
                     window.innerHeight/2
                 ),
             }));
-            this.add(gridEnt);
+            this.add(lvl);
         },
         onFrameEnd: function(){
         },

@@ -41,6 +41,9 @@ window.modula = window.modula || {};
                 return this._cell[index[1]*this._cellX+index[0]]; 
             }
         },
+        _get_cells: function(){
+            return this._cell;
+        },
         getCellUnsafe: function(x,y){
             return this._cell[y*this._cellX+x];
         },
@@ -123,6 +126,141 @@ window.modula = window.modula || {};
                     }
                 }
                 return ccells;
+            }
+        },
+        collisionVec: function(bound, isSolid){
+            var self  = this;
+
+            var pos   = bound.center();
+            var minX  = bound.minX();
+            var minY  = bound.minY();
+            var maxX  = bound.maxX();
+            var maxY  = bound.maxY();
+     
+            var cx    = this._cellX;
+            var cy    = this._cellY;
+            var csx   = this._cellSize.x;
+            var csy   = this._cellSize.y;
+
+
+            if(maxX <= 0 || maxY <= 0 || minX >= cx*csx || minY >= cy*csy){
+                return;
+            }
+
+            function is_solid(x,y){
+                var cell = self.getCell(x,y);
+                return (cell!== undefined) && isSolid(cell,x,y);
+            }
+
+            //we transform everything so that the cells are squares of size 1.
+
+            var isx   = 1 / csx;
+            var isy   = 1 / csy;
+
+            minX *= isx;
+            minY *= isy;
+            maxX *= isx;
+            maxY *= isy
+
+            var min_px = Math.floor(minX);
+            var max_px = Math.floor(maxX);
+            var min_py = Math.floor(minY);
+            var max_py = Math.floor(maxY);
+
+            // these are the distances the entity should be displaced to escape
+            // left blocks, right blocks, up ... 
+
+            var esc_l = (min_px + 1 - minX) * csx;
+            var esc_r = -( maxX - max_px )  * csx;  
+            var esc_u = (min_py + 1 - minY) * csy;
+            var esc_d = -( maxY - max_py )  * csy;
+
+            // at this point we are back in world sizes 
+
+            if(min_px === max_px && min_py === max_py){
+                // in the middle of one block
+                if(is_solid(min_px,min_py)){
+                    var dx = esc_l < -esc_r ? esc_l : esc_r;
+                    var dy = esc_u < -esc_d ? esc_u : esc_d;
+                    if(Math.abs(dx) < Math.abs(dy)){
+                        return new Vec2(dx,0);
+                    }else{
+                        return new Vec2(0,dy);
+                    }
+                }else{
+                    return undefined;
+                }
+            }else if(min_px === max_px){
+                // in the middle of one vertical two-block rectangle
+                var solid_u = is_solid(min_px,min_py);
+                var solid_d = is_solid(min_px,max_py);
+                if(solid_u && solid_d){
+                    return null; // error
+                }else if(solid_u){
+                    return new Vec2(0,esc_u);
+                }else if(solid_d){
+                    return new Vec2(0,esc_d);
+                }else{
+                    return undefined;
+                }
+            }else if(min_py === max_py){
+                // in the middle of one horizontal two-block rectangle
+                var solid_l = is_solid(min_px,min_py);
+                var solid_r = is_solid(max_px,min_py);
+                if(solid_l && solid_r){
+                    return null; // error
+                }else if(solid_l){
+                    return new Vec2(esc_l,0);
+                }else if(solid_r){
+                    return new Vec2(esc_r,0);
+                }else{
+                    return undefined;
+                }
+            }else{
+                // touching four blocks
+                var solid_ul = is_solid(min_px,min_py);
+                var solid_ur = is_solid(max_px,min_py);
+                var solid_dl = is_solid(min_px,max_py);
+                var solid_dr = is_solid(max_px,max_py);
+                var count = 0 + solid_ul + solid_ur + solid_dl + solid_dr;
+                if(count === 0){
+                    return undefined;
+                }else if(count === 4){
+                    return null; // error
+                }else if(count >= 2){
+                    var dx = 0;
+                    var dy = 0;
+                    if(solid_ul && solid_ur){
+                        dy = esc_u;
+                    }
+                    if(solid_dl && solid_dr){
+                        dy = esc_d;
+                    }
+                    if(solid_dl && solid_ul){
+                        dx = esc_l;
+                    }
+                    if(solid_dr && solid_ur){
+                        dx = esc_r;
+                    }
+                    if(count === 2){
+                        if(solid_dr && solid_ul){
+                            return null; //WIP
+                        }else if(solid_dl && solid_ur){
+                            return null; //WIP
+                        }
+                    }
+                    return new Vec2(dx,dy);
+                }else{
+                    if(solid_dl){
+                        return -esc_d < esc_l ? new Vec2(0,esc_d) : new Vec2(esc_l,0);
+                    }else if(solid_dr){
+                        return -esc_d < -esc_r ? new Vec2(0,esc_d) : new Vec2(esc_r,0);
+                    }else if(solid_ur){
+                        return esc_u < -esc_r ? new Vec2(0,esc_u) : new Vec2(esc_r, 0);
+                    }else{
+                        return esc_u < esc_l ? new Vec2(0,esc_u) : new Vec2(esc_l,0);
+                    }
+                }
             }
         },
     });
