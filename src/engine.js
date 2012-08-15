@@ -988,19 +988,34 @@ window.modula = window.modula || {};
         },
         collisionPass: function(){
             var draw = false;
+            var emitters = [];
+            var receivers = [];
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
                 var e = this._rootEntityList[i];
+                if(e.collisionBehaviour === 'emit'){
+                    emitters.push(e);
+                }else if(e.collisionBehaviour === 'receive'){
+                    receivers.push(e);
+                }else if(e.collisionBehaviour === 'both'){
+                    receivers.push(e);
+                    emitters.push(e);
+                }
+            }
+            
+            var elen = emitters.length;
+            var rlen = receivers.length;
+
+            for(var i = 0; i < elen; i++){
+                var e = emitters[i];
                 //only emitters send collision events
-                if( e.collisionBehaviour === 'emit' || e.collisionBehaviour === 'both'){
-                    for(var j = 0; j < len; j++){
-                        var r = this._rootEntityList[j];
-                        //only receivers receive collision events
-                        if( (r !== e) && (r.collisionBehaviour === 'receive' || e.collisionBehaviour === 'both') ){
-                            if( e.collides(r) ){
-                                var updated2 = r.onCollisionReceive(e);
-                                var updated = e.onCollisionEmit(r);
-                                draw = draw || updated || updated2; 
-                            }
+                for(var j = 0; j < rlen; j++){
+                    var r = receivers[j];
+                    //only receivers receive collision events
+                    if( (r !== e) ){
+                        if( e.collides(r) ){
+                            var updated2 = r.onCollisionReceive(e);
+                            var updated = e.onCollisionEmit(r);
+                            draw = draw || updated || updated2; 
                         }
                     }
                 }
