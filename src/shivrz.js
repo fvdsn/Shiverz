@@ -5,6 +5,42 @@ window.onload = function() {
     
     modula.use();   
 
+    var itemSprites = new RendererCanvas2d.SpriteMap({
+        src:'img/items.png',
+        cellSize: 64,
+        centered:true,
+        compose:'lighter',
+        sprites:[
+            { name:'weapon-missiles', index:[0,0] },
+            { name:'weapon-bolter',   index:[1,0] },
+            { name:'weapon-vulcan',   index:[2,0] },
+            { name:'weapon-grenades', index:[3,0] },
+            { name:'weapon-shotgun',  index:[4,0] },
+            { name:'weapon-razor',    index:[5,0] },
+            { name:'weapon-pepew',    index:[6,0] },
+            { name:'weapon-mines',    index:[7,0] },
+
+            { name:'ammo-missiles',   index:[0,1] },
+            { name:'ammo-bolter',     index:[1,1] },
+            { name:'ammo-vulcan',     index:[2,1] },
+            { name:'ammo-grenades',   index:[3,1] },
+            { name:'ammo-shotgun',    index:[4,1] },
+            { name:'ammo-razor',      index:[5,1] },
+            { name:'ammo-pepew',      index:[6,1] },
+            { name:'ammo-mines',      index:[7,1] },
+
+            { name:'health',          index:[0,2] },
+            { name:'armor',           index:[1,2] },
+            { name:'quad',            index:[2,2] },
+            { name:'xpowah',          index:[3,2] },
+            { name:'flag-blue',       index:[4,2] },
+            { name:'flag-red',        index:[5,2] },
+
+            { name:'health-small',    index:[0,3] },
+            { name:'armor-small',     index:[1,3] },
+        ],
+    });
+
     var shipSprite = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/ship_yellow.png',
@@ -22,7 +58,7 @@ window.onload = function() {
     var shipHover = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/explosion128blue.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         alpha: 0.5,
         centered:true,
         scale:1,
@@ -37,7 +73,7 @@ window.onload = function() {
     var missileSprite = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/projectile-green.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         pos: new Vec2(-20,0),
         centered:true,
     });
@@ -45,14 +81,14 @@ window.onload = function() {
     var missileSmoke = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/smoke-green.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         centered:true,
     });
 
     var boltSprite = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/projectile-red.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         pos: new Vec2(-20,0),
         centered:true,
     });
@@ -60,21 +96,21 @@ window.onload = function() {
     var boltSmoke = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/smoke-red.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         centered:true,
     });
 
     var boltExplosion = new RendererCanvas2d.DrawableSprite({
         pass:'explosions',
         src:'img/explosion128red.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         centered:true,
     });
     
     var explosionSprite = new RendererCanvas2d.DrawableSprite({
         pass:'explosions',
         src:'img/explosion128green.png',
-        globalCompositeOperation: 'lighter',
+        compose: 'lighter',
         centered:true,
     });
     
@@ -911,12 +947,13 @@ window.onload = function() {
                 ),
             }));
             this.add(lvl);
+            /*
             for(var i = 0; i < 50; i++){
                 this.add(new Building({
                     pos:Vec2.newRandomPositive().scale(4000,2000).add(new Vec2(-1000,-1000)),
                     height: Math.random(), //-(Math.random()+0.1),
                 }))
-            }
+            }*/
         },
         onFrameEnd: function(){
         },

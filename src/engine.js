@@ -446,7 +446,7 @@ window.modula = window.modula || {};
             if(!this.canvas){ console.log('ERROR: please provide a canvas!'); }
             this.context = this.canvas.getContext('2d');
             this.background = options.background;
-            this.globalCompositeOperation = options.globalCompositeOperation || 'source-over'; 
+            this.compose = options.compose || 'source-over'; 
             this.globalAlpha = options.globalAlpha || 1; 
             this._get_size = options.getSize || this._get_size;
             this._size = new Vec2();
@@ -473,7 +473,7 @@ window.modula = window.modula || {};
                 this.context.fillStyle = this.background;
                 this.context.fillRect(0,0,this.canvas.width, this.canvas.height);
             }
-            this.context.globalCompositeOperation = this.globalCompositeOperation;
+            this.context.globalCompositeOperation = this.compose;
             this.context.globalAlpha = this.globalAlpha;
             if(camera){
                 this.context.translate(this.canvas.width/2, this.canvas.height/2);
@@ -561,6 +561,10 @@ window.modula = window.modula || {};
             var self = this;
             this._image = options.image || null;
             this._src = options.src;
+            this.centered = options.centered || this.centered;
+            this.compose  = options.compose  || this.compose;
+            this.pass     = options.pass     || this.pass;
+            this.height   = options.height   || this.height;
 
             if(this._src === undefined){
                 this._src = this.image.src;
@@ -602,12 +606,17 @@ window.modula = window.modula || {};
             options = options || {};
             var sprite = this._sprites[name];
             if(sprite){
+                console.log(this);
                 arg = {
                     image: this._image,
                     src_x: sprite.index[0] * this._cellSize.x,
                     src_y: sprite.index[1] * this._cellSize.y,
                     src_sx: (sprite.size ? sprite.size[0] : 1) * this._cellSize.x,
                     src_sy: (sprite.size ? sprite.size[1] : 1) * this._cellSize.y,
+                    compose: sprite.compose || this.compose || 'source-over',
+                    centered: sprite.centered || this.centered || false,
+                    pass: sprite.pass || this.pass || undefined,
+                    height: sprite.height || this.height || 0,
                 };
                 for( key in options){
                     arg[key] = options[key];
@@ -640,7 +649,7 @@ window.modula = window.modula || {};
             function onload(){
                 self.z     = options.z || 0;    
                 self.alpha = options.alpha;
-                self.globalCompositeOperation = options.globalCompositeOperation;
+                self.compose = options.compose;
                 self._src_x  = options.src_x  || 0;
                 self._src_y  = options.src_y  || 0;
                 self._src_sx = options.src_sx || self._image.width;
@@ -666,7 +675,7 @@ window.modula = window.modula || {};
                 centered : this.centered,
                 height: this.height,
                 zindex: this.zindex,
-                globalCompositeOperation: this.globalCompositeOperation,
+                compose: this.compose,
                 src_x : this._src_x,
                 src_y : this._src_y,
                 src_sx: this._src_sx,
@@ -683,8 +692,8 @@ window.modula = window.modula || {};
             if(this.alpha !== undefined){
                 context.globalAlpha *= this.alpha;
             }
-            if(this.globalCompositeOperation){
-                context.globalCompositeOperation = this.globalCompositeOperation;
+            if(this.compose){
+                context.globalCompositeOperation = this.compose;
             }
             if(this.scale){
                 context.scale(this.scale,this.scale);
