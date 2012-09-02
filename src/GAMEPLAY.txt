@@ -1,0 +1,59 @@
+NOM DU JEU:
+ROTORBLADE / BURST
+
+
+Modes
+	A chaque partie / round les joueurs choisissent
+		- un vaisseau
+			- vie
+			- armure
+			- energie
+			- vitesse
+		- une arme de base
+			- pew pew / rotorblade / knives 
+		- une arme principale / item / power
+			- shogtun / mp5 / m4 / grenades / rpg / m249 / grenades / handcannon / shockrifle / flamethrower
+		- une arme secondaire / item / power
+			- armor / speed / healthkit / ammos / mines / turrets / shield / attractive vortex
+			  health drain / speed drain / laser sight / invisibility / silencer / invulnerability / damage burst / shockwave / fast switch ...
+
+	sur la carte se trouvent les items suivants :
+		- items de base en 2 tailles
+			- health
+			- armor
+			- ammo
+		- superpowers:
+			- damage burst
+			- speed burst
+
+	KINGS OF KINGS:
+		par round, pas d'equipes
+			- a chaque ennemi qui meurt :
+				tous les survivants gagnent un point
+				le tueur gagne un point supplementaire
+			- les morts reviennent en ghosts :
+				- pv / 2, armor zero, uniquement arme de base
+		pas de superitem
+	
+	HAUNTED HOUSE:
+
+	GLADIATOR:
+		un point par frag.
+		tous les 5 frags consecutifs, le nombre de points gagne par frag double
+
+	TROPHY:
+		- un flag (sticky) dans chaque equipe
+		  le flag revient apres 20sec
+		  premiere equipe a 5 captures gagne
+		  ou equipe au plus haut nombre de caps au timelimit
+		  - frag : 1point
+		  - defense : frag si player ou ennemi proche de son flag : 1 pt bonus
+		  - offense : frag si player ou ennemi proche du flag ennemi : 2 pt bonus
+		  - assist : points / 2
+		  - take flag : 3 points
+		  - capture assist : 6 points
+		  - capture : 10 points
+	
+	TOURNAMENT:
+		- un mini tournoi entre les joueurs 
+
