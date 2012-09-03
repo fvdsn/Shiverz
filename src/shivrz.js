@@ -180,21 +180,34 @@ window.onload = function() {
     var Flag = Item.extend({
         name:'flag',
         team:'zen',
+        effect: function(player){
+            player.takeFlag(this.team);
+        },
     });
 
     var Armor = Item.extend({
         name: 'armor',
         armor: 5,
+        effect: function(player){
+            player.addArmor(this.name, this.health);
+        },
     });
 
     var HealthKit = Item.extend({
         name:'healthkit',
+        health: 50,
+        effect: function(player){
+            player.addHealth(this.name,this.health);
+        },
     });
 
     var SuperPower = Item.extend({
+        effect: function(player){
+            player.powerup(this.name);
+        },
     });
 
-    var QuadDamage = Item.extend({
+    var QuadDamage = SuperPower.extend({
         name:'quad',
         spawn: 20,
         delay: 20,
@@ -204,12 +217,18 @@ window.onload = function() {
         name:'ammo',
         weapon:'none',
         ammo:10,
+        effect: function(player){
+            player.addAmmo(this.weapon,this.ammo);
+        },
     });
 
     var WeaponItem = Ammo.extend({
         name:'weaponItem',
         weapon:'none',
         ammo:10,
+        effect: function(player){
+            player.addWeapon(this.weapon,this.ammo);
+        },
     });
 
     var Level = Ent.extend({
