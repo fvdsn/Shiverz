@@ -53,6 +53,7 @@ function import_game(module){
             }
 			this.level = opt.level || this.levelRotation[0];
 			this.phase = opt.phase || 'warmup';
+            this.phaseTime = 0;
 		},
 		load: function(gamedescr){
 		},
@@ -140,33 +141,51 @@ function import_game(module){
             return winners;
 		},
         loadLevel : function(levelname){
-            //TODO modify level
-        }
+            this.level = new module.Level({name:levelname});
+        },
+        getLevelList: function(){
+            return this.levels;
+        },
 		getLevel: function(){
+            return this.level;
 		},
 
-		startGame: function(){
-            // this should start an instance of modula
-		},
-		quitGame:  function(){
-            // this should close the instance of modula
-		},
 
 		getAllPhases: function(){
+            var phases = [];
+            for(phase in this.phases){
+                phases.push(phase);
+            }
+            return phases;
 		},
 		getPhase: function(){
+            return this.phase;
 		},
 		setPhase: function(phase){
+            this.phase = phase;
+            if(this.main){
+                this.phaseTime = this.main.time;
+            }else{
+                this.phaseTime = 0;
+            }
 		},
-		getPhaseTame: function(){
+		getPhaseTime: function(){
+            return this.phaseTime;
 		},
 		getPhaseDuration: function(){
+            return this.phases[this.phase] || 0;
 		},
 		onPlayerUpdate:function( playername, player){
 		},
 		onTeamUpdate: function(teamname){
 		},
 		onGameUpdate: function(){
+		},
+		startGame: function(){
+            // this should start an instance of modula
+		},
+		quitGame:  function(){
+            // this should close the instance of modula
 		},
 	})
 }
