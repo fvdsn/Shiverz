@@ -12,13 +12,14 @@ window.modula = window.modula || {};
             this.matches = [];
         }
     };
+    
+    var proto = modula.Collection.prototype;
 
-    modula.Collection.prototype.length = function(){ return this.matches.length; };
-    modula.Collection.prototype.first = function(){ return this.matches[0]; };
-    modula.Collection.prototype.last  = function(){ return this.matches[this.matches.length-1]; };
-    modula.Collection.prototype.all   = function(){ return this.matches; };
-
-    modula.Collection.prototype.contains = function(element){
+    proto.length = function(){ return this.matches.length; };
+    proto.first = function(){ return this.matches[0]; };
+    proto.last  = function(){ return this.matches[this.matches.length-1]; };
+    proto.all   = function(){ return this.matches; };
+    proto.contains = function(element){
         for(var i = 0, len = this.matches.length; i < len; i++){
             if(this.matches[i] === element){
                 return true;
@@ -26,8 +27,7 @@ window.modula = window.modula || {};
         }
         return false;
     };
-
-    modula.Collection.prototype.append = function(element){
+    proto.append = function(element){
         var c = new modula.Collection();
         if(element instanceof modula.Collection){
             c.matches = this.matches.concat(element.matches);
@@ -36,8 +36,7 @@ window.modula = window.modula || {};
         }
         return c;
     };
-    
-    modula.Collection.prototype.filter = function(filter){
+    proto.filter = function(filter){
         if(!filter){
             return this;
         }
@@ -49,8 +48,7 @@ window.modula = window.modula || {};
         }
         return c;
     };
-
-    modula.Collection.prototype.each = function(fun){
+    proto.each = function(fun){
         if(fun){
             for(var i = 0, len = this.matches.length; i < len; i++){
                 if(fun(this.matches[i],i) === 'break'){
@@ -60,8 +58,7 @@ window.modula = window.modula || {};
         }
         return this;
     };
-
-    modula.Collection.prototype.map = function(fun){
+    proto.map = function(fun){
         if(fun){
             var c = new modula.Collection();
             for(var i = 0, len = this.matches.length; i < len; i++){
@@ -74,8 +71,7 @@ window.modula = window.modula || {};
         }
         return this;
     };
-
-    modula.Collection.prototype.sum = function(){
+    proto.sum = function(){
         var sum = undefined;
         for(var i = 0, len = this.matches.length; i < len; i++){
             var match = this.matches[i];
@@ -93,16 +89,14 @@ window.modula = window.modula || {};
         }
         return sum;
     };
-
-    modula.Collection.prototype.one  = function(){
+    proto.one  = function(){
         if(this.matches.length === 0){
             throw new Error("Error: Collection.one() : the collection is empty");
         }else{
             return this.matches[0];
         }
     };
-    modula.Collection.prototype.url  = function(){};
-    modula.Collection.prototype.ofclass  = function(klass){
+    proto.ofClass  = function(klass){
         if(klass){
             var c = new modula.Collection();
             for(var i = 0, len = this.matches.length; i < len; i++){
@@ -114,7 +108,7 @@ window.modula = window.modula || {};
         }
         return this;
     };
-    modula.Collection.prototype.oftype  = function(type){
+    proto.ofType  = function(type){
         if(type){
             var c = new modula.Collection();
             for(var i = 0, len = this.matches.length; i < len; i++){
@@ -126,16 +120,16 @@ window.modula = window.modula || {};
         }
         return this;
     };
-    modula.Collection.prototype.limit = function(count){
+    proto.limit = function(count){
         return new modula.Collection(this.matches.slice(0,count));
     };
-    modula.Collection.prototype.skip = function(count){
+    proto.skip = function(count){
         return new modula.Collection(this.matches.slice(count));
     };
-    modula.Collection.prototype.reverse = function(){
+    proto.reverse = function(){
         return new modula.Collection(this.matches.slice(0,this.matches.length).reverse());
     };
-    modula.Collection.prototype.sort = function(cmp,scalar){
+    proto.sort = function(cmp,scalar){
         if(cmp === 'scalar' || scalar === 'scalar'){
             if(typeof cmp === 'function'){
                 var scalarcmp = function(a,b){
@@ -161,7 +155,7 @@ window.modula = window.modula || {};
             }
         }
     };
-    modula.Collection.prototype.min = function(cmp,scalar){
+    proto.min = function(cmp,scalar){
         if(cmp !== 'scalar' && scalar !== 'scalar'){
             if(typeof cmp === 'function'){
                 return this.sort(cmp).first();
@@ -192,7 +186,7 @@ window.modula = window.modula || {};
             }
         }
     };
-    modula.Collection.prototype.max = function(fun,scalar){
+    proto.max = function(fun,scalar){
         if(cmp !== 'scalar' && scalar !== 'scalar'){
             if(typeof cmp === 'function'){
                 return this.sort(cmp).last();
@@ -223,7 +217,7 @@ window.modula = window.modula || {};
             }
         }
     };
-    modula.Collection.prototype.shuffle = function(){
+    proto.shuffle = function(){
         var c = new Collection(this.matches.slice(0,this.matches.length));
         var tmp;
         for(var i = 0, len = c.matches.length; i < len - 1; i++){
@@ -234,7 +228,7 @@ window.modula = window.modula || {};
         }
         return c;
     };
-    modula.Collection.prototype.uniques = function(){
+    proto.uniques = function(){
         var c = new Collection();
         for(var i = 0, len = this.matches.length; i < len; i++){
             var unique = true;
@@ -250,20 +244,19 @@ window.modula = window.modula || {};
         }
         return c;
     };
-    modula.Collection.prototype.log = function(){
+    proto.log = function(){
         for(var i = 0, len = this.matches.length; i < len; i++){
             console.log(this.matches[i]);
         }
         return this;
     };
-
-    modula.Collection.prototype.set = function(args){
+    proto.set = function(args){
         for(var i = 0, len = this.matches.length; i < len; i++){
             this.matches[i].set.apply(this.matches[i],arguments);
         }
         return this;
     };
-    modula.Collection.prototype.get = function(args){
+    proto.get = function(args){
         var c = new modula.Collection();
         for(var i = 0, len = this.matches.length; i < len; i++){
             var res = this.matches[i].get.apply(this.matches[i],arguments);
