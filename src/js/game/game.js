@@ -1,4 +1,4 @@
-function import_game(module){
+window.import_game = function(module){
 
 	module.Player = Class.extend({
 		name: 'unnamed',
@@ -28,7 +28,7 @@ function import_game(module){
 	});
 
 	module.Game = Class.extend({
-		name: 'DebugMode'
+		name: 'DebugMode',
 		teams: ['red','blue','spectator'],
 		maxplayers: 8,
 		playerstates: ['spectating','spawning','playing','dead','scoreboard'],
@@ -130,7 +130,7 @@ function import_game(module){
             var winners = [this.players[0]];
             var winnerScore = this.getPlayerScore(this.players[0]);
             for(var i = 1; i < this.players.length; i++){
-                var score = this.getPlayerScore([this.players[i]);
+                var score = this.getPlayerScore(this.players[i]);
                 if( score.compare(winnerScore) > 0){
                     winners = [this.players[i]];
                     winnerScore = score;
@@ -187,5 +187,5 @@ function import_game(module){
 		quitGame:  function(){
             // this should close the instance of modula
 		},
-	})
-}
+	});
+};
