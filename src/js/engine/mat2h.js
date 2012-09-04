@@ -1,5 +1,5 @@
+// Modula 2D Homogenous Matrixes
 window.modula = window.modula || {};
-
 (function(modula){
 
     // Multiply a number expressed in radiant by radToDeg to convert it in degrees
@@ -259,6 +259,3 @@ window.modula = window.modula || {};
     };
     
 })(window.modula);
-
-
-    

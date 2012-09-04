@@ -1,6 +1,5 @@
-
+// Modula Engine
 window.modula = window.modula || {};
-
 (function(modula){
 
     var Vec2 = modula.Vec2;

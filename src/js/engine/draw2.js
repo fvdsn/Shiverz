@@ -1,6 +1,5 @@
-
+// Modula 2D canvas debug draw helpers
 window.modula = window.modula || {}; 
-
 (function(modula){
 
     modula.draw = {};
@@ -129,7 +128,3 @@ window.modula = window.modula || {};
     }
 
 })(window.modula);
-
-
-
-

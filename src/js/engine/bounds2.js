@@ -1,4 +1,5 @@
-
+// Modla 2D Bounding Volumes
+window.modula = window.modula || {};
 (function(modula){
 
     function Bound(){

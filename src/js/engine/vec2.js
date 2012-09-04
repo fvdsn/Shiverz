@@ -1,6 +1,5 @@
-
+// Modula 2D Vectors
 window.modula = window.modula || {};
-
 (function(modula){
     
     // A Javascript 2D vector library

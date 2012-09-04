@@ -1,5 +1,5 @@
+// Modula 2D Grid
 window.modula = window.modula || {};
-
 (function(modula){
     var Vec2 = modula.Vec2;
 

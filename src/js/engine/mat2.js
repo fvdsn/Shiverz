@@ -1,4 +1,5 @@
-
+// Modula 2D Matrixes
+window.modula = window.modula || {};
 (function(modula){
 
     // Multiply a number expressed in radiant by radToDeg to convert it in degrees
@@ -253,5 +254,3 @@
     };
 
 })(window.modula);
-
-
