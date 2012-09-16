@@ -1,23 +1,10 @@
-// Modula 3D Matrixes
-window.modula = window.modula || {};
-(function(modula){
 
-    // Multiply a number expressed in radiant by radToDeg to convert it in degrees
-    var radToDeg = 57.29577951308232;
-    modula.radToDeg = radToDeg;
+/* --------- 3D Matrixes ---------- */
 
-    // Multiply a number expressed in degrees by degToRad to convert it to radiant
-    var degToRad = 0.017453292519943295;
-    modula.degToRad = degToRad;
+var module = window;
+(function(module){
 
-    // The numerical precision used to compare vector equality
-    modula.epsilon   = 0.0000001;
-    
-    var epsilonEquals = function(a,b){
-        return Math.abs(a-b) <= modula.epsilon;
-    };
-
-    var Vec3 = modula.Vec3;
+    var Vec3 = module.Vec3;
 
     function Mat3(){
         var alen = arguments.length;
@@ -60,12 +47,17 @@ window.modula = window.modula || {};
         }
     };
 
-    modula.Mat3 = Mat3;
+    module.Mat3 = Mat3;
 
-    Mat3.id = new Mat3();
-    Mat3.zero = new Mat3(0,0,0,0,0,0,0,0,0);
+    Mat3.radToDeg = 180.0 / math.PI;
+    Mat3.degToRad = math.PI / 180.0;
+    Mat3.epsilon  = 0.00000001;    
+    Mat3.id       = new Mat3();
+    Mat3.zero     = new Mat3(0,0,0,0,0,0,0,0,0);
 
     var proto = Mat3.prototype;
+
+    function epsilonEquals(a,b){  return Math.abs(a-b) <= Mat3.epsilon };
 
     proto.equals = function(mat){
         return epsilonEquals(this.xx, mat.xx) &&
@@ -336,4 +328,4 @@ window.modula = window.modula || {};
         return this[ map[i][j] ];
     };
 
-})(modula);
+})(module);
