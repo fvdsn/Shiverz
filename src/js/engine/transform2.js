@@ -2,22 +2,12 @@
 window.modula = window.modula || {};
 (function(modula){
 
-    // Multiply a number expressed in radiant by radToDeg to convert it in degrees
-    var radToDeg = 57.29577951308232;
-    modula.radToDeg = radToDeg;
-
-    // Multiply a number expressed in degrees by degToRad to convert it to radiant
-    var degToRad = 0.017453292519943295;
-    modula.degToRad = degToRad;
-
     // The numerical precision used to compare vector equality
     modula.epsilon   = 0.0000001;
 
     var epsilonEquals = function(a,b){
         return Math.abs(a-b) <= modula.epsilon;
     };
-
-    var Vec2 = modula.Vec2;
 
     function Transform2(tr){
         tr = tr || {};
@@ -156,12 +146,6 @@ window.modula = window.modula || {};
         return this;
     };
 
-    proto.setRotationDeg = function(rotation){
-        this.rotation = rotation * degToRad;
-        reset_matrix(this);
-        return this;
-    };
-
     proto.getPos = function(){
         return this.pos.clone();
     };
@@ -172,10 +156,6 @@ window.modula = window.modula || {};
 
     proto.getRotation = function(){
         return this.rotation;
-    };
-    
-    proto.getRotationDeg = function(){
-        return this.rotation * radToDeg;
     };
 
     proto.getWorldPos = function(){
@@ -271,12 +251,6 @@ window.modula = window.modula || {};
 
     proto.rotate = function(angle){ 
         this.rotation += angle;
-        reset_matrix(this);
-        return this;
-    };
-
-    proto.rotateDeg = function(angle){
-        this.rotation += angle * degToRad;
         reset_matrix(this);
         return this;
     };

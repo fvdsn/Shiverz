@@ -476,7 +476,7 @@ window.onload = function() {
                 return;
             }
             for(var i = 0; i < 40; i++){
-                var dir = Vec2.newRandom().setLen(Math.random()*100 + 200);
+                var dir = Vec2.random().setLen(Math.random()*100 + 200);
                 this.scene.add(new Particle({
                     drawable: this.smoke,
                     pos:this.transform.getPos().add(dir.scale(0.1)),
@@ -506,7 +506,7 @@ window.onload = function() {
                 this.scene.add(new Particle({
                     drawable: missileSmoke,
                     pos:this.transform.getPos(),
-                    speedVec: this.speedVec.scale(0.5).add(Vec2.newRandom().scale(100)),
+                    speedVec: this.speedVec.scale(0.5).add(Vec2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
                 this.lastSmokeTime = this.scene.time;
@@ -529,7 +529,7 @@ window.onload = function() {
                 this.scene.add(new Particle({
                     drawable: boltSmoke,
                     pos:this.transform.getPos(),
-                    speedVec: this.speedVec.scale(0.5).add(Vec2.newRandom().scale(100)),
+                    speedVec: this.speedVec.scale(0.5).add(Vec2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
                 this.lastSmokeTime = this.scene.time;
@@ -912,9 +912,9 @@ window.onload = function() {
             
             var prevRotation = this.get('rotation'); 
             if(knocked){
-                this.increase('rotationDeg',90*this.scene.deltaTime);
+                this.increase('rotation',90*degToRad*this.scene.deltaTime);
             }else{
-                this.set('rotationDeg',(this.aimdir.angleDeg() + 90));
+                this.set('rotation',this.aimdir.angle() + 90*degToRad);
             }
             var deltaRot = Math.abs(prevRotation - this.get('rotation'));
 

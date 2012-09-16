@@ -1,7 +1,6 @@
 window.modula = window.modula || {};
 
 (function(modula){
-    var Vec2 = modula.Vec2;
 
     modula.PhysicsMixin = modula.Mixin.extend({
         physicsActive : true,

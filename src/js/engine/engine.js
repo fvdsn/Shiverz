@@ -2,10 +2,11 @@
 window.modula = window.modula || {};
 (function(modula){
 
-    var Vec2 = modula.Vec2;
-    var Mat2 = modula.Mat2;
     var Transform2 = modula.Transform2;
 
+    modula.radToDeg = 180.0/Math.PI;
+    modula.degToRad = Math.PI/180;
+    
     function getNewUid(){
         uid += 1;
         return uid;
@@ -1289,12 +1290,6 @@ window.modula = window.modula || {};
         },
         _set_rotation: function(rot){
             this.transform.setRotation(rot);
-        },
-        _get_rotationDeg: function(){
-            return this.transform.getRotationDeg();
-        },
-        _set_rotationDeg: function(rotDeg){
-            this.transform.setRotationDeg(rotDeg);
         },
         // is called before onUpdate the first time the entity is updated
         onInstanciation: function(){},

@@ -3,96 +3,77 @@ var module = window;
 /* --------- 2D Vectors ---------- */
 
 (function(module){
-
-     
-    // The 2D vector object 
+    
     function Vec2(){
-        if (arguments.length === 0) {
-           this.x = 0;
-           this.y = 0;
-        }else if (arguments.length === 1){
-            if(typeof arguments[0] === 'number'){
-                this.x = arguments[0];
-                this.y = arguments[0];
+    	var alen = arguments.length;      
+    	if(alen=== 0){
+            this.x = 0;
+            this.y = 0;
+        }else if (alen === 1){
+        	var arg = arguments[0];
+        	if  (typeof arg === 'string'){
+        		arg = JSON.parse(arg);
+        	}
+            if(typeof arg === 'number'){
+                this.x = arg;
+                this.y = arg;
+            }else if(arg[0] !== undefined){
+                this.x = arg[0] || 0;
+                this.y = arg[1] || 0;
             }else{
-                this.x = arguments[0].x;
-                this.y = arguments[0].y;
+            	this.x = arg.x || 0;
+            	this.y = arg.y || 0;
             }
-        }else if (arguments.length === 2){
-           this.x = arguments[0];
-           this.y = arguments[1];
+        }else if (alen === 2){
+            this.x = arguments[0];
+            this.y = arguments[1];
         }else{
-            console.error("new Vec2(): wrong number of arguments:",arguments.length);
+            console.error("new Vec2(): wrong number of arguments:"+arguments.length);
         }
     }
 
     module.Vec2 = Vec2;
 
     var proto = Vec2.prototype;
-
-    Vec2.radToDeg = 180.0 / math.PI;
-    Vec2.degToRad = math.PI / 180.0;
-    Vec2.epsilon  = 0.00000001;  
+    
+    Vec2.NaN      = new Vec2(Number.NaN,Number.NaN);
+    Vec2.zero     = new Vec2();
+    Vec2.x        = new Vec2(1,0);
+    Vec2.y        = new Vec2(0,1);
+    Vec2.epsilon  = 0.00000001;
     
     // sets vd to a vector of length 'len' and angle 'angle' radians
-    Vec2.polar = function(vd,len,angle){
-        vd.x = len;
-        vd.y = 0;
-        Vec2.rotate(vd,vd,angle);
-    };
-    // sets vd to a vector of length 'len' and angle 'angle' degrees
-    Vec2.polarDeg = function(vd,len,angle){
-        vd.x = len;
-        vd.y = 0;
-        Vec2.rotateDeg(vd,vd,angle);
-    };
-    // This static method creates a new vector from polar coordinates with the angle expressed
-    // in degrees
-    Vec2.newPolarDeg = function(len,angle){
-        var vd = new Vec2();
-        Vec2.polarDeg(vd,len,angle);
-        return vd
-    };
-    
-    // This static method creates a new vector from polar coordinates with the angle expressed in
-    // radians
-    Vec2.newPolar = function(len,angle){
-        var v = new Vec2(len,0);
-        v.rotate(angle);
+    Vec2.polar = function(len,angle){
+    	var v = new Vec2(len,0);
+        Vec2.rotate(v,v,angle);
         return v;
     };
 
-    proto.randomPositive = function(){
-        this.x = Math.random();
-        this.y = Math.random();
+	Vec2.random = function(){
+		return new Vec2(Math.random()*2 - 1, Math.random()*2 - 1);
+	}
+
+    Vec2.randomPositive = function(){
+        return new Vec2(Math.random(),Math.random());
     };
 
-    proto.random = function(){
-        this.x = Math.random()*2 - 1; 
-        this.y = Math.random()*2 - 1; 
-    };
-    
-    Vec2.randomDisc = function(vd){
+    Vec2.randomDisc = function(){
+    	var v = new Vec2();
         do{
-            vd.x = Math.random() * 2 - 1;
-            vd.y = Math.random() * 2 - 1;
-        }while(vd.lenSq() > 1);
-    };
-
-    proto.randomSphere = function(){
-        do{
-            this.x = Math.random() * 2 - 1;
-            this.y = Math.random() * 2 - 1;
-        }while(this.lenSq() > 1);
+            v.x = Math.random() * 2 - 1;
+            v.y = Math.random() * 2 - 1;
+        }while(v.lenSq() > 1);
+        return v;
     };
 
     proto.isZero = function(){
         return this.x === 0 && this.y === 0;
     };
-    Vec2.setZero = function(vd){
-        vd.x = 0;
-        vd.y = 0;
+
+    proto.isNaN = function(){
+    	return Number.isNaN(this.x) || Number.isNaN(this.y);
     };
+
     // returns the length or modulus or magnitude of the vector
     proto.len = function(){
         return Math.sqrt(this.x*this.x + this.y*this.y);
@@ -209,7 +190,7 @@ var module = window;
         return new Vec2(-this.x,-this.y);
     };
    
-    //sets vd to the normalized v, or [1,0] if v is zero
+    //sets vd to the normalized v, or [NaN,NaN] if v is zero
     Vec2.normalize = function(vd,v){
         var len = v.lenSq();
         if(len !== 0){
@@ -222,8 +203,8 @@ var module = window;
                 vd.y = v.y * len;
             }
         }else{
-            vd.x = 1;
-            vd.y = 0;
+            vd.x = Number.NaN;
+            vd.y = Number.NaN;
         }
     };
             
@@ -280,22 +261,12 @@ var module = window;
         vd.x = vx;
         vd.y = vy;
     };
-
-    //sets vd to the rotated v by an angle 'deg' degrees
-    Vec2.rotateDeg = function(vd,v,deg){
-        Vec2.rotate(vd,v,deg * degToRad);
-    };
         
     //return this vector counterclockwise rotated by rad radians as a new vector
     proto.rotate = function(rad){
         var vd = new Vec2();
         Vec2.rotate(vd,this,rad);
         return vd;
-    };
-    
-    //return this vector counterclockwise rotated by deg degrees as a new vector
-    proto.rotateDeg = function(deg){
-        return this.rotate(deg * degToRad);
     };
     
     //sets vd to the interpolation of v1 towards v2 by float factor alpha
@@ -317,11 +288,6 @@ var module = window;
     // returns the angle between this vector and the vector (1,0) in radians
     proto.angle = function(){
         return Math.atan2(this.y,this.x);
-    };
-    
-    // returns the angle between this vector and the vector (1,0) in degrees
-    proto.angleDeg = function(){
-        return Math.atan2(this.y,this.x) * radToDeg;
     };
     
     // returns true if this vector is equal to the vector v, with a tolerance defined by the epsilon module constant
@@ -367,6 +333,471 @@ var module = window;
 
 })(module);
 
+/* -------------- 2D Matrixes -------------- */
+
+(function(module){
+
+    var Vec2 = module.Vec2;
+    
+    function Mat2(){
+
+        //   | xx xy |
+        //   | yx yy |
+        
+        this.xx = 1;
+        this.xy = 0;
+        this.yx = 0;
+        this.yy = 1;
+
+        if (arguments.length === 1){
+            var arg = arguments[0];
+
+            this.xx = arg.xx || this.xx;
+            this.xy = arg.xy || this.xy;
+            this.yx = arg.yx || this.yx;
+            this.yy = arg.yy || this.yy;
+
+        } else if (arguments.length === 4){
+            this.xx = arguments[0];
+            this.xy = arguments[1];
+            this.yx = arguments[2];
+            this.yy = arguments[3];
+        }
+    }
+
+    module.Mat2 = Mat2;
+
+    var proto = Mat2.prototype;
+
+    Mat2.epsilon  = 0.00000001;
+    Mat2.NaN      = new Mat2(Number.NaN, Number.NaN, Number.NaN, Number.NaN);
+    Mat2.id       = new Mat2();
+    Mat2.zero     = new Mat2(0,0,0,0);
+
+    function epsilonEquals(a,b){ return Math.abs(a-b) <= Mat2.epsilon; }
+
+    proto.equals = function(mat){
+        return  this.fullType === mat.fullType && 
+            epsilonEquals(this.xx, mat.xx) &&
+            epsilonEquals(this.xy, mat.xy) &&
+            epsilonEquals(this.yx, mat.yx) &&
+            epsilonEquals(this.yy, mat.yy);
+    };
+
+    proto.clone = function(){
+        var m = new Mat2();
+        m.xx = this.xx;
+        m.xy = this.xy;
+        m.yx = this.yx;
+        m.yy = this.yy;
+        return m;
+    };
+
+    proto.toString = function(){
+        var str = "[";
+        str += this.xx;
+        str += ",";
+        str += this.xy;
+        str += ",\n ";
+        str += this.yx;
+        str += ",";
+        str += this.yy;
+        str += "]";
+        return str;
+    };
+    
+    proto.scale = function(fac){
+        var m = this.clone();
+        m.xx *= fac;
+        m.xy *= fac;
+        m.yx *= fac;
+        m.yy *= fac;
+        return m;
+    };
+
+    proto.add = function(mat){
+        var m = this.clone();
+        m.xx += mat.xx;
+        m.xy += mat.xy;
+        m.yx += mat.yx;
+        m.yy += mat.yy;
+        return m;
+    };
+
+    proto.sub = function(mat){
+        var m = this.clone();
+        m.xx -= mat.xx;
+        m.xy -= mat.xy;
+        m.yx -= mat.yx;
+        m.yy -= mat.yy;
+        return m;
+    };
+    
+    proto.neg = function(){
+        var m = this.clone();
+        m.xx = - this.xx;
+        m.xy = - this.xy;
+        m.yx = - this.yx;
+        m.yy = - this.yy;
+        return m;
+    };
+
+    proto.mult = function(mat){
+        var m = new Mat2();
+        // xx xy
+        // yx yy
+        m.xx = this.xx * mat.xx + this.xy * mat.yx;
+        m.xy = this.xx * mat.xy + this.xy * mat.yy;
+        m.yx = this.yx * mat.xx + this.yy * mat.yx;
+        m.yy = this.yx * mat.xy + this.yy * mat.yy;
+        return m;
+    };
+
+    proto.multVec = function(vec){
+        var v = new Vec2();
+        v.x = this.xx * vec.x + this.xy * vec.y;
+        v.y = this.yx * vec.x + this.yy * vec.y;
+        return v;
+    };
+
+    proto.det = function(){
+        return this.xx * this.yy - this.xy * this.yx;
+    };
+
+    proto.invert = function(){
+        var m = new Mat2();
+        var det = this.det();
+        if(det){
+            det = 1.0 / det;
+            m.xx = det * this.yy;
+            m.xy = det * -this.xy;
+            m.yx = det * -this.yx;
+            m.yy = det * this.xx;
+        }else{
+        	return Mat2.NaN;
+        }
+        return m;
+    };
+
+    Mat2.rotation = function(angle){
+        var m = new Mat2();
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xy = -s;
+        m.yx = s;
+        m.yy = c;
+        return m;
+    };
+
+    Mat2.scale = function(fac){
+        return new Mat2(fac,0,0,fac);
+    };
+
+    proto.transpose = function(){
+        return new Mat2(this.xx,this.yx,this.xy,this.yy);
+    };
+
+    proto.diagonal = function(){
+        return new Vec2(this.xx,this.yy);
+    };
+
+    proto.setDiagonal = function(vec){
+        var m = this.clone();
+        m.xx = vec.x;
+        m.yy = vec.y;
+        return m;
+    };
+
+    proto.trace = function(){
+        return this.xx + this.yy;
+    };
+
+    proto.row = function(index){
+        if(index === 0){
+            return new Vec2(this.xx, this.xy);
+        }else if(index === 1){
+            return new Vec2(this.yx, this.yy);
+        }
+    };
+
+    proto.setRow = function(index, vec){
+        var m = this.clone();
+        if(index === 0){
+            m.xx = vec.x;
+            m.xy = vec.y;
+        }else if(index === 1){
+            m.yx = vec.x;
+            m.yy = vec.y;
+        }
+        return m;
+    };
+
+    proto.col = function(index){
+        if(index === 0){
+            return new Vec2(this.xx, this.yx);
+        }else if(index === 1){
+            return new Vec2(this.xy, this.yy);
+        }
+    };
+
+    proto.setCol = function(index, vec){
+        var m = this.clone();
+        if(index === 0){
+            m.xx = vec.x;
+            m.yx = vec.y;
+        }else if(index === 1){
+            m.xy = vec.x;
+            m.yy = vec.y;
+        }
+        return m;
+    };
+
+    proto.array = function(){
+        return [this.xx, this.xy, this.yx, this.yy];
+    };
+
+})(module);
+
+/* ----------------------- 2D Homogenous Matrixes ------------------------ */
+
+(function(module){
+
+    var Vec2 = module.Vec2;
+    
+    function Mat2h(){
+
+        //   | xx xy xz|    | xx xy xz|
+        //   | yx yy yz|        | yx yy yz|
+        //   | 0  0  1 |        | zx zy zz|
+        this.xx = 1;
+        this.xy = 0;
+        this.yx = 0;
+        this.yy = 1;
+        this.xz = 0;
+        this.yz = 0;
+
+        if (arguments.length === 1){
+            var arg = arguments[0];
+            if(arg instanceof Mat2h){
+                this.xx = arg.xx === undefined ? this.xx : arg.xx;
+                this.xy = arg.xy === undefined ? this.xy : arg.xy;
+                this.yx = arg.yx === undefined ? this.yx : arg.yx;
+                this.yy = arg.yy === undefined ? this.yy : arg.yy;
+                this.xz = arg.xz === undefined ? this.xz : arg.xz;
+                this.yz = arg.yz === undefined ? this.yz : arg.yz;
+            }else{
+                if(arg.rotation){
+                    Mat2h.setRotation(this,arg.rotation);
+                }else if(arg.rotationDeg){
+                    Mat2h.setRotation(this,arg.rotationDeg * modula.degToRad);
+                }
+                if(typeof arg.scale === 'number'){
+                    this.xx *= arg.scale;
+                    this.yy *= arg.scale;
+                }else if(arg.scale instanceof Vec2){
+                    this.xx *= arg.scale.x;
+                    this.yy *= arg.scale.y;
+                }
+                if(arg.pos){
+                    this.xz  = arg.pos.x;
+                    this.yz  = arg.pos.y;
+                }
+            }
+        } else if (arguments.length === 4){
+            this.xx = arguments[0];
+            this.xy = arguments[1];
+            this.yx = arguments[2];
+            this.yy = arguments[3];
+            this.xz = arguments[4];
+            this.yz = arguments[5];
+        }
+    }
+
+    module.Mat2h = Mat2h;
+
+    var proto  = Mat2h.prototype;
+
+    Mat2h.epsilon  = 0.00000001;
+    Mat2h.NaN      = new Mat2h(Number.NaN, Number.NaN, Number.NaN, Number.NaN, Number.NaN, Number.NaN);
+    Mat2h.id       = new Mat2h();
+
+    function epsilonEquals(a,b){ return Math.abs(a-b) <= Mat2h.epsilon; }
+
+    proto.equals = function(mat){
+        return  epsilonEquals(this.xx, mat.xx) &&
+            epsilonEquals(this.xy, mat.xy) &&
+            epsilonEquals(this.yx, mat.yx) &&
+            epsilonEquals(this.xz, mat.xz) &&
+            epsilonEquals(this.yz, mat.yz) &&
+            epsilonEquals(this.yy, mat.yy);
+    };
+
+    proto.clone = function(){
+        var m = new Mat2h();
+        m.xx = this.xx;
+        m.xy = this.xy;
+        m.yx = this.yx;
+        m.yy = this.yy;
+        m.xz = this.xz;
+        m.yz = this.yz;
+        return m;
+    };
+
+    proto.toString = function(){
+        var str = "[";
+        str += this.xx + ",";
+        str += this.xy + ",";
+        str += this.xz + ",\n ";
+        str += this.yx + ",";
+        str += this.yy + ",";
+        str += this.yz + ",\n 0,0,1]";
+        return str;
+    };
+    
+    proto.scale = function(fac){
+        var m = this.clone();
+        m.xx *= fac;
+        m.xy *= fac;
+        m.yx *= fac;
+        m.yy *= fac;
+        m.xz *= fac;
+        m.yz *= fac;
+        return m;
+    };
+
+    proto.add = function(mat){
+        var m = this.clone();
+        m.xx += mat.xx;
+        m.xy += mat.xy;
+        m.yx += mat.yx;
+        m.yy += mat.yy;
+        m.xz += mat.xz;
+        m.yz += mat.yz;
+        return m;
+    };
+
+    proto.sub = function(mat){
+        var m = this.clone();
+        m.xx -= mat.xx;
+        m.xy -= mat.xy;
+        m.yx -= mat.yx;
+        m.yy -= mat.yy;
+        m.xz -= mat.xz;
+        m.yz -= mat.yz;
+        return m;
+    };
+
+    proto.neg = function(mat){
+        var m = this.clone();
+        m.xx -= this.xx;
+        m.xy -= this.xy;
+        m.yx -= this.yx;
+        m.yy -= this.yy;
+        m.xz -= this.xz;
+        m.yz -= this.yz;
+        return m;
+    };
+
+    Mat2h.mult = function(a,b,dst){
+        // xx xy xz   xx xy xz
+        // yx yy yz * yx yy yz
+        // zx zy zz   zx zy zz
+
+        dst.xx = a.xx * b.xx + a.xy * b.yx;
+        dst.xy = a.xx * b.xy + a.xy * b.yy;
+        dst.yx = a.yx * b.xx + a.yy * b.yx;
+        dst.yy = a.yx * b.xy + a.yy * b.yy;
+        dst.xz = a.xx * b.xz + a.xy * b.yz + a.xz;
+        dst.yz = a.yx * b.xz + a.yy * b.yz + a.yz;
+        return dst;
+    };
+    proto.mult = function(mat){
+        var m = this.clone();
+        Mat2h.mult(this,mat,m);
+        return m;
+    };
+    Mat2h.multVec = function(m,vec,dst){
+        // xx xy xz   x 
+        // yx yy yz * y 
+        // 0  0  1    1 
+        dst.x = m.xx * vec.x + m.xy * vec.y + m.xz;
+        dst.y = m.yx * vec.x + m.yy * vec.y + m.yz;
+        return dst;
+    };
+
+    proto.multVec = function(vec){
+        var dst = new Vec2();
+        Mat2h.multVec(this,vec,dst);
+        return dst;
+    };
+
+    proto.det = function(){
+        return this.xx * this.yy - this.yx * this.xy;
+    };
+
+    proto.invert = function(){
+        var m = new Mat2h();
+        var t = this;
+        var det =  this.det();
+        if(det){
+            det = 1.0 / det;
+            m.xx = det *  this.yy;
+            m.xy = det * -this.xy;
+            m.yx = det * -this.yx;
+            m.yy = det *  this.xx;
+            m.xz = det *  this.yz * this.xy - this.yy * this.xz;
+            m.yz = det * -( this.yz * this.xx - this.yx * this.xz );
+        }
+        return m;
+    };
+
+    Mat2h.setRotation = function(m,angle){
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xy = -s;
+        m.yx = s;
+        m.yy = c;
+        m.xz = 0;
+        m.yz = 0;
+        return m;
+    };
+
+    Mat2h.setScale = function(m,scale){
+        m.xx = scale.x;
+        m.xy = 0;
+        m.yx = 0;
+        m.yy = scale.y;
+        m.xz = 0;
+        m.yz = 0;
+        return m;
+    };
+
+    Mat2h.setTranslation = function(m,vec){
+        m.xx = 1;
+        m.xy = 0;
+        m.yx = 0;
+        m.yy = 1;;
+        m.xz = vec.x;
+        m.yz = vec.y;
+        return m;
+    };
+
+    Mat2h.transform = function(scale,rotation,translation){
+        var m = new Mat2h();
+        if(rotation){
+            Mat2h.setRotation(m,rotation);
+        }
+        m.xx *= scale.x;
+        m.yy *= scale.y;
+        m.xz  = translation.x;
+        m.yz  = translation.y;
+        return m;
+    };
+    
+})(module);
+
 /* --------- 3D Vectors ---------- */
 
 (function(module){
@@ -377,19 +808,23 @@ var module = window;
             this.y = 0;
             this.z = 0;
         }else if (arguments.length === 1){
-            if(typeof arguments[0] === 'number'){
-                this.x = arguments[0];
-                this.y = arguments[0];
-                this.z = arguments[0];
+        	var arg = arguments[0];
+        	if  (typeof arg === 'string'){
+        		arg = JSON.parse(arg);
+        	}
+            if(typeof arg === 'number'){
+                this.x = arg;
+                this.y = arg;
+                this.z = arg;
+            }else if(arg[0] !== undefined){
+                this.x = arg[0] || 0;
+                this.y = arg[1] || 0;
+                this.z = arg[2] || 0;
             }else{
-                this.x = arguments[0].x;
-                this.y = arguments[0].y;
-                this.z = arguments[0].z;
+            	this.x = arg.x || 0;
+            	this.y = arg.y || 0;
+            	this.z = arg.z || 0;
             }
-        }else if (arguments.length === 2){
-            this.x = arguments[0];
-            this.y = arguments[1];
-            this.z = 0;
         }else if (arguments.length === 3){
             this.x = arguments[0];
             this.y = arguments[1];
@@ -399,12 +834,11 @@ var module = window;
         }
     };
 
+    Vec3.NaN  = new Vec3(Number.NaN,Number.NaN,Number.NaN);
     Vec3.zero = new Vec3();
     Vec3.x    = new Vec3(1,0,0);
     Vec3.y    = new Vec3(0,1,0);
     Vec3.z    = new Vec3(0,0,1);
-    Vec3.radToDeg = 180.0 / math.PI;
-    Vec3.degToRad = math.PI / 180.0;
     Vec3.epsilon  = 0.00000001;    
     
     module.Vec3 = Vec3;
@@ -435,6 +869,10 @@ var module = window;
         return this.x === 0 && this.y === 0 && this.z === 0;
     };
 
+    proto.isNaN = function(){
+    	return Number.isNaN(this.x) || Number.isNaN(this.y) || Number.isNaN(this.z);
+    };
+
     proto.len = function(){
         return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z);
     };
@@ -462,7 +900,7 @@ var module = window;
     };
 
     proto.angle = function(v){
-    	return math.acos(this.dot(v)/(this.len()*v.len());
+    	return math.acos(this.dot(v)/(this.len()*v.len()));
     };
 
     proto.clone = function(){
@@ -499,6 +937,8 @@ var module = window;
                 v.y *= len;
                 v.z *= len;
             }
+        }else{
+        	v = Vec2.NaN;
         }
         return v;
     };
@@ -581,7 +1021,7 @@ var module = window;
 
 })(module);
 
-/* --------- 3D Matrix ---------- */
+/* ------------------------------ 3D Matrix -------------------------------- */
 
 (function(module){
 
@@ -630,8 +1070,6 @@ var module = window;
 
     module.Mat3 = Mat3;
 
-    Mat3.radToDeg = 180.0 / math.PI;
-    Mat3.degToRad = math.PI / 180.0;
     Mat3.epsilon  = 0.00000001;    
     Mat3.id       = new Mat3();
     Mat3.zero     = new Mat3(0,0,0,0,0,0,0,0,0);
@@ -656,6 +1094,21 @@ var module = window;
         return new Mat3(this);
     };
 
+    proto.toString = function(){
+        var str = "[";
+        str += this.xx + ",";
+        str += this.xy + ",";
+        str += this.xz + ",\n  ";
+        str += this.yx + ",";
+        str += this.yy + ",";
+        str += this.yz + ",\n  ";
+        str += this.zx + ",";
+        str += this.zy + ",";
+        str += this.zz + "]";
+        return str;
+    };
+    
+
     proto.scale = function(fac){
         var m = new Mat3();
         m.xx = this.xx * fac;
@@ -670,19 +1123,6 @@ var module = window;
         return m;
     };
 
-    proto.toString = function(){
-        var str = "[";
-        str += this.xx + ",";
-        str += this.xy + ",";
-        str += this.xz + ",\n ";
-        str += this.yx + ",";
-        str += this.yy + ",";
-        str += this.yz + ",\n ";
-        str += this.zx + ",";
-        str += this.zy + ",";
-        str += this.zz + "]";
-        return str;
-    };
 
     proto.add = function(mat){
         var m = new Mat3();
@@ -851,6 +1291,7 @@ var module = window;
         m.zx =  d*( m.zy*m.yx-m.zx*m.yy );
         m.zy = -d*( m.zy*m.xx-m.zx*m.xy );
         m.yy =  d*( m.yy*m.xx-m.yz*m.xy );
+        return m;
     };
 
     proto.trace = function(){
