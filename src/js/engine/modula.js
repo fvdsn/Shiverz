@@ -657,41 +657,29 @@ window.modula = window.modula || {};
         v.rotate(angle);
         return v;
     };
-    
-    // sets vd.x and vd.y to random values in [0,1]
-    Vec2.randomPositive = function(vd){
-        vd.x = Math.random();
-        vd.y = Math.random();
+
+    proto.randomPositive = function(){
+        this.x = Math.random();
+        this.y = Math.random();
     };
 
-    // Returns a vector with randomized x and y in [0,1]
-    Vec2.newRandomPositive = function(){ 
-        return new Vec2(Math.random(),Math.random());
+    proto.random = function(){
+        this.x = Math.random()*2 - 1; 
+        this.y = Math.random()*2 - 1; 
     };
     
-    // sets vd.x and vd.y to random values in [-1,1]
-    Vec2.random = function(vd){
-        vd.x = Math.random()*2 - 1;
-        vd.y = Math.random()*2 - 1;
-    };
-
-    // Returns a vector with randomized x and y in [-1,1]
-    Vec2.newRandom = function(){
-        return new Vec2(Math.random()*2 - 1, Math.random()*2 - 1); 
-    };
-    
-    //sets vd to a random vector of length <= 1
     Vec2.randomDisc = function(vd){
         do{
             vd.x = Math.random() * 2 - 1;
             vd.y = Math.random() * 2 - 1;
         }while(vd.lenSq() > 1);
     };
-    // Returns  a random position in the unit disc. (vec.len() <= 1) 
-    Vec2.newRandomDisc = function(){
-        var vd = new Vec2();
-        Vec2.randomDisc(vd);
-        return vd;
+
+    proto.randomSphere = function(){
+        do{
+            this.x = Math.random() * 2 - 1;
+            this.y = Math.random() * 2 - 1;
+        }while(this.lenSq() > 1);
     };
 
     proto.isZero = function(){
@@ -830,8 +818,8 @@ window.modula = window.modula || {};
                 vd.y = v.y * len;
             }
         }else{
-            v.x = 1;
-            v.y = 1;
+            vd.x = 1;
+            vd.y = 0;
         }
     };
             
@@ -871,8 +859,7 @@ window.modula = window.modula || {};
     
     // return a string representation of this vector
     proto.toString = function(){
-        var str = "";
-        str += "[";
+        var str = "[";
         str += this.x;
         str += ",";
         str += this.y;
@@ -975,6 +962,187 @@ window.modula = window.modula || {};
     };
 
 })(window.modula);
+// Modula 3D Vectors
+window.modula = window.modula || {};
+(function(modula){
+    function Vec3(){
+        if(arguments.length === 0){
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
+        }else if (arguments.length === 1){
+            if(typeof arguments[0] === 'number'){
+                this.x = arguments[0];
+                this.y = arguments[0];
+                this.z = arguments[0];
+            }else{
+                this.x = arguments[0].x;
+                this.y = arguments[0].y;
+                this.z = arguments[0].z;
+            }
+        }else if (arguments.length === 2){
+            this.x = arguments[0];
+            this.y = arguments[1];
+            this.z = 0;
+        }else if (arguments.length === 3){
+            this.x = arguments[0];
+            this.y = arguments[1];
+            this.z = arguments[2];
+        }else{
+            console.error("new Vec3(): wrong number of arguments:"+arguments.length);
+        }
+    };
+
+    modula.Vec3 = Vec3;
+    var proto = Vec3.prototype;
+
+    // Multiply a number expressed in radiant by radToDeg to convert it in degrees
+    var radToDeg = 57.29577951308232;
+    // Multiply a number expressed in degrees by degToRad to convert it to radiant
+    var degToRad = 0.017453292519943295;
+    // The numerical precision used to compare vector equality
+    var epsilon   = 0.0000001;
+
+    Vec3.randomPositive = function(){
+        return new Vec3(Math.random(), Math.random(), Math.random());
+    };
+
+    Vec3.random = function(){
+        return new Vec3( Math.random()*2 - 1, 
+                         Math.random()*2 - 1, 
+                         Math.random()*2 - 1 );
+        };
+
+    Vec3.randomSphere = function(){
+        var v = new Vec3();
+        do{
+            v.x = Math.random() * 2 - 1;
+            v.y = Math.random() * 2 - 1;
+            v.z = Math.random() * 2 - 1;
+        }while(v.lenSq() > 1);
+        return v;
+    };
+
+    proto.isZero = function(){
+        return this.x === 0 && this.y === 0 && this.z === 0;
+    };
+
+    proto.len = function(){
+        return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z);
+    };
+
+    proto.lenSq = function(){
+        return this.x*this.x + this.y*this.y + this.z*this.z;
+    };
+
+    proto.dist = function(v){
+        var dx = this.x - v.x;
+        var dy = this.y - v.y;
+        var dz = this.z - v.z;
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
+    };
+
+    proto.distSq = function(v){
+        var dx = this.x - v.x;
+        var dy = this.y - v.y;
+        var dz = this.z - v.z;
+        return dx*dx + dy*dy + dz*dz;
+    };
+
+    proto.dot = function(v){
+        return this.x*v.x + this.y*v.y + this.z*v.z;
+    };
+
+    proto.clone = function(){
+        return new Vec3(this);
+    };
+
+    proto.add = function(v){
+        return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z);
+    };
+
+    proto.sub = function(v){
+        return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z);
+    };
+
+    proto.mult = function(v){
+        return new Vec3(this.x * v.x, this.y * v.y, this.z * v.z);
+    };
+
+    proto.scale = function(f){
+        return new Vec3(this.x * f, this.y * f, this.z * f);
+    };
+
+    proto.neg = function(){
+        return new Vec3(-this.x, - this.y, - this.z);
+    };
+
+    proto.normalize = function(){
+        var len = this.lenSq();
+        var v   = this.clone();
+        if(len !== 0){
+            if(len !== 1){
+                len = 1 / Math.sqrt(len);
+                v.x *= len;
+                v.y *= len;
+                v.z *= len;
+            }
+        }
+        return v;
+    };
+
+    proto.setLen = function(l){
+        return this.normalize().scale(l);
+    };
+
+    proto.project = function(v){
+        return v.setLen(this.dot(v));
+    };
+
+    proto.toString = function(){
+        var str = "[";
+        str += this.x ;
+        str += "," ;
+        str += this.y ;
+        str += "," ;
+        str += this.z ;
+        str += "]" ;
+        return str;
+    };
+
+    proto.lerp = function(v,f){
+        var nf = 1.0 - f;
+        return new Vec3(
+                this.x*nf + v.x*f,
+                this.y*nf + v.y*f,
+                this.z*nf + v.z*f );
+    };
+
+    proto.equals = function(v){
+        return Math.abs(this.x - v.x) <= epsilon &&
+               Math.abs(this.y - v.y) <= epsilon &&
+               Math.abs(this.z - v.z) <= epsilon;
+    };
+
+    proto.round = function(){
+        return new Vec3( Math.round(this.x), Math.round(this.y), Math.round(this.z));
+    };
+
+    proto.reflect = function(vn){
+        var dot2 = this.dot(vn) * 2;
+        return new Vec3( this.x - vn.x * dot2,
+                         this.y - vn.y * dot2,
+                         this.z - vn.z * dot2 );
+    };
+
+    proto.cross = function(v){
+        var u = this;
+        return new Vec3( u.y*v.z - u.z*v.y,
+                         u.z*v.x - u.x*v.z,
+                         u.x*v.y - u.y*v.x  );
+    };
+
+})(modula);
 // Modula 2D Matrixes
 window.modula = window.modula || {};
 (function(modula){
@@ -1231,6 +1399,267 @@ window.modula = window.modula || {};
     };
 
 })(window.modula);
+// Modula 3D Matrixes
+window.modula = window.modula || {};
+(function(modula){
+
+    // Multiply a number expressed in radiant by radToDeg to convert it in degrees
+    var radToDeg = 57.29577951308232;
+    modula.radToDeg = radToDeg;
+
+    // Multiply a number expressed in degrees by degToRad to convert it to radiant
+    var degToRad = 0.017453292519943295;
+    modula.degToRad = degToRad;
+
+    // The numerical precision used to compare vector equality
+    modula.epsilon   = 0.0000001;
+    
+    var epsilonEquals = function(a,b){
+        return Math.abs(a-b) <= modula.epsilon;
+    };
+
+    var Vec3 = modula.Vec3;
+
+    function Mat3(){
+        var alen = arguments.length;
+        if(alen === 0){
+            this.xx = 1;
+            this.xy = 0;
+            this.xz = 0;
+            this.yx = 0;
+            this.yy = 1;
+            this.yz = 0;
+            this.zx = 0;
+            this.zy = 0;
+            this.zz = 1;
+        }else if (alen === 1){
+            var arg = arguments[0];
+            if( typeof arg === 'string'){
+                arg = JSON.parse(arg);
+            }
+            this.xx = arg.xx;
+            this.xy = arg.xy;
+            this.xz = arg.xz;
+            this.yx = arg.yx;
+            this.yy = arg.yy;
+            this.yz = arg.yz;
+            this.zx = arg.zx;
+            this.zy = arg.zy;
+            this.zz = arg.zz;
+        }else if (alen === 9){
+            this.xx = arguments[0];
+            this.xy = arguments[1];
+            this.xz = arguments[2];
+            this.yx = arguments[3];
+            this.yy = arguments[4];
+            this.yz = arguments[5];
+            this.zx = arguments[6];
+            this.zy = arguments[7];
+            this.zz = arguments[8];
+        }else{
+            throw new Error('new Mat3(): wrong number of arguments:'+alen);
+        }
+    };
+
+    modula.Mat3 = Mat3;
+
+    var proto = Mat3.prototype;
+
+    proto.equals = function(mat){
+        return epsilonEquals(this.xx, mat.xx) &&
+               epsilonEquals(this.xy, mat.xy) &&
+               epsilonEquals(this.xz, mat.xz) &&
+               epsilonEquals(this.yx, mat.yx) &&
+               epsilonEquals(this.yy, mat.yy) &&
+               epsilonEquals(this.yz, mat.yz) &&
+               epsilonEquals(this.zx, mat.zx) &&
+               epsilonEquals(this.zy, mat.zy) &&
+               epsilonEquals(this.zz, mat.zz);
+    };
+
+    proto.clone = function(){
+        return new Mat3(this);
+    };
+
+    proto.scale = function(fac){
+        var m = new Mat3();
+        m.xx = this.xx * fac;
+        m.xy = this.xy * fac;
+        m.xz = this.xz * fac;
+        m.yx = this.yx * fac;
+        m.yy = this.yy * fac;
+        m.yz = this.yz * fac;
+        m.zx = this.zx * fac;
+        m.zy = this.zy * fac;
+        m.zz = this.zz * fac;
+        return m;
+    };
+    proto.toString = function(){
+        var str = "[";
+        str += this.xx + ",";
+        str += this.xy + ",";
+        str += this.xz + ",\n ";
+        str += this.yx + ",";
+        str += this.yy + ",";
+        str += this.yz + ",\n ";
+        str += this.zx + ",";
+        str += this.zy + ",";
+        str += this.zz + "]";
+        return str;
+    };
+
+    proto.add = function(mat){
+        var m = new Mat3();
+        m.xx = this.xx + mat.xx;
+        m.xy = this.xy + mat.xy;
+        m.xz = this.xz + mat.xz;
+        m.yx = this.yx + mat.yx;
+        m.yy = this.yy + mat.yy;
+        m.yz = this.yz + mat.yz;
+        m.zx = this.zx + mat.zx;
+        m.zy = this.zy + mat.zy;
+        m.zz = this.zz + mat.zz;
+        return m;
+    };
+
+    proto.sub = function(mat){
+        var m = new Mat3();
+        m.xx = this.xx - mat.xx;
+        m.xy = this.xy - mat.xy;
+        m.xz = this.xz - mat.xz;
+        m.yx = this.yx - mat.yx;
+        m.yy = this.yy - mat.yy;
+        m.yz = this.yz - mat.yz;
+        m.zx = this.zx - mat.zx;
+        m.zy = this.zy - mat.zy;
+        m.zz = this.zz - mat.zz;
+        return m;
+    };
+
+    Mat3.mult = function(a,b,dst){
+        // xx xy xz   xx xy xz
+        // yx yy yz * yx yy yz
+        // zx zy zz   zx zy zz
+        dst.xx = a.xx*b.xx + a.xy*b.yx + a.xz*b.zx; 
+        dst.xy = a.xx*b.xy + a.xy*b.yy + a.xz*b.zy; 
+        dst.xz = a.xx*b.xz + a.xy*b.yz + a.xz*b.zz; 
+
+        dst.yx = a.yx*b.xx + a.yy*b.yx + a.yz*b.zx; 
+        dst.yy = a.yx*b.xy + a.yy*b.yy + a.yz*b.zy; 
+        dst.yz = a.yx*b.xz + a.yy*b.yz + a.yz*b.zz; 
+
+        dst.zx = a.zx*b.xx + a.zy*b.yx + a.zz*b.zx; 
+        dst.zy = a.zx*b.xy + a.zy*b.yy + a.zz*b.zy; 
+        dst.zz = a.zx*b.xz + a.zy*b.yz + a.zz*b.zz; 
+    };
+
+    proto.mult = function(mat){
+        var m = new Mat3();
+        Mat3.mult(this,mat,m);
+        return m;
+    };
+
+    proto.multVec = function(v){
+        var m = this;
+        return new Vec3( m.xx * v.x + m.xy * v.y + m.xz * v.z,
+                         m.yx * v.x + m.yy * v.y + m.yz * v.z,
+                         m.zx * v.x + m.zy * v.y + m.zz * v.z );
+    };
+
+    proto.rotationX = function(angle){
+        var m = new Mat3();
+        if(!angle){
+            return m;
+        }
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.yy = c;
+        m.yz = -s;
+        m.zy = s;
+        m.zz = c;
+        return m;
+    };
+
+    Mat3.rotationX = proto.rotationX;
+
+    proto.rotationY = function(angle){
+        var m = new Mat3();
+        if(!angle){
+            return m;
+        }
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xz = -s;
+        m.zx = s;
+        m.zz = c;
+        return m;
+    };
+
+    Mat3.rotationY = proto.rotationY;
+
+    proto.rotationZ = function(angle){
+        var m = new Mat3();
+        if(!angle){
+            return m;
+        }
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xy = -s;
+        m.yx = s;
+        m.yy = c;
+        return m;
+    };
+
+    Mat3.rotationZ = proto.rotationZ;
+
+    proto.rotation = function(anglex,angley,anglez){
+        if(anglex){
+            var m = Mat3.rotateX(anglex);
+        }
+        if(angley){
+            if(m){
+                m = m.mult(Mat3.rotateY(angley));
+            }else{
+                m = Mat3.rotateY(angley);
+            }
+        }
+        if(anglez){
+            if(m){
+                m = m.mult(Mat3.rotateZ(anglez));
+            }else{
+                m = Mat3.rotateZ(anglez);
+            }
+        }
+        return m || new Mat3();
+    };
+    Mat3.rotation = proto.rotation;
+
+    proto.rotationAxis = function(axis,angle){
+        var u = axis.normalize();
+        var c = Math.cos(angle);
+        var nc = (1-c);
+        var s = Math.sin(angle);
+        var m = new Mat3();
+
+        m.xx = c + u.x*u.x*nc;
+        m.xy = u.x*u.y*nc - u.z*s;
+        m.xz = u.x*u.z*nc + u.y*s;
+        
+        m.yx = u.y*u.x*nc + u.z*s;
+        m.yy = c + u.y*u.y*nc;
+        m.yz = u.y*u.z*nc - u.x*s;
+
+        m.zx = u.z*u.x*nc - u.y*s;
+        m.zy = u.z*u.y*nc + u.x*s;
+        m.zz = c + u.z*u.z*nc;
+
+        return m;
+    };
+    Mat3.rotationAxis = proto.rotationAxis;
+
+})(modula);
 // Modula 2D Homogenous Matrixes
 window.modula = window.modula || {};
 (function(modula){

@@ -80,41 +80,29 @@ window.modula = window.modula || {};
         v.rotate(angle);
         return v;
     };
-    
-    // sets vd.x and vd.y to random values in [0,1]
-    Vec2.randomPositive = function(vd){
-        vd.x = Math.random();
-        vd.y = Math.random();
+
+    proto.randomPositive = function(){
+        this.x = Math.random();
+        this.y = Math.random();
     };
 
-    // Returns a vector with randomized x and y in [0,1]
-    Vec2.newRandomPositive = function(){ 
-        return new Vec2(Math.random(),Math.random());
+    proto.random = function(){
+        this.x = Math.random()*2 - 1; 
+        this.y = Math.random()*2 - 1; 
     };
     
-    // sets vd.x and vd.y to random values in [-1,1]
-    Vec2.random = function(vd){
-        vd.x = Math.random()*2 - 1;
-        vd.y = Math.random()*2 - 1;
-    };
-
-    // Returns a vector with randomized x and y in [-1,1]
-    Vec2.newRandom = function(){
-        return new Vec2(Math.random()*2 - 1, Math.random()*2 - 1); 
-    };
-    
-    //sets vd to a random vector of length <= 1
     Vec2.randomDisc = function(vd){
         do{
             vd.x = Math.random() * 2 - 1;
             vd.y = Math.random() * 2 - 1;
         }while(vd.lenSq() > 1);
     };
-    // Returns  a random position in the unit disc. (vec.len() <= 1) 
-    Vec2.newRandomDisc = function(){
-        var vd = new Vec2();
-        Vec2.randomDisc(vd);
-        return vd;
+
+    proto.randomSphere = function(){
+        do{
+            this.x = Math.random() * 2 - 1;
+            this.y = Math.random() * 2 - 1;
+        }while(this.lenSq() > 1);
     };
 
     proto.isZero = function(){
@@ -253,8 +241,8 @@ window.modula = window.modula || {};
                 vd.y = v.y * len;
             }
         }else{
-            v.x = 1;
-            v.y = 1;
+            vd.x = 1;
+            vd.y = 0;
         }
     };
             
@@ -294,8 +282,7 @@ window.modula = window.modula || {};
     
     // return a string representation of this vector
     proto.toString = function(){
-        var str = "";
-        str += "[";
+        var str = "[";
         str += this.x;
         str += ",";
         str += this.y;
