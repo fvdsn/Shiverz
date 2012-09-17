@@ -66,12 +66,24 @@ var module = window;
         return v;
     };
 
+    Vec2.isZero  = function(v){
+        return v.x === 0 && v.y === 0;
+    };
+
     proto.isZero = function(){
         return this.x === 0 && this.y === 0;
     };
 
+    Vec2.isNaN = function(v){
+        return Number.isNan(v.x) || Number.isNaN(v.y);
+    };
+
     proto.isNaN = function(){
     	return Number.isNaN(this.x) || Number.isNaN(this.y);
+    };
+
+    Vec2.len = function(v){
+        return Math.sqrt(v.x*v.x + v.y*v.y);
     };
 
     // returns the length or modulus or magnitude of the vector
@@ -113,6 +125,7 @@ var module = window;
     Vec2.dot = function(v1,v2){
         return v1.x*v2.x + v2.y*v2.y;
     }
+
     // return the dot product between this vector and the vector v
     proto.dot = function(v){
         return this.x*v.x + this.y*v.y;
@@ -146,7 +159,7 @@ var module = window;
     };
     
     //sets vd to v1 - v2
-    Vec2.sub= function(vd,v1,v2){
+    Vec2.sub = function(vd,v1,v2){
         vd.x = v1.x - v2.x;
         vd.y = v1.x - v2.y;
     };
@@ -285,19 +298,21 @@ var module = window;
         return vd;
     };
     
+    Vec2.azimuth = function(v){
+        return Math.atan2(v.y,v.x);
+    };
+
     // returns the angle between this vector and the vector (1,0) in radians
-    proto.angle = function(){
+    proto.azimuth = function(){
         return Math.atan2(this.y,this.x);
     };
     
-    // returns true if this vector is equal to the vector v, with a tolerance defined by the epsilon module constant
+    Vec2.equals = function(u,v){
+        return Math.abs(u.x-v.x) <= Vec2.epsilon && Math.abs(u.y - v.y) <= Vec2.epsilon;
+    };
+
     proto.equals = function(v){
-        if(Math.abs(this.x-v.x) > epsilon){
-            return false;
-        }else if(Math.abs(this.y-v.y) > epsilon){
-            return false;
-        }
-        return true;
+        return Vec2.equals(this,v);
     };
     
     //sets vd to the integer rounded coordinate of v
@@ -310,6 +325,10 @@ var module = window;
         var vd = new Vec2();
         Vec2.round(vd,this);
         return vd;
+    };
+
+    Vec2.crossArea = function(u,v){
+        return u.x * v.y - u.y * v.y;
     };
 
     //returns the area of the parallelogram between this and v
@@ -376,20 +395,26 @@ var module = window;
 
     function epsilonEquals(a,b){ return Math.abs(a-b) <= Mat2.epsilon; }
 
+    Mat2.equals  = function(m,n){
+        return  epsilonEquals(m.xx, n.xx) &&
+                epsilonEquals(m.xy, n.xy) &&
+                epsilonEquals(m.yx, n.yx) &&
+                epsilonEquals(m.yy, n.yy);
+    };
     proto.equals = function(mat){
-        return  this.fullType === mat.fullType && 
-            epsilonEquals(this.xx, mat.xx) &&
-            epsilonEquals(this.xy, mat.xy) &&
-            epsilonEquals(this.yx, mat.yx) &&
-            epsilonEquals(this.yy, mat.yy);
+        return Mat2.equals(this,mat);
+    };
+    
+    Mat2.copy   = function(md,m){
+        md.xx = m.xx;
+        md.xy = m.xy;
+        md.yx = m.yx;
+        md.yy = m.yy;
     };
 
     proto.clone = function(){
         var m = new Mat2();
-        m.xx = this.xx;
-        m.xy = this.xy;
-        m.yx = this.yx;
-        m.yy = this.yy;
+        Mat2.copy(m,this);
         return m;
     };
 
@@ -406,76 +431,105 @@ var module = window;
         return str;
     };
     
+    Mat2.scale = function(md,m,fac){
+        md.xx = m.xx * fac;
+        md.xy = m.xy * fac;
+        md.yx = m.yx * fac;
+        md.yy = m.yy * fac;
+    };
+
     proto.scale = function(fac){
-        var m = this.clone();
-        m.xx *= fac;
-        m.xy *= fac;
-        m.yx *= fac;
-        m.yy *= fac;
+        var m = new Mat2();
+        Mat2.scale(m,this,fac);
         return m;
+    };
+
+    Mat2.add = function(md,m,n){
+        md.xx = m.xx + n.xx;
+        md.xy = m.xy + n.xy;
+        md.yx = m.yx + n.yx;
+        md.yy = m.yy + n.yy;
     };
 
     proto.add = function(mat){
-        var m = this.clone();
-        m.xx += mat.xx;
-        m.xy += mat.xy;
-        m.yx += mat.yx;
-        m.yy += mat.yy;
+        var m = new Mat2();
+        Mat2.add(m,this,mat);
         return m;
     };
 
+    Mat2.sub = function(md,m,n){
+        md.xx = m.xx - n.xx;
+        md.xy = m.xy - n.xy;
+        md.yx = m.yx - n.yx;
+        md.yy = m.yy - n.yy;
+    };
+
     proto.sub = function(mat){
-        var m = this.clone();
-        m.xx -= mat.xx;
-        m.xy -= mat.xy;
-        m.yx -= mat.yx;
-        m.yy -= mat.yy;
+        var m = new Mat2();
+        Mat2.sub(m,this,mat);
         return m;
+    };
+
+    Mat2.neg = function(md,m){
+        md.xx = -m.xx;
+        md.xy = -m.xy;
+        md.yx = -m.yx;
+        md.yy = -m.yy;
     };
     
     proto.neg = function(){
-        var m = this.clone();
-        m.xx = - this.xx;
-        m.xy = - this.xy;
-        m.yx = - this.yx;
-        m.yy = - this.yy;
+        var m = new Mat2();
+        Mat2.neg(m,this);
         return m;
+    };
+
+    Mat2.mult  = function(md,m,n){
+        md.xx = m.xx * n.xx + m.xy * n.yx;
+        md.xy = m.xx * n.xy + m.xy * n.yy;
+        md.yx = m.yx * n.xx + m.yy * n.yx;
+        md.yy = m.yx * n.xy + m.yy * n.yy;
     };
 
     proto.mult = function(mat){
         var m = new Mat2();
-        // xx xy
-        // yx yy
-        m.xx = this.xx * mat.xx + this.xy * mat.yx;
-        m.xy = this.xx * mat.xy + this.xy * mat.yy;
-        m.yx = this.yx * mat.xx + this.yy * mat.yx;
-        m.yy = this.yx * mat.xy + this.yy * mat.yy;
+        Mat2.mult(m,this,mat);
         return m;
     };
 
-    proto.multVec = function(vec){
+    Mat2.multVec2 = function(vd,m,v){
+        vd.x = m.xx * v.x + m.xy * v.y;
+        vd.y = m.yx * v.x + m.yy * v.y;
+    };
+
+    proto.multVec2 = function(vec){
         var v = new Vec2();
-        v.x = this.xx * vec.x + this.xy * vec.y;
-        v.y = this.yx * vec.x + this.yy * vec.y;
+        Mat2.multVec2(v,this,vec);
         return v;
+    };
+
+    Mat2.det = function(m){
+        return m.xx * m.yy - m.xy * m.yx;
     };
 
     proto.det = function(){
         return this.xx * this.yy - this.xy * this.yx;
     };
 
+    Mat2.invert = function(md,m){
+        var det = Mat2.det(m);
+        if(det){
+            md.xx = det *  m.yy;
+            md.xy = det * -m.xy;
+            md.yx = det * -m.yx;
+            md.yy = det *  m.xx;
+        }else{
+            Mat2.copy(md,Mat2.NaN);
+        }
+    };
+
     proto.invert = function(){
         var m = new Mat2();
-        var det = this.det();
-        if(det){
-            det = 1.0 / det;
-            m.xx = det * this.yy;
-            m.xy = det * -this.xy;
-            m.yx = det * -this.yx;
-            m.yy = det * this.xx;
-        }else{
-        	return Mat2.NaN;
-        }
+        Mat2.invert(m,this);
         return m;
     };
 
@@ -490,29 +544,6 @@ var module = window;
         return m;
     };
 
-    Mat2.scale = function(fac){
-        return new Mat2(fac,0,0,fac);
-    };
-
-    proto.transpose = function(){
-        return new Mat2(this.xx,this.yx,this.xy,this.yy);
-    };
-
-    proto.diagonal = function(){
-        return new Vec2(this.xx,this.yy);
-    };
-
-    proto.setDiagonal = function(vec){
-        var m = this.clone();
-        m.xx = vec.x;
-        m.yy = vec.y;
-        return m;
-    };
-
-    proto.trace = function(){
-        return this.xx + this.yy;
-    };
-
     proto.row = function(index){
         if(index === 0){
             return new Vec2(this.xx, this.xy);
@@ -521,36 +552,12 @@ var module = window;
         }
     };
 
-    proto.setRow = function(index, vec){
-        var m = this.clone();
-        if(index === 0){
-            m.xx = vec.x;
-            m.xy = vec.y;
-        }else if(index === 1){
-            m.yx = vec.x;
-            m.yy = vec.y;
-        }
-        return m;
-    };
-
     proto.col = function(index){
         if(index === 0){
             return new Vec2(this.xx, this.yx);
         }else if(index === 1){
             return new Vec2(this.xy, this.yy);
         }
-    };
-
-    proto.setCol = function(index, vec){
-        var m = this.clone();
-        if(index === 0){
-            m.xx = vec.x;
-            m.yx = vec.y;
-        }else if(index === 1){
-            m.xy = vec.x;
-            m.yy = vec.y;
-        }
-        return m;
     };
 
     proto.array = function(){
@@ -624,23 +631,30 @@ var module = window;
 
     function epsilonEquals(a,b){ return Math.abs(a-b) <= Mat2h.epsilon; }
 
+    Mat2h.equals = function(m,n){
+        return  epsilonEquals(m.xx, n.xx) &&
+                epsilonEquals(m.xy, n.xy) &&
+                epsilonEquals(m.yx, n.yx) &&
+                epsilonEquals(m.xz, n.xz) &&
+                epsilonEquals(m.yz, n.yz) &&
+                epsilonEquals(m.yy, n.yy);
+    };
     proto.equals = function(mat){
-        return  epsilonEquals(this.xx, mat.xx) &&
-            epsilonEquals(this.xy, mat.xy) &&
-            epsilonEquals(this.yx, mat.yx) &&
-            epsilonEquals(this.xz, mat.xz) &&
-            epsilonEquals(this.yz, mat.yz) &&
-            epsilonEquals(this.yy, mat.yy);
+        return Mat2h.equals(this,mat);
+    };
+    
+    Mat2h.copy = function(md,m){
+        md.xx = m.xx;
+        md.xy = m.xy;
+        md.yx = m.yx;
+        md.yy = m.yy;
+        md.xz = m.xz;
+        md.yz = m.yz;
     };
 
     proto.clone = function(){
         var m = new Mat2h();
-        m.xx = this.xx;
-        m.xy = this.xy;
-        m.yx = this.yx;
-        m.yy = this.yy;
-        m.xz = this.xz;
-        m.yz = this.yz;
+        Mat2h.copy(m,this);
         return m;
     };
 
@@ -655,51 +669,67 @@ var module = window;
         return str;
     };
     
+    Mat2h.scale = function(md,m,fac){
+        md.xx = m.xx * fac;
+        md.xy = m.xy * fac;
+        md.yx = m.yx * fac;
+        md.yy = m.yy * fac;
+        md.xz = m.xz * fac;
+        md.yz = m.yz * fac;
+    };
+
     proto.scale = function(fac){
-        var m = this.clone();
-        m.xx *= fac;
-        m.xy *= fac;
-        m.yx *= fac;
-        m.yy *= fac;
-        m.xz *= fac;
-        m.yz *= fac;
+        var m = new Mat2h();
+        Mat2h.scale(m,this,fac);
         return m;
     };
 
+    Mat2h.add = function(md,m,n){
+        md.xx = m.xx + n.xx;
+        md.xy = m.xy + n.xy;
+        md.yx = m.yx + n.yx;
+        md.yy = m.yy + n.yy;
+        md.xz = m.xz + n.xz;
+        md.yz = m.yz + n.yz;
+    };
+
     proto.add = function(mat){
-        var m = this.clone();
-        m.xx += mat.xx;
-        m.xy += mat.xy;
-        m.yx += mat.yx;
-        m.yy += mat.yy;
-        m.xz += mat.xz;
-        m.yz += mat.yz;
+        var m = new Mat2h();
+        Mat2h.add(m,this,mat);
         return m;
+    };
+
+    Mat2h.sub = function(md,m,n){
+        md.xx = m.xx - n.xx;
+        md.xy = m.xy - n.xy;
+        md.yx = m.yx - n.yx;
+        md.yy = m.yy - n.yy;
+        md.xz = m.xz - n.xz;
+        md.yz = m.yz - n.yz;
     };
 
     proto.sub = function(mat){
         var m = this.clone();
-        m.xx -= mat.xx;
-        m.xy -= mat.xy;
-        m.yx -= mat.yx;
-        m.yy -= mat.yy;
-        m.xz -= mat.xz;
-        m.yz -= mat.yz;
+        Mat2h.sub(m,this,mat);
         return m;
     };
 
-    proto.neg = function(mat){
-        var m = this.clone();
-        m.xx -= this.xx;
-        m.xy -= this.xy;
-        m.yx -= this.yx;
-        m.yy -= this.yy;
-        m.xz -= this.xz;
-        m.yz -= this.yz;
+    Mat2h.neg = function(md,m){
+        md.xx = -m.xx;
+        md.xy = -m.xy;
+        md.yx = -m.yx;
+        md.yy = -m.yy;
+        md.xz = -m.xz;
+        md.yz = -m.yz;
+    };
+
+    proto.neg = function(){
+        var m = new Mat2h();
+        Mat2h.neg(m,this);
         return m;
     };
 
-    Mat2h.mult = function(a,b,dst){
+    Mat2h.mult = function(dst,a,b){
         // xx xy xz   xx xy xz
         // yx yy yz * yx yy yz
         // zx zy zz   zx zy zz
@@ -713,11 +743,11 @@ var module = window;
         return dst;
     };
     proto.mult = function(mat){
-        var m = this.clone();
-        Mat2h.mult(this,mat,m);
+        var m = new Mat2h();
+        Mat2h.mult(m,this,mat);
         return m;
     };
-    Mat2h.multVec = function(m,vec,dst){
+    Mat2h.multVec2 = function(dst,m,vec){
         // xx xy xz   x 
         // yx yy yz * y 
         // 0  0  1    1 
@@ -726,29 +756,38 @@ var module = window;
         return dst;
     };
 
-    proto.multVec = function(vec){
+    proto.multVec2 = function(vec){
         var dst = new Vec2();
-        Mat2h.multVec(this,vec,dst);
+        Mat2h.multVec2(dst,this,vec);
         return dst;
+    };
+
+    Mat2h.det = function(m){
+        return m.xx * m.yy - m.yx * m.xy;
     };
 
     proto.det = function(){
         return this.xx * this.yy - this.yx * this.xy;
     };
 
-    proto.invert = function(){
-        var m = new Mat2h();
-        var t = this;
-        var det =  this.det();
+    Mat2h.invert = function(md,m){
+        var det = Mat2h.det(m);
         if(det){
             det = 1.0 / det;
-            m.xx = det *  this.yy;
-            m.xy = det * -this.xy;
-            m.yx = det * -this.yx;
-            m.yy = det *  this.xx;
-            m.xz = det *  this.yz * this.xy - this.yy * this.xz;
-            m.yz = det * -( this.yz * this.xx - this.yx * this.xz );
+            md.xx = det *  m.yy;
+            md.xy = det * -m.xy;
+            md.yx = det * -m.yx;
+            md.yy = det *  m.xx;
+            md.xz = det *  m.yz * m.xy - m.yy * m.xz;
+            md.yz = det * -( m.yz * m.xx - m.yx * m.xz );
+        }else{
+            Mat2h.copy(md,Mat2h.NaN);
         }
+    };
+
+    proto.invert = function(){
+        var m = new Mat2h();
+        Mat2h.invert(m,this);
         return m;
     };
 
@@ -778,7 +817,7 @@ var module = window;
         m.xx = 1;
         m.xy = 0;
         m.yx = 0;
-        m.yy = 1;;
+        m.yy = 1;
         m.xz = vec.x;
         m.yz = vec.y;
         return m;
@@ -865,90 +904,179 @@ var module = window;
         return v;
     };
 
+    Vec3.isZero  = function(v){
+        return v.x === 0 && v.y === 0 && v.z === 0;
+    };
+
     proto.isZero = function(){
-        return this.x === 0 && this.y === 0 && this.z === 0;
+        return Vec3.isZero(this);
+    };
+    
+    Vec3.isNaN  = function(v){
+    	return Number.isNaN(v.x) || Number.isNaN(v.y) || Number.isNaN(v.z);
     };
 
     proto.isNaN = function(){
-    	return Number.isNaN(this.x) || Number.isNaN(this.y) || Number.isNaN(this.z);
+        return Vec3.isNaN(this);
+    };
+    
+    Vec3.len  = function(v){
+        return Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
     };
 
     proto.len = function(){
-        return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z);
+        return Vec3.len(this);
+    };
+    
+    Vec3.lenSq = function(v){
+        return v.x*v.x + v.y*v.y + v.z*v.z;
     };
 
     proto.lenSq = function(){
-        return this.x*this.x + this.y*this.y + this.z*this.z;
+        return Vec3.lenSq(this);
     };
 
-    proto.dist = function(v){
-        var dx = this.x - v.x;
-        var dy = this.y - v.y;
-        var dz = this.z - v.z;
+    Vec3.dist = function(u,v){
+        var dx = u.x - v.x;
+        var dy = u.y - v.y;
+        var dz = u.z - v.z;
         return Math.sqrt(dx*dx + dy*dy + dz*dz);
     };
+    
+    proto.dist = function(v){
+        return Vec3.dist(this,v);
+    };
 
-    proto.distSq = function(v){
-        var dx = this.x - v.x;
-        var dy = this.y - v.y;
-        var dz = this.z - v.z;
+    Vec3.distSq = function(u,v){
+        var dx = u.x - v.x;
+        var dy = u.y - v.y;
+        var dz = u.z - v.z;
         return dx*dx + dy*dy + dz*dz;
     };
 
+    proto.distSq = function(v){
+        return Vec3.distSq(this,v);
+    };
+
+    Vec3.dot = function(u,v){
+        return u.x*v.x + u.y*v.y + u.z*v.z;
+    };
+
     proto.dot = function(v){
-        return this.x*v.x + this.y*v.y + this.z*v.z;
+        return Vec3.dot(this,v);
+    };
+    
+    Vec3.angle = function(u,v){
+        return math.acos(Vec3.dot(u,v)/(Vec3.len(u)*Vec3.len(v)));
     };
 
     proto.angle = function(v){
-    	return math.acos(this.dot(v)/(this.len()*v.len()));
+        return Vec3.angle(this,v);
+    };
+
+    Vec3.copy = function(vd,v){
+        vd.x = v.x;
+        vd.y = v.y;
+        vd.z = v.z;
     };
 
     proto.clone = function(){
         return new Vec3(this);
     };
 
+    Vec3.add = function(vd,u,v){
+        vd.x = u.x+v.x;
+        vd.y = u.y+v.y;
+        vd.z = u.z+v.z;
+    };
+
     proto.add = function(v){
         return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z);
+    };
+
+    Vec3.sub = function(vd,u,v){
+        vd.x = u.x-v.x;
+        vd.y = u.y-v.y;
+        vd.z = u.z-v.z;
     };
 
     proto.sub = function(v){
         return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z);
     };
 
+    Vec3.mult = function(vd,u,v){
+        vd.x = u.x*v.x;
+        vd.y = u.y*v.y;
+        vd.z = u.z*v.z;
+    };
+
     proto.mult = function(v){
         return new Vec3(this.x * v.x, this.y * v.y, this.z * v.z);
+    };
+
+    Vec3.scale = function(vd,u,f){
+        vd.x = u.x*f;
+        vd.y = u.y*f;
+        vd.z = u.z*f;
     };
 
     proto.scale = function(f){
         return new Vec3(this.x * f, this.y * f, this.z * f);
     };
 
+    Vec3.scale = function(vd,v){
+        vd.x = -v.x;
+        vd.y = -v.y;
+        vd.z = -v.z;
+    };
+
     proto.neg = function(){
         return new Vec3(-this.x, - this.y, - this.z);
     };
 
-    proto.normalize = function(){
-        var len = this.lenSq();
-        var v   = this.clone();
-        if(len !== 0){
+    Vec3.normalize = function(vd,v){
+        var len = Vec3.lenSq(v);
+        if(len === 0){
+            vd.x = Number.NaN;
+            vd.y = Number.NaN;
+            vd.z = Number.NaN;
+        }else{
             if(len !== 1){
                 len = 1 / Math.sqrt(len);
-                v.x *= len;
-                v.y *= len;
-                v.z *= len;
+                vd.x = v.x * len;
+                vd.y = v.y * len;
+                vd.z = v.z * len;
+            }else{
+                Vec3.copy(vd,v);
             }
-        }else{
-        	v = Vec2.NaN;
         }
+    };
+
+    proto.normalize = function(){
+        var v   = new Vec3();
+        Vec3.normalize(v,this);
         return v;
+    };
+    
+    Vec3.setLen = function(vd,v,l){
+        Vec3.normalize(vd,v);
+        Vec3.scale(vd,vd,l);
     };
 
     proto.setLen = function(l){
-        return this.normalize().scale(l);
+        var v = new Vec3();
+        Vec3.setLen(v,this,l);
+        return v;
+    };
+
+    Vec3.project = function(vd,u,v){
+        Vec3.setLen(vd,v,Vec3.dot(u,v));
     };
 
     proto.project = function(v){
-        return v.setLen(this.dot(v));
+        var vd = new Vec3();
+        Vec3.project(vd,this,v);
+        return vd;
     };
 
     proto.toString = function(){
@@ -962,37 +1090,64 @@ var module = window;
         return str;
     };
 
-    proto.lerp = function(v,f){
+    Vec3.lerp = function(vd,u,v,f){
         var nf = 1.0 - f;
-        return new Vec3(
-                this.x*nf + v.x*f,
-                this.y*nf + v.y*f,
-                this.z*nf + v.z*f );
+        vd.x = u.x*nf + v.x*f;
+        vd.y = u.y*nf + v.y*f;
+        vd.z = u.z*nf + v.z*f;
+    };
+
+    proto.lerp = function(v,f){
+        var vd = new Vec3();
+        Vec3.lerp(vd,this,v,f);
+        return vd;
+    };
+
+    Vec3.equals  = function(u,v){
+        return Math.abs(u.x - v.x) <= Vec3.epsilon &&
+               Math.abs(u.y - v.y) <= Vec3.epsilon &&
+               Math.abs(u.z - v.z) <= Vec3.epsilon;
     };
 
     proto.equals = function(v){
-        return Math.abs(this.x - v.x) <= Vec3.epsilon &&
-               Math.abs(this.y - v.y) <= Vec3.epsilon &&
-               Math.abs(this.z - v.z) <= Vec3.epsilon;
+        return Vec3.equals(this,v);
+    };
+    
+    Vec3.round  = function(vd,v){
+        vd.x = Math.round(v.x);
+        vd.y = Math.round(v.y);
+        vd.z = Math.round(v.z);
     };
 
     proto.round = function(){
         return new Vec3( Math.round(this.x), Math.round(this.y), Math.round(this.z));
     };
 
-    proto.reflect = function(vn){
-        var dot2 = this.dot(vn) * 2;
-        return new Vec3( this.x - vn.x * dot2,
-                         this.y - vn.y * dot2,
-                         this.z - vn.z * dot2 );
+    Vec3.reflect = function(vd,v,vn){
+        var dot2 = Vec3.dot(v,vn) * 2;
+        vd.x = v.x - vn.x * dot2;
+        vd.y = v.y - vn.y * dot2;
+        vd.z = v.z - vn.z * dot2;
     };
 
-    proto.cross = function(v){
-        var u = this;
-        return new Vec3( u.y*v.z - u.z*v.y,
-                         u.z*v.x - u.x*v.z,
-                         u.x*v.y - u.y*v.x  );
+    proto.reflect = function(vn){
+        var vd = new Vec3();
+        Vec3.reflect(vd,this,vn);
+        return vd;
     };
+
+    Vec3.cross  = function(vd,u,v){
+        vd.x = u.y*v.z - u.z*v.y;
+        vd.y = u.z*v.x - u.x*v.z;
+        vd.z = u.x*v.y - u.y*v.x;
+    }
+
+    proto.cross = function(v){
+        var vd = new Vec3();
+        Vec3.cross(vd,this,v);
+        return vd;
+    };
+
     proto.i       = function(i){
         if(i === 0){
             return this.x;
@@ -1078,16 +1233,32 @@ var module = window;
 
     function epsilonEquals(a,b){  return Math.abs(a-b) <= Mat3.epsilon };
 
+    Mat3.equals  = function(m,n){
+        return epsilonEquals(m.xx, n.xx) &&
+               epsilonEquals(m.xy, n.xy) &&
+               epsilonEquals(m.xz, n.xz) &&
+               epsilonEquals(m.yx, n.yx) &&
+               epsilonEquals(m.yy, n.yy) &&
+               epsilonEquals(m.yz, n.yz) &&
+               epsilonEquals(m.zx, n.zx) &&
+               epsilonEquals(m.zy, n.zy) &&
+               epsilonEquals(m.zz, n.zz);
+    };
+        
     proto.equals = function(mat){
-        return epsilonEquals(this.xx, mat.xx) &&
-               epsilonEquals(this.xy, mat.xy) &&
-               epsilonEquals(this.xz, mat.xz) &&
-               epsilonEquals(this.yx, mat.yx) &&
-               epsilonEquals(this.yy, mat.yy) &&
-               epsilonEquals(this.yz, mat.yz) &&
-               epsilonEquals(this.zx, mat.zx) &&
-               epsilonEquals(this.zy, mat.zy) &&
-               epsilonEquals(this.zz, mat.zz);
+        return Mat3.equals(this,mat);
+    };
+
+    Mat3.copy = function(md,m){
+        md.xx = m.xx;
+        md.xy = m.xy;
+        md.xz = m.xz;
+        md.yx = m.yx;
+        md.yy = m.yy;
+        md.yz = m.yz;
+        md.zx = m.zx;
+        md.zy = m.zy;
+        md.zz = m.zz;
     };
 
     proto.clone = function(){
@@ -1108,51 +1279,60 @@ var module = window;
         return str;
     };
     
+    Mat3.scale  = function(md,m,fac){
+        md.xx = m.xx * fac;
+        md.xy = m.xy * fac;
+        md.xz = m.xz * fac;
+        md.yx = m.yx * fac;
+        md.yy = m.yy * fac;
+        md.yz = m.yz * fac;
+        md.zx = m.zx * fac;
+        md.zy = m.zy * fac;
+        md.zz = m.zz * fac;
+    };
 
     proto.scale = function(fac){
         var m = new Mat3();
-        m.xx = this.xx * fac;
-        m.xy = this.xy * fac;
-        m.xz = this.xz * fac;
-        m.yx = this.yx * fac;
-        m.yy = this.yy * fac;
-        m.yz = this.yz * fac;
-        m.zx = this.zx * fac;
-        m.zy = this.zy * fac;
-        m.zz = this.zz * fac;
+        Mat3.scale(m,this,fac);
         return m;
     };
 
+    Mat3.add = function(md,m,n){
+        md.xx = m.xx + n.xx;
+        md.xy = m.xy + n.xy;
+        md.xz = m.xz + n.xz;
+        md.yx = m.yx + n.yx;
+        md.yy = m.yy + n.yy;
+        md.yz = m.yz + n.yz;
+        md.zx = m.zx + n.zx;
+        md.zy = m.zy + n.zy;
+        md.zz = m.zz + n.zz;
+    };
 
     proto.add = function(mat){
         var m = new Mat3();
-        m.xx = this.xx + mat.xx;
-        m.xy = this.xy + mat.xy;
-        m.xz = this.xz + mat.xz;
-        m.yx = this.yx + mat.yx;
-        m.yy = this.yy + mat.yy;
-        m.yz = this.yz + mat.yz;
-        m.zx = this.zx + mat.zx;
-        m.zy = this.zy + mat.zy;
-        m.zz = this.zz + mat.zz;
+        Mat3.add(m,this,mat);
         return m;
+    };
+    Mat3.sub = function(md,m,n){
+        md.xx = m.xx - n.xx;
+        md.xy = m.xy - n.xy;
+        md.xz = m.xz - n.xz;
+        md.yx = m.yx - n.yx;
+        md.yy = m.yy - n.yy;
+        md.yz = m.yz - n.yz;
+        md.zx = m.zx - n.zx;
+        md.zy = m.zy - n.zy;
+        md.zz = m.zz - n.zz;
     };
 
     proto.sub = function(mat){
         var m = new Mat3();
-        m.xx = this.xx - mat.xx;
-        m.xy = this.xy - mat.xy;
-        m.xz = this.xz - mat.xz;
-        m.yx = this.yx - mat.yx;
-        m.yy = this.yy - mat.yy;
-        m.yz = this.yz - mat.yz;
-        m.zx = this.zx - mat.zx;
-        m.zy = this.zy - mat.zy;
-        m.zz = this.zz - mat.zz;
+        Mat3.sub(m,this,mat);
         return m;
     };
 
-    Mat3.mult = function(a,b,dst){
+    Mat3.mult = function(dst,a,b){
         // xx xy xz   xx xy xz
         // yx yy yz * yx yy yz
         // zx zy zz   zx zy zz
@@ -1171,16 +1351,31 @@ var module = window;
 
     proto.mult = function(mat){
         var m = new Mat3();
-        Mat3.mult(this,mat,m);
+        Mat3.mult(m,this,mat);
         return m;
     };
 
-    proto.multVec = function(v){
-        var m = this;
-        return new Vec3( m.xx * v.x + m.xy * v.y + m.xz * v.z,
-                         m.yx * v.x + m.yy * v.y + m.yz * v.z,
-                         m.zx * v.x + m.zy * v.y + m.zz * v.z );
+    Mat3.multVec3 = function(vd,m,v){
+        vd.x = m.xx * v.x + m.xy * v.y + m.xz * v.z;
+        vd.y = m.yx * v.x + m.yy * v.y + m.yz * v.z;
+        vd.z = m.zx * v.x + m.zy * v.y + m.zz * v.z;
     };
+
+    proto.multVec3 = function(v){
+        var vd = new Vec3();
+        Mat3.multVec3(vd,this,v);
+        return vd;
+    };
+
+    Mat3.multVec2 = function(vd,m,v){
+    };
+
+    proto.multVec2 = function(v){
+        var vd = new Vec2();
+        Mat3.multVec2(vd,this,v);
+        return vd;
+    };
+
 
     Mat3.rotationX = function(angle){
         var m = new Mat3();
@@ -1224,7 +1419,7 @@ var module = window;
         return m;
     };
 
-    Mat3.rotation = function(anglex,angley,anglez){
+    Mat3.rotation = function(anglex,angley,anglez){ //FIXME
         if(anglex){
             var m = Mat3.rotateX(anglex);
         }
@@ -1272,47 +1467,29 @@ var module = window;
         return m.xx*(m.zz*m.yy-m.zy*m.yz) - m.yx*(m.zz*m.xy-m.zy*m.xz) + m.zx*(m.yz*m.xy-m.yy*m.xz);
     };
 
-    proto.invert = function(){
-        var det  = this.det();
-        var m = new Mat3();
+    Mat3.invert  = function(md,m){
+        var det = m.det();
         if(!det){
-            return m;
+            Mat3.copy(md,Mat3.NaN);
         }
-        var d = 1/det;
+        det = 1 / det;
 
-        m.xx =  d*( m.zz*m.yy-m.zx*m.yz );
-        m.xy = -d*( m.zz*m.xy-m.zx*m.xz );
-        m.xz =  d*( m.yz*m.xy-m.yy*m.xz );
+        md.xx =  det*( m.zz*m.yy-m.zx*m.yz );
+        md.xy = -det*( m.zz*m.xy-m.zx*m.xz );
+        md.xz =  det*( m.yz*m.xy-m.yy*m.xz );
         
-        m.yx = -d*( m.zz*m.yx-m.zx*m.yz );
-        m.yy =  d*( m.zz*m.xx-m.zx*m.xz );
-        m.yz = -d*( m.yz*m.xx-m.yx*m.xz );
+        md.yx = -det*( m.zz*m.yx-m.zx*m.yz );
+        md.yy =  det*( m.zz*m.xx-m.zx*m.xz );
+        md.yz = -det*( m.yz*m.xx-m.yx*m.xz );
 
-        m.zx =  d*( m.zy*m.yx-m.zx*m.yy );
-        m.zy = -d*( m.zy*m.xx-m.zx*m.xy );
-        m.yy =  d*( m.yy*m.xx-m.yz*m.xy );
-        return m;
+        md.zx =  det*( m.zy*m.yx-m.zx*m.yy );
+        md.zy = -det*( m.zy*m.xx-m.zx*m.xy );
+        md.yy =  det*( m.yy*m.xx-m.yz*m.xy );
     };
 
-    proto.trace = function(){
-        return this.xx + this.yy + this.zz;
-    };
-
-    proto.transpose = function(){
+    proto.invert = function(){
         var m = new Mat3();
-
-        m.xx = this.xx;
-        m.xy = this.yx;
-        m.xz = this.zx;
-
-        m.yx = this.xy;
-        m.yy = this.yy;
-        m.yz = this.zy;
-
-        m.zx = this.xz;
-        m.zy = this.yz;
-        m.zz = this.zz;
-
+        Mat3.invert(m,this);
         return m;
     };
 
@@ -1336,10 +1513,6 @@ var module = window;
         }else if(j === 2){
             return new Vec3(m.xz,m.yz,m.zz);
         }
-    };
-
-    proto.diag = function(){
-        return new Vec3(this.xx,this.yy,this.zz);
     };
 
     var map = [ ['xx','xy','xz'],

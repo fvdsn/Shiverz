@@ -367,7 +367,7 @@ window.onload = function() {
         init: function(opt){
             this._super(opt);
             this.speedVec = opt.speedVec || new Vec2();
-            this.transform.setRotation(this.speedVec.angle());
+            this.transform.setRotation(this.speedVec.azimuth());
             this.bound = new Rect(0,0,this.radius*2,this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
             this.rotSpeed = opt.rotSpeed || 0;
@@ -412,7 +412,7 @@ window.onload = function() {
             if(opt.heritSpeed){
                 this.speedVec = this.speedVec.add(opt.heritSpeed);
             }
-            this.transform.setRotation(this.speedVec.angle());
+            this.transform.setRotation(this.speedVec.azimuth());
             this.bound = new Rect(0,0,this.radius*2, this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
         },
@@ -914,7 +914,7 @@ window.onload = function() {
             if(knocked){
                 this.increase('rotation',90*degToRad*this.scene.deltaTime);
             }else{
-                this.set('rotation',this.aimdir.angle() + 90*degToRad);
+                this.set('rotation',this.aimdir.azimuth() + 90*degToRad);
             }
             var deltaRot = Math.abs(prevRotation - this.get('rotation'));
 

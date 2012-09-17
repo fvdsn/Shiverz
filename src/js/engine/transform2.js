@@ -159,23 +159,23 @@ window.modula = window.modula || {};
     };
 
     proto.getWorldPos = function(){
-        return this.getLocalToWorldMatrix().multVec(new Vec2());
+        return this.getLocalToWorldMatrix().multVec2(new Vec2());
     };
 
     proto.parentToLocal = function(vec){
-        return this.getParentToLocalMatrix().multVec(vec);
+        return this.getParentToLocalMatrix().multVec2(vec);
     };
 
     proto.worldToLocal = function(vec){
-        return this.getWorldToLocalMatrix().multVec(vec);
+        return this.getWorldToLocalMatrix().multVec2(vec);
     };
 
     proto.localToParent = function(vec){
-        return this.getLocalToParentMatrix().multVec(vec);
+        return this.getLocalToParentMatrix().multVec2(vec);
     };
 
     proto.localToWorld = function(vec){
-        return this.getLocalToWorldMatrix().multVec(vec);
+        return this.getLocalToWorldMatrix().multVec2(vec);
     };
     
     proto.distantToLocal = function(distTransform, vec){
