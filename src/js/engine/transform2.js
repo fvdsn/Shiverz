@@ -55,9 +55,10 @@ window.modula = window.modula || {};
             }
         }
     }
+
     function make_matrix(tr){
         if(!tr.localToParentMatrix){
-            tr.localToParentMatrix = new Mat2h.transform(tr.scale,tr.rotation,tr.pos);
+            tr.localToParentMatrix = Mat3.transform(tr.pos,tr.scale,tr.rotation);
             tr.parentToLocalMatrix = tr.localToParentMatrix.invert();
             if(tr.parent){
                 make_matrix(tr.parent);
@@ -159,23 +160,23 @@ window.modula = window.modula || {};
     };
 
     proto.getWorldPos = function(){
-        return this.getLocalToWorldMatrix().multVec2(new Vec2());
+        return this.getLocalToWorldMatrix().mult(new Vec2());
     };
 
     proto.parentToLocal = function(vec){
-        return this.getParentToLocalMatrix().multVec2(vec);
+        return this.getParentToLocalMatrix().mult(vec);
     };
 
     proto.worldToLocal = function(vec){
-        return this.getWorldToLocalMatrix().multVec2(vec);
+        return this.getWorldToLocalMatrix().mult(vec);
     };
 
     proto.localToParent = function(vec){
-        return this.getLocalToParentMatrix().multVec2(vec);
+        return this.getLocalToParentMatrix().mult(vec);
     };
 
     proto.localToWorld = function(vec){
-        return this.getLocalToWorldMatrix().multVec2(vec);
+        return this.getLocalToWorldMatrix().mult(vec);
     };
     
     proto.distantToLocal = function(distTransform, vec){

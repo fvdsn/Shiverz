@@ -1,14 +1,14 @@
 var module = window;
 
-/* --------- 2D Vectors ---------- */
+/* ------------------------------ 2D Vectors -------------------------------- */
 
 (function(module){
     
     function Vec2(){
     	var alen = arguments.length;      
     	if(alen=== 0){
-            this.x = 0;
-            this.y = 0;
+            this.x = 0.0;
+            this.y = 0.0;
         }else if (alen === 1){
         	var arg = arguments[0];
         	if  (typeof arg === 'string'){
@@ -17,6 +17,10 @@ var module = window;
             if(typeof arg === 'number'){
                 this.x = arg;
                 this.y = arg;
+            }else if(typeof arg.angle === 'number' || typeof arg.len === 'number'){
+                console.log('polar form activated');
+                console.log(arg);
+                Vec2.setPolar(this, (arg.len === undefined ? 1 : arg.len), arg.angle || 0);
             }else if(arg[0] !== undefined){
                 this.x = arg[0] || 0;
                 this.y = arg[1] || 0;
@@ -41,11 +45,25 @@ var module = window;
     Vec2.x        = new Vec2(1,0);
     Vec2.y        = new Vec2(0,1);
     Vec2.epsilon  = 0.00000001;
+    Vec2.tmp      = new Vec2();
+    Vec2.tmp1     = new Vec2();
+    Vec2.tmp2     = new Vec2();
+
+    var tmp       = new Vec2();
+    var tmp1      = new Vec2();
+    var tmp2      = new Vec2();
     
     // sets vd to a vector of length 'len' and angle 'angle' radians
+    Vec2.setPolar = function(vd,len,angle){
+    	vd.x = len;
+        vd.y = 0;
+        Vec2.rotate(vd,vd,angle);
+        return vd;
+    };
+
     Vec2.polar = function(len,angle){
-    	var v = new Vec2(len,0);
-        Vec2.rotate(v,v,angle);
+        var v = new Vec2();
+        Vec2.setPolar(v,len,angle);
         return v;
     };
 
@@ -75,7 +93,7 @@ var module = window;
     };
 
     Vec2.isNaN = function(v){
-        return Number.isNan(v.x) || Number.isNaN(v.y);
+        return Number.isNaN(v.x) || Number.isNaN(v.y);
     };
 
     proto.isNaN = function(){
@@ -157,6 +175,12 @@ var module = window;
         vd.x = v1.x + (v2.x * scale);
         vd.y = v1.y + (v2.y * scale);
     };
+
+    proto.addScaled = function(v,scale){
+        var vd = new Vec2();
+        Vec2.addScaled(vd,this,v,scale);
+        return vd;
+    };
     
     //sets vd to v1 - v2
     Vec2.sub = function(vd,v1,v2){
@@ -202,6 +226,42 @@ var module = window;
     proto.neg = function(f){
         return new Vec2(-this.x,-this.y);
     };
+
+    Vec2.div = function(vd,u,v){
+        vd.x = u.x / v.x;
+        vd.y = u.y / v.y;
+    };
+
+    proto.div = function(v){
+        return new Vec2(this.x/v.x,this.y/v.y);
+    };
+
+    Vec2.invert = function(vd,v){
+        vd.x = 1.0/v.x;
+        vd.y = 1.0/v.y;
+    };
+
+    proto.invert = function(){
+        return new Vec2(1/this.x,1/this.y);
+    };
+
+    Vec2.pow = function(vd,v,pow){
+        vd.x = Math.pow(v.x,pow);
+        vd.y = Math.pow(v.y,pow);
+    };
+
+    proto.pow = function(pow){
+        return new Vec2(Math.pow(this.x,pow), Math.pow(this.y,pow));
+    };
+
+    Vec2.sq = function(vd,v){
+        vd.x = v.x * v.x;
+        vd.y = v.y * v.y;
+    };
+    
+    proto.sq = function(){
+        return new Vec2(this.x*this.x,this.y*this.y);
+    };
    
     //sets vd to the normalized v, or [NaN,NaN] if v is zero
     Vec2.normalize = function(vd,v){
@@ -244,14 +304,15 @@ var module = window;
 
     //sets vd to the projection of v1 onto v2
     Vec2.project = function(vd,v1,v2){
-        var dot = Vec2.dot(v1,v2);
-        Vec2.setLen(vd,v2,dot);
+        Vec2.normalize(tmp,v2);
+        var dot = Vec2.dot(v1,tmp);
+        Vec2.setLen(vd,tmp,dot);
     };
     
     // return the projection of this onto the vector v as a new vector
     proto.project = function(v){
         var vd = new Vec2();
-        Vec2.project(vd.this,v);
+        Vec2.project(vd,this,v);
         return vd;
     };
     
@@ -339,505 +400,32 @@ var module = window;
     //sets vd to the reflection of v on the normal vn
     Vec2.reflect = function(vd,v,vn){
         var dot2 = Vec2.dot(v,vn) * 2;
-        vd.x = v1.x - vn.x * dot2;
-        vd.y = v1.y - vn.y * dot2;
+        vd.x = v.x - vn.x * dot2;
+        vd.y = v.y - vn.y * dot2;
     };
 
     //returns the reflection of this vector on the normal vn
     proto.reflect = function(vn){
         var vd = new Vec2();
-        Vec2.reflect(vd,this,vn);
+        Vec2.normalize(tmp,vn);
+        Vec2.reflect(vd,this,tmp);
         return vd;
     };
 
-})(module);
-
-/* -------------- 2D Matrixes -------------- */
-
-(function(module){
-
-    var Vec2 = module.Vec2;
-    
-    function Mat2(){
-
-        //   | xx xy |
-        //   | yx yy |
-        
-        this.xx = 1;
-        this.xy = 0;
-        this.yx = 0;
-        this.yy = 1;
-
-        if (arguments.length === 1){
-            var arg = arguments[0];
-
-            this.xx = arg.xx || this.xx;
-            this.xy = arg.xy || this.xy;
-            this.yx = arg.yx || this.yx;
-            this.yy = arg.yy || this.yy;
-
-        } else if (arguments.length === 4){
-            this.xx = arguments[0];
-            this.xy = arguments[1];
-            this.yx = arguments[2];
-            this.yy = arguments[3];
-        }
-    }
-
-    module.Mat2 = Mat2;
-
-    var proto = Mat2.prototype;
-
-    Mat2.epsilon  = 0.00000001;
-    Mat2.NaN      = new Mat2(Number.NaN, Number.NaN, Number.NaN, Number.NaN);
-    Mat2.id       = new Mat2();
-    Mat2.zero     = new Mat2(0,0,0,0);
-
-    function epsilonEquals(a,b){ return Math.abs(a-b) <= Mat2.epsilon; }
-
-    Mat2.equals  = function(m,n){
-        return  epsilonEquals(m.xx, n.xx) &&
-                epsilonEquals(m.xy, n.xy) &&
-                epsilonEquals(m.yx, n.yx) &&
-                epsilonEquals(m.yy, n.yy);
-    };
-    proto.equals = function(mat){
-        return Mat2.equals(this,mat);
-    };
-    
-    Mat2.copy   = function(md,m){
-        md.xx = m.xx;
-        md.xy = m.xy;
-        md.yx = m.yx;
-        md.yy = m.yy;
+    proto.array   = function(){
+        return [this.x,this.y];
     };
 
-    proto.clone = function(){
-        var m = new Mat2();
-        Mat2.copy(m,this);
-        return m;
-    };
-
-    proto.toString = function(){
-        var str = "[";
-        str += this.xx;
-        str += ",";
-        str += this.xy;
-        str += ",\n ";
-        str += this.yx;
-        str += ",";
-        str += this.yy;
-        str += "]";
-        return str;
-    };
-    
-    Mat2.scale = function(md,m,fac){
-        md.xx = m.xx * fac;
-        md.xy = m.xy * fac;
-        md.yx = m.yx * fac;
-        md.yy = m.yy * fac;
-    };
-
-    proto.scale = function(fac){
-        var m = new Mat2();
-        Mat2.scale(m,this,fac);
-        return m;
-    };
-
-    Mat2.add = function(md,m,n){
-        md.xx = m.xx + n.xx;
-        md.xy = m.xy + n.xy;
-        md.yx = m.yx + n.yx;
-        md.yy = m.yy + n.yy;
-    };
-
-    proto.add = function(mat){
-        var m = new Mat2();
-        Mat2.add(m,this,mat);
-        return m;
-    };
-
-    Mat2.sub = function(md,m,n){
-        md.xx = m.xx - n.xx;
-        md.xy = m.xy - n.xy;
-        md.yx = m.yx - n.yx;
-        md.yy = m.yy - n.yy;
-    };
-
-    proto.sub = function(mat){
-        var m = new Mat2();
-        Mat2.sub(m,this,mat);
-        return m;
-    };
-
-    Mat2.neg = function(md,m){
-        md.xx = -m.xx;
-        md.xy = -m.xy;
-        md.yx = -m.yx;
-        md.yy = -m.yy;
-    };
-    
-    proto.neg = function(){
-        var m = new Mat2();
-        Mat2.neg(m,this);
-        return m;
-    };
-
-    Mat2.mult  = function(md,m,n){
-        md.xx = m.xx * n.xx + m.xy * n.yx;
-        md.xy = m.xx * n.xy + m.xy * n.yy;
-        md.yx = m.yx * n.xx + m.yy * n.yx;
-        md.yy = m.yx * n.xy + m.yy * n.yy;
-    };
-
-    proto.mult = function(mat){
-        var m = new Mat2();
-        Mat2.mult(m,this,mat);
-        return m;
-    };
-
-    Mat2.multVec2 = function(vd,m,v){
-        vd.x = m.xx * v.x + m.xy * v.y;
-        vd.y = m.yx * v.x + m.yy * v.y;
-    };
-
-    proto.multVec2 = function(vec){
-        var v = new Vec2();
-        Mat2.multVec2(v,this,vec);
-        return v;
-    };
-
-    Mat2.det = function(m){
-        return m.xx * m.yy - m.xy * m.yx;
-    };
-
-    proto.det = function(){
-        return this.xx * this.yy - this.xy * this.yx;
-    };
-
-    Mat2.invert = function(md,m){
-        var det = Mat2.det(m);
-        if(det){
-            md.xx = det *  m.yy;
-            md.xy = det * -m.xy;
-            md.yx = det * -m.yx;
-            md.yy = det *  m.xx;
-        }else{
-            Mat2.copy(md,Mat2.NaN);
-        }
-    };
-
-    proto.invert = function(){
-        var m = new Mat2();
-        Mat2.invert(m,this);
-        return m;
-    };
-
-    Mat2.rotation = function(angle){
-        var m = new Mat2();
-        var c = Math.cos(angle);
-        var s = Math.sin(angle);
-        m.xx = c;
-        m.xy = -s;
-        m.yx = s;
-        m.yy = c;
-        return m;
-    };
-
-    proto.row = function(index){
-        if(index === 0){
-            return new Vec2(this.xx, this.xy);
-        }else if(index === 1){
-            return new Vec2(this.yx, this.yy);
-        }
-    };
-
-    proto.col = function(index){
-        if(index === 0){
-            return new Vec2(this.xx, this.yx);
-        }else if(index === 1){
-            return new Vec2(this.xy, this.yy);
-        }
-    };
-
-    proto.array = function(){
-        return [this.xx, this.xy, this.yx, this.yy];
+    proto.float32 = function(){
+        var a = Float32Array(2);
+        a[0] = this.x;
+        a[1] = this.y;
+        return a;
     };
 
 })(module);
 
-/* ----------------------- 2D Homogenous Matrixes ------------------------ */
-
-(function(module){
-
-    var Vec2 = module.Vec2;
-    
-    function Mat2h(){
-
-        //   | xx xy xz|    | xx xy xz|
-        //   | yx yy yz|        | yx yy yz|
-        //   | 0  0  1 |        | zx zy zz|
-        this.xx = 1;
-        this.xy = 0;
-        this.yx = 0;
-        this.yy = 1;
-        this.xz = 0;
-        this.yz = 0;
-
-        if (arguments.length === 1){
-            var arg = arguments[0];
-            if(arg instanceof Mat2h){
-                this.xx = arg.xx === undefined ? this.xx : arg.xx;
-                this.xy = arg.xy === undefined ? this.xy : arg.xy;
-                this.yx = arg.yx === undefined ? this.yx : arg.yx;
-                this.yy = arg.yy === undefined ? this.yy : arg.yy;
-                this.xz = arg.xz === undefined ? this.xz : arg.xz;
-                this.yz = arg.yz === undefined ? this.yz : arg.yz;
-            }else{
-                if(arg.rotation){
-                    Mat2h.setRotation(this,arg.rotation);
-                }else if(arg.rotationDeg){
-                    Mat2h.setRotation(this,arg.rotationDeg * modula.degToRad);
-                }
-                if(typeof arg.scale === 'number'){
-                    this.xx *= arg.scale;
-                    this.yy *= arg.scale;
-                }else if(arg.scale instanceof Vec2){
-                    this.xx *= arg.scale.x;
-                    this.yy *= arg.scale.y;
-                }
-                if(arg.pos){
-                    this.xz  = arg.pos.x;
-                    this.yz  = arg.pos.y;
-                }
-            }
-        } else if (arguments.length === 4){
-            this.xx = arguments[0];
-            this.xy = arguments[1];
-            this.yx = arguments[2];
-            this.yy = arguments[3];
-            this.xz = arguments[4];
-            this.yz = arguments[5];
-        }
-    }
-
-    module.Mat2h = Mat2h;
-
-    var proto  = Mat2h.prototype;
-
-    Mat2h.epsilon  = 0.00000001;
-    Mat2h.NaN      = new Mat2h(Number.NaN, Number.NaN, Number.NaN, Number.NaN, Number.NaN, Number.NaN);
-    Mat2h.id       = new Mat2h();
-
-    function epsilonEquals(a,b){ return Math.abs(a-b) <= Mat2h.epsilon; }
-
-    Mat2h.equals = function(m,n){
-        return  epsilonEquals(m.xx, n.xx) &&
-                epsilonEquals(m.xy, n.xy) &&
-                epsilonEquals(m.yx, n.yx) &&
-                epsilonEquals(m.xz, n.xz) &&
-                epsilonEquals(m.yz, n.yz) &&
-                epsilonEquals(m.yy, n.yy);
-    };
-    proto.equals = function(mat){
-        return Mat2h.equals(this,mat);
-    };
-    
-    Mat2h.copy = function(md,m){
-        md.xx = m.xx;
-        md.xy = m.xy;
-        md.yx = m.yx;
-        md.yy = m.yy;
-        md.xz = m.xz;
-        md.yz = m.yz;
-    };
-
-    proto.clone = function(){
-        var m = new Mat2h();
-        Mat2h.copy(m,this);
-        return m;
-    };
-
-    proto.toString = function(){
-        var str = "[";
-        str += this.xx + ",";
-        str += this.xy + ",";
-        str += this.xz + ",\n ";
-        str += this.yx + ",";
-        str += this.yy + ",";
-        str += this.yz + ",\n 0,0,1]";
-        return str;
-    };
-    
-    Mat2h.scale = function(md,m,fac){
-        md.xx = m.xx * fac;
-        md.xy = m.xy * fac;
-        md.yx = m.yx * fac;
-        md.yy = m.yy * fac;
-        md.xz = m.xz * fac;
-        md.yz = m.yz * fac;
-    };
-
-    proto.scale = function(fac){
-        var m = new Mat2h();
-        Mat2h.scale(m,this,fac);
-        return m;
-    };
-
-    Mat2h.add = function(md,m,n){
-        md.xx = m.xx + n.xx;
-        md.xy = m.xy + n.xy;
-        md.yx = m.yx + n.yx;
-        md.yy = m.yy + n.yy;
-        md.xz = m.xz + n.xz;
-        md.yz = m.yz + n.yz;
-    };
-
-    proto.add = function(mat){
-        var m = new Mat2h();
-        Mat2h.add(m,this,mat);
-        return m;
-    };
-
-    Mat2h.sub = function(md,m,n){
-        md.xx = m.xx - n.xx;
-        md.xy = m.xy - n.xy;
-        md.yx = m.yx - n.yx;
-        md.yy = m.yy - n.yy;
-        md.xz = m.xz - n.xz;
-        md.yz = m.yz - n.yz;
-    };
-
-    proto.sub = function(mat){
-        var m = this.clone();
-        Mat2h.sub(m,this,mat);
-        return m;
-    };
-
-    Mat2h.neg = function(md,m){
-        md.xx = -m.xx;
-        md.xy = -m.xy;
-        md.yx = -m.yx;
-        md.yy = -m.yy;
-        md.xz = -m.xz;
-        md.yz = -m.yz;
-    };
-
-    proto.neg = function(){
-        var m = new Mat2h();
-        Mat2h.neg(m,this);
-        return m;
-    };
-
-    Mat2h.mult = function(dst,a,b){
-        // xx xy xz   xx xy xz
-        // yx yy yz * yx yy yz
-        // zx zy zz   zx zy zz
-
-        dst.xx = a.xx * b.xx + a.xy * b.yx;
-        dst.xy = a.xx * b.xy + a.xy * b.yy;
-        dst.yx = a.yx * b.xx + a.yy * b.yx;
-        dst.yy = a.yx * b.xy + a.yy * b.yy;
-        dst.xz = a.xx * b.xz + a.xy * b.yz + a.xz;
-        dst.yz = a.yx * b.xz + a.yy * b.yz + a.yz;
-        return dst;
-    };
-    proto.mult = function(mat){
-        var m = new Mat2h();
-        Mat2h.mult(m,this,mat);
-        return m;
-    };
-    Mat2h.multVec2 = function(dst,m,vec){
-        // xx xy xz   x 
-        // yx yy yz * y 
-        // 0  0  1    1 
-        dst.x = m.xx * vec.x + m.xy * vec.y + m.xz;
-        dst.y = m.yx * vec.x + m.yy * vec.y + m.yz;
-        return dst;
-    };
-
-    proto.multVec2 = function(vec){
-        var dst = new Vec2();
-        Mat2h.multVec2(dst,this,vec);
-        return dst;
-    };
-
-    Mat2h.det = function(m){
-        return m.xx * m.yy - m.yx * m.xy;
-    };
-
-    proto.det = function(){
-        return this.xx * this.yy - this.yx * this.xy;
-    };
-
-    Mat2h.invert = function(md,m){
-        var det = Mat2h.det(m);
-        if(det){
-            det = 1.0 / det;
-            md.xx = det *  m.yy;
-            md.xy = det * -m.xy;
-            md.yx = det * -m.yx;
-            md.yy = det *  m.xx;
-            md.xz = det *  m.yz * m.xy - m.yy * m.xz;
-            md.yz = det * -( m.yz * m.xx - m.yx * m.xz );
-        }else{
-            Mat2h.copy(md,Mat2h.NaN);
-        }
-    };
-
-    proto.invert = function(){
-        var m = new Mat2h();
-        Mat2h.invert(m,this);
-        return m;
-    };
-
-    Mat2h.setRotation = function(m,angle){
-        var c = Math.cos(angle);
-        var s = Math.sin(angle);
-        m.xx = c;
-        m.xy = -s;
-        m.yx = s;
-        m.yy = c;
-        m.xz = 0;
-        m.yz = 0;
-        return m;
-    };
-
-    Mat2h.setScale = function(m,scale){
-        m.xx = scale.x;
-        m.xy = 0;
-        m.yx = 0;
-        m.yy = scale.y;
-        m.xz = 0;
-        m.yz = 0;
-        return m;
-    };
-
-    Mat2h.setTranslation = function(m,vec){
-        m.xx = 1;
-        m.xy = 0;
-        m.yx = 0;
-        m.yy = 1;
-        m.xz = vec.x;
-        m.yz = vec.y;
-        return m;
-    };
-
-    Mat2h.transform = function(scale,rotation,translation){
-        var m = new Mat2h();
-        if(rotation){
-            Mat2h.setRotation(m,rotation);
-        }
-        m.xx *= scale.x;
-        m.yy *= scale.y;
-        m.xz  = translation.x;
-        m.yz  = translation.y;
-        return m;
-    };
-    
-})(module);
-
-/* --------- 3D Vectors ---------- */
+/* ------------------------------ 3D Vectors -------------------------------- */
 
 (function(module){
 
@@ -879,6 +467,13 @@ var module = window;
     Vec3.y    = new Vec3(0,1,0);
     Vec3.z    = new Vec3(0,0,1);
     Vec3.epsilon  = 0.00000001;    
+    Vec3.tmp  = new Vec3();
+    Vec3.tmp1 = new Vec3();
+    Vec3.tmp2 = new Vec3();
+
+    var tmp  = new Vec3();
+    var tmp1 = new Vec3();
+    var tmp2 = new Vec3();
     
     module.Vec3 = Vec3;
 
@@ -1024,14 +619,56 @@ var module = window;
         return new Vec3(this.x * f, this.y * f, this.z * f);
     };
 
-    Vec3.scale = function(vd,v){
-        vd.x = -v.x;
-        vd.y = -v.y;
-        vd.z = -v.z;
-    };
-
     proto.neg = function(){
         return new Vec3(-this.x, - this.y, - this.z);
+    };
+
+    Vec3.div = function(vd,u,v){
+        vd.x = u.x/v.x;
+        vd.y = u.y/v.y;
+        vd.z = u.z/v.z;
+    };
+    
+    proto.div = function(v){
+        var vd = new Vec3();
+        Vec3.div(vd,this,v);
+        return vd;
+    };
+
+    Vec3.invert = function(vd,v){
+        vd.x = 1.0/v.x;
+        vd.y = 1.0/v.y;
+        vd.z = 1.0/v.z;
+    };
+
+    proto.invert = function(){
+        var v = new Vec3();
+        Vec3.invert(v,this);
+        return v;
+    };
+
+    Vec3.pow = function(vd,v,pow){
+        vd.x = Math.pow(v.x,pow);
+        vd.y = Math.pow(v.y,pow);
+        vd.z = Math.pow(v.z,pow);
+    };
+
+    proto.pow = function(pow){
+        var v = new Vec3();
+        Vec3.pow(v,this,pow);
+        return v;
+    };
+
+    Vec3.sq = function(vd,v){
+        vd.x = v.x * v.x;
+        vd.y = v.y * v.y;
+        vd.z = v.z * v.z;
+    };
+
+    proto.sq = function(){
+        var v = new Vec3();
+        Vec3.sq(v,this);
+        return v;
     };
 
     Vec3.normalize = function(vd,v){
@@ -1070,7 +707,9 @@ var module = window;
     };
 
     Vec3.project = function(vd,u,v){
-        Vec3.setLen(vd,v,Vec3.dot(u,v));
+        Vec3.normalize(tmp,v);
+        var dot = Vec3.dot(u,tmp);
+        Vec3.setLen(vd,tmp,dot);
     };
 
     proto.project = function(v){
@@ -1124,10 +763,11 @@ var module = window;
     };
 
     Vec3.reflect = function(vd,v,vn){
-        var dot2 = Vec3.dot(v,vn) * 2;
-        vd.x = v.x - vn.x * dot2;
-        vd.y = v.y - vn.y * dot2;
-        vd.z = v.z - vn.z * dot2;
+        Vec3.normalize(tmp,vn);
+        var dot2 = Vec3.dot(v,tmp) * 2;
+        vd.x = v.x - tmp.x * dot2;
+        vd.y = v.y - tmp.y * dot2;
+        vd.z = v.z - tmp.z * dot2;
     };
 
     proto.reflect = function(vn){
@@ -1155,6 +795,8 @@ var module = window;
             return this.y;
         }else if(i === 2){
             return this.z;
+        }else{
+            return 0.0;
         }
     };
     
@@ -1163,24 +805,36 @@ var module = window;
     };
 
     proto.float32 = function(){
-        return new Float32Array(this.array());
-    };
-
-    proto.float64 = function(){
-        return new Float64Array(this.array());
-    };
-
-    proto.uint8 = function(){
-        return new Uint8Array(this.array());
+        var a = Float32Array(3);
+        a[0] = this.x;
+        a[1] = this.y;
+        a[2] = this.z;
+        return a;
     };
 
 })(module);
 
-/* ------------------------------ 3D Matrix -------------------------------- */
+/* ------------------------------ 3x3 Matrix -------------------------------- */
 
 (function(module){
 
     var Vec3 = module.Vec3;
+        
+    // 1 4 7 | xx xy xz
+    // 2 5 8 | yx yy yz
+    // 3 6 9 | zx zy zz
+
+    var set  = function(md,components_){
+        md.xx = arguments[1];
+        md.xy = arguments[4];
+        md.xz = arguments[7];
+        md.yx = arguments[2];
+        md.yy = arguments[5];
+        md.yz = arguments[8];
+        md.zx = arguments[3];
+        md.zy = arguments[6];
+        md.zz = arguments[9];
+    };
 
     function Mat3(){
         var alen = arguments.length;
@@ -1199,25 +853,29 @@ var module = window;
             if( typeof arg === 'string'){
                 arg = JSON.parse(arg);
             }
-            this.xx = arg.xx;
-            this.xy = arg.xy;
-            this.xz = arg.xz;
-            this.yx = arg.yx;
-            this.yy = arg.yy;
-            this.yz = arg.yz;
-            this.zx = arg.zx;
-            this.zy = arg.zy;
-            this.zz = arg.zz;
+            if(arg[0] !== undefined){
+                set(this,arg);
+            }else if(   typeof arg.rotation === 'number'
+                     || typeof arg.scale === 'number'
+                     || typeof arg.translation === 'number'){
+                Mat3.setTransform(this,
+                        arg.translation || new Vec2(),
+                        arg.scale|| new Vec2(1,1),
+                        arg.rotation || 0
+                );
+            }else{
+                this.xx = arg.xx || 0;
+                this.xy = arg.xy || 0;
+                this.xz = arg.xz || 0;
+                this.yx = arg.yx || 0;
+                this.yy = arg.yy || 0;
+                this.yz = arg.yz || 0;
+                this.zx = arg.zx || 0;
+                this.zy = arg.zy || 0;
+                this.zz = arg.zz || 0;
+            }
         }else if (alen === 9){
-            this.xx = arguments[0];
-            this.xy = arguments[1];
-            this.xz = arguments[2];
-            this.yx = arguments[3];
-            this.yy = arguments[4];
-            this.yz = arguments[5];
-            this.zx = arguments[6];
-            this.zy = arguments[7];
-            this.zz = arguments[8];
+            set(this,arguments);
         }else{
             throw new Error('new Mat3(): wrong number of arguments:'+alen);
         }
@@ -1228,6 +886,17 @@ var module = window;
     Mat3.epsilon  = 0.00000001;    
     Mat3.id       = new Mat3();
     Mat3.zero     = new Mat3(0,0,0,0,0,0,0,0,0);
+    var nan = Number.NaN;
+    Mat3.NaN      = new Mat3(nan,nan,nan,
+                             nan,nan,nan,
+                             nan,nan,nan);
+    Mat3.tmp      = new Mat3();
+    Mat3.tmp1     = new Mat3();
+    Mat3.tmp2     = new Mat3();
+
+    var tmp_a = new Mat3();
+    var tmp_b = new Mat3();
+    var tmp_vec = new Vec3();
 
     var proto = Mat3.prototype;
 
@@ -1261,8 +930,20 @@ var module = window;
         md.zz = m.zz;
     };
 
+    Mat3.set = set;
+
+    Mat3.setId = function(md){
+        Mat3.copy(md,Mat3.id);
+    };
+
+    Mat3.setZero = function(md){
+        Mat3.copy(md,Mat3.zero);
+    };
+
     proto.clone = function(){
-        return new Mat3(this);
+        var m = new Mat3();
+        Mat3.copy(m,this);
+        return m;
     };
 
     proto.toString = function(){
@@ -1277,24 +958,6 @@ var module = window;
         str += this.zy + ",";
         str += this.zz + "]";
         return str;
-    };
-    
-    Mat3.scale  = function(md,m,fac){
-        md.xx = m.xx * fac;
-        md.xy = m.xy * fac;
-        md.xz = m.xz * fac;
-        md.yx = m.yx * fac;
-        md.yy = m.yy * fac;
-        md.yz = m.yz * fac;
-        md.zx = m.zx * fac;
-        md.zy = m.zy * fac;
-        md.zz = m.zz * fac;
-    };
-
-    proto.scale = function(fac){
-        var m = new Mat3();
-        Mat3.scale(m,this,fac);
-        return m;
     };
 
     Mat3.add = function(md,m,n){
@@ -1314,6 +977,7 @@ var module = window;
         Mat3.add(m,this,mat);
         return m;
     };
+
     Mat3.sub = function(md,m,n){
         md.xx = m.xx - n.xx;
         md.xy = m.xy - n.xy;
@@ -1332,10 +996,55 @@ var module = window;
         return m;
     };
 
+    Mat3.neg = function(md,m){
+        md.xx = -m.xx;
+        md.xy = -m.xy;
+        md.xz = -m.xz;
+        md.yx = -m.yx;
+        md.yy = -m.yy;
+        md.yz = -m.yz;
+        md.zx = -m.zx;
+        md.zy = -m.zy;
+        md.zz = -m.zz;
+    };
+
+    proto.neg = function(mat){
+        var m = new Mat3();
+        Mat3.neg(m,this);
+        return m;
+    };
+
+    Mat3.tr = function(md,m){
+        if(md === m){
+            Mat3.copy(tmp_a,m);
+            m = tmp_a;
+        }
+        md.xx = m.xx;
+        md.xy = m.yx;
+        md.xz = m.zx;
+        md.yx = m.xy;
+        md.yy = m.yy;
+        md.yz = m.zy;
+        md.zx = m.xz;
+        md.zy = m.yz;
+        md.zz = m.zz;
+    };
+
+    proto.tr = function(){
+        var m = new Mat3();
+        Mat3.tr(m,this);
+        return m;
+    };
+
     Mat3.mult = function(dst,a,b){
-        // xx xy xz   xx xy xz
-        // yx yy yz * yx yy yz
-        // zx zy zz   zx zy zz
+        if(dst === a){
+            Mat3.copy(tmp_a,a);
+            a = tmp_a;
+        }
+        if(dst === b){
+            Mat3.copy(tmp_b,b);
+            b = tmp_b;
+        }
         dst.xx = a.xx*b.xx + a.xy*b.yx + a.xz*b.zx; 
         dst.xy = a.xx*b.xy + a.xy*b.yy + a.xz*b.zy; 
         dst.xz = a.xx*b.xz + a.xy*b.yz + a.xz*b.zz; 
@@ -1349,118 +1058,112 @@ var module = window;
         dst.zz = a.zx*b.xz + a.zy*b.yz + a.zz*b.zz; 
     };
 
-    proto.mult = function(mat){
-        var m = new Mat3();
-        Mat3.mult(m,this,mat);
-        return m;
+    Mat3.multFac  = function(md,m,fac){
+        md.xx = m.xx * fac;
+        md.xy = m.xy * fac;
+        md.xz = m.xz * fac;
+        md.yx = m.yx * fac;
+        md.yy = m.yy * fac;
+        md.yz = m.yz * fac;
+        md.zx = m.zx * fac;
+        md.zy = m.zy * fac;
+        md.zz = m.zz * fac;
     };
 
     Mat3.multVec3 = function(vd,m,v){
-        vd.x = m.xx * v.x + m.xy * v.y + m.xz * v.z;
-        vd.y = m.yx * v.x + m.yy * v.y + m.yz * v.z;
-        vd.z = m.zx * v.x + m.zy * v.y + m.zz * v.z;
-    };
-
-    proto.multVec3 = function(v){
-        var vd = new Vec3();
-        Mat3.multVec3(vd,this,v);
-        return vd;
+        var vx = v.x, vy = v.y, vz = v.z;
+        vd.x = m.xx * vx + m.xy * vy + m.xz * vz;
+        vd.y = m.yx * vx + m.yy * vy + m.yz * vz;
+        vd.z = m.zx * vx + m.zy * vy + m.zz * vz;
     };
 
     Mat3.multVec2 = function(vd,m,v){
+        var vx = v.x, vy = v.y;
+        var d  = 1.0 / ( vx * m.zx + vy * m.zy + m.zz);
+        vd.x = d * ( m.xx * vx + m.xy * vy + m.xz );
+        vd.y = d * ( m.yx * vx + m.yy * vy + m.yz );
     };
 
-    proto.multVec2 = function(v){
-        var vd = new Vec2();
-        Mat3.multVec2(vd,this,v);
-        return vd;
-    };
-
-
-    Mat3.rotationX = function(angle){
-        var m = new Mat3();
-        if(!angle){
+    proto.mult = function(arg){
+        if(typeof arg === 'number'){
+            var m = new Mat3();
+            Mat3.multFac(m,this,arg);
             return m;
+        }else if(arg instanceof Mat3){
+            var m = new Mat3();
+            Mat3.mult(m,this,arg);
+            return m;
+        }else if(arg instanceof Vec2){
+            var v = new Vec2();
+            Mat3.multVec2(v,this,arg);
+            return v;
+        }else if(arg instanceof Vec3){
+            var v = new Vec3();
+            Mat3.multVec3(v,this,arg);
+            return v;
+        }else{
+            throw new Error('Mat3: mult(), cannot multiply with an object of this type:',arg);
         }
+    };
+
+    Mat3.setRotation = function(m,angle){
         var c = Math.cos(angle);
         var s = Math.sin(angle);
-        m.yy = c;
-        m.yz = -s;
-        m.zy = s;
-        m.zz = c;
-        return m;
-    };
-
-    Mat3.rotationY = function(angle){
-        var m = new Mat3();
-        if(!angle){
-            return m;
-        }
-        var c = Math.cos(angle);
-        var s = Math.sin(angle);
-        m.xx = c;
-        m.xz = -s;
-        m.zx = s;
-        m.zz = c;
-        return m;
-    };
-
-    Mat3.rotationZ = function(angle){
-        var m = new Mat3();
-        if(!angle){
-            return m;
-        }
-        var c = Math.cos(angle);
-        var s = Math.sin(angle);
+        Mat3.setId(m);
         m.xx = c;
         m.xy = -s;
         m.yx = s;
         m.yy = c;
-        return m;
     };
 
-    Mat3.rotation = function(anglex,angley,anglez){ //FIXME
-        if(anglex){
-            var m = Mat3.rotateX(anglex);
-        }
-        if(angley){
-            if(m){
-                m = m.mult(Mat3.rotateY(angley));
-            }else{
-                m = Mat3.rotateY(angley);
-            }
-        }
-        if(anglez){
-            if(m){
-                m = m.mult(Mat3.rotateZ(anglez));
-            }else{
-                m = Mat3.rotateZ(anglez);
-            }
-        }
-        return m || new Mat3();
-    };
-
-    Mat3.rotationAxis = function(axis,angle){
-        var u = axis.normalize();
-        var c = Math.cos(angle);
-        var nc = (1-c);
-        var s = Math.sin(angle);
+    Mat3.rotation = function(angle){
         var m = new Mat3();
-
-        m.xx = c + u.x*u.x*nc;
-        m.xy = u.x*u.y*nc - u.z*s;
-        m.xz = u.x*u.z*nc + u.y*s;
-        
-        m.yx = u.y*u.x*nc + u.z*s;
-        m.yy = c + u.y*u.y*nc;
-        m.yz = u.y*u.z*nc - u.x*s;
-
-        m.zx = u.z*u.x*nc - u.y*s;
-        m.zy = u.z*u.y*nc + u.x*s;
-        m.zz = c + u.z*u.z*nc;
-
+        Mat3.setRotation(m,angle);
         return m;
     };
+
+    Mat3.setScale = function(m,scale){
+        Mat3.setId(m);
+        m.xx = scale.x;
+        m.yy = scale.y;
+    };
+
+    Mat3.scale    = function(sv){
+        var m = new Mat3();
+        Mat3.setScale(m,sv);
+        return m;
+    };
+
+    Mat3.setTranslation = function(m,vec){
+        Mat3.setId(m);
+        m.xz = vec.x;
+        m.yz = vec.y;
+    };
+
+    Mat3.translation = function(v){
+        var m = new Mat3();
+        Mat3.setTranslation(m,v);
+        return m;
+    };
+
+    Mat3.setTransform = function(m,pos,scale,angle){
+        Mat3.setScale(m,scale);
+        Mat3.setRotation(tmp_a,angle);
+        Mat3.mult(m,tmp_a,m);
+        Mat3.setTranslation(tmp_a,pos);
+        Mat3.mult(m,tmp_a,m);
+        return m;
+    };
+
+    Mat3.transform   = function(pos,scale,angle){
+        var m = new Mat3();
+        Mat3.setTransform(m,pos,scale,angle);
+        return m;
+    };
+
+    proto.getScale = function(){};
+    proto.getRotation = function(){};
+    proto.getTranslation = function(){};
 
     proto.det = function(){
         var m = this;
@@ -1472,10 +1175,20 @@ var module = window;
         if(!det){
             Mat3.copy(md,Mat3.NaN);
         }
+        if(md === m){
+            Mat3.copy(tmp_a,m);
+            m = tmp_a;
+        }
+
+        // http://www.dr-lex.be/random/matrix_inv.html
+        // | m.xx m.xy m.xz |               |   m.zz m.yy-m.zy m.yz  -(m.zz m.xy-m.zy m.xz)   m.yz m.xy-m.yy m.xz  |
+        // | m.yx m.yy m.yz |    =  1/DET * | -(m.zz m.yx-m.zx m.yz)   m.zz m.xx-m.zx m.xz  -(m.yz m.xx-m.yx m.xz) |
+        // | m.zx m.zy m.zz |               |   m.zy m.yx-m.zx m.yy  -(m.zy m.xx-m.zx m.xy)   m.yy m.xx-m.yx m.xy  |
+        
         det = 1 / det;
 
-        md.xx =  det*( m.zz*m.yy-m.zx*m.yz );
-        md.xy = -det*( m.zz*m.xy-m.zx*m.xz );
+        md.xx =  det*( m.zz*m.yy-m.zy*m.yz );
+        md.xy = -det*( m.zz*m.xy-m.zy*m.xz );
         md.xz =  det*( m.yz*m.xy-m.yy*m.xz );
         
         md.yx = -det*( m.zz*m.yx-m.zx*m.yz );
@@ -1484,7 +1197,7 @@ var module = window;
 
         md.zx =  det*( m.zy*m.yx-m.zx*m.yy );
         md.zy = -det*( m.zy*m.xx-m.zx*m.xy );
-        md.yy =  det*( m.yy*m.xx-m.yz*m.xy );
+        md.zz =  det*( m.yy*m.xx-m.yx*m.xy );
     };
 
     proto.invert = function(){
@@ -1521,6 +1234,849 @@ var module = window;
     
     proto.ij = function(i,j){
         return this[ map[i][j] ];
+    };
+
+    Mat3.toArray = function(array,m,offset){
+        offset = offset || 0;
+        // 0 3 6 | xx xy xz
+        // 1 4 7 | yx yy yz
+        // 2 5 8 | zx zy zz
+        array[0+offset] = m.xx;
+        array[1+offset] = m.yx;
+        array[2+offset] = m.zx;
+        array[3+offset] = m.xy;
+        array[4+offset] = m.yy;
+        array[5+offset] = m.zy;
+        array[6+offset] = m.xz;
+        array[7+offset] = m.yz;
+        array[8+offset] = m.zz;
+    };
+
+    proto.array = function(){
+        var array = [];
+        Mat3.toArray(array,this);
+        return array;
+    };
+
+    proto.float32 = function(){
+        var array = Float32Array(9);
+        Mat3.toArray(array,this);
+        return array;
+    };
+
+})(module);
+
+/* ------------------------------ 4x4 Matrix -------------------------------- */
+
+(function(module){
+
+    var Vec3 = module.Vec3;
+
+    var set = function(md,components_){
+
+        // 1 5 9  13 | xx xy xz xw
+        // 2 6 10 14 | yx yy yz yw
+        // 3 7 11 15 | zx zy zz zw
+        // 4 8 12 16 | wx wy wz ww
+        
+        md.xx = arguments[1];
+        md.yx = arguments[2];
+        md.zx = arguments[3];
+        md.wx = arguments[4];
+        
+        md.xy = arguments[5];
+        md.yy = arguments[6];
+        md.zy = arguments[7];
+        md.wy = arguments[8];
+        
+        md.xz = arguments[9];
+        md.yz = arguments[10];
+        md.zz = arguments[11];
+        md.wz = arguments[12];
+        
+        md.xw = arguments[13];
+        md.yw = arguments[14];
+        md.zw = arguments[15];
+        md.ww = arguments[16];
+    };
+
+    function Mat4(){
+        var alen = arguments.length;
+        if(alen === 0){
+            this.xx = 1;
+            this.xy = 0;
+            this.xz = 0;
+            this.xw = 0;
+            this.yx = 0;
+            this.yy = 1;
+            this.yz = 0;
+            this.yw = 0;
+            this.zx = 0;
+            this.zy = 0;
+            this.zz = 1;
+            this.zw = 0;
+            this.wx = 0;
+            this.wy = 0;
+            this.wz = 0;
+            this.ww = 1;
+        }else if(alen === 1){
+            var arg = arguments[0];
+            if(typeof arg === 'string'){
+                arg = JSON.parse(arg);
+            }
+            if(arg[0] !== undefined){
+                set(this,arg);
+            }else{
+                this.xx = arg.xx || 0;
+                this.xy = arg.xy || 0;
+                this.xz = arg.xz || 0;
+                this.xw = arg.xw || 0;
+                this.yx = arg.yx || 0;
+                this.yy = arg.yy || 0;
+                this.yz = arg.yz || 0;
+                this.yw = arg.yw || 0;
+                this.zx = arg.zx || 0;
+                this.zy = arg.zy || 0;
+                this.zz = arg.zz || 0;
+                this.zw = arg.zw || 0;
+                this.wx = arg.wx || 0;
+                this.wy = arg.wy || 0;
+                this.wz = arg.wz || 0;
+                this.ww = arg.ww || 0;
+            }
+        }else if(alen === 16){
+            set(this,arguments);
+        }
+    };
+
+    var tmp_a = new Mat4();
+    var tmp_b = new Mat4();
+
+    module.Mat4 = Mat4;
+
+    Mat4.epsilon  = 0.00000001;    
+    Mat4.id       = new Mat4();
+    Mat4.zero     = new Mat4(0,0,0,0,
+                             0,0,0,0,
+                             0,0,0,0,
+                             0,0,0,0);
+    var nan = Number.NaN;
+    Mat4.NaN      = new Mat4(nan,nan,nan,nan,
+                             nan,nan,nan,nan,
+                             nan,nan,nan,nan,
+                             nan,nan,nan,nan);
+    Mat4.tmp  = new Mat4();
+    Mat4.tmp1 = new Mat4();
+    Mat4.tmp2 = new Mat4();
+
+    var proto = Mat4.prototype;
+
+    function epsilonEquals(a,b){  return Math.abs(a-b) <= Mat4.epsilon };
+
+    Mat4.equals  = function(m,n){
+        return epsilonEquals(m.xx, n.xx) &&
+               epsilonEquals(m.xy, n.xy) &&
+               epsilonEquals(m.xz, n.xz) &&
+               epsilonEquals(m.xw, n.xw) &&
+               epsilonEquals(m.yx, n.yx) &&
+               epsilonEquals(m.yy, n.yy) &&
+               epsilonEquals(m.yz, n.yz) &&
+               epsilonEquals(m.yw, n.yw) &&
+               epsilonEquals(m.zx, n.zx) &&
+               epsilonEquals(m.zy, n.zy) &&
+               epsilonEquals(m.zz, n.zz) &&
+               epsilonEquals(m.zw, n.zw) &&
+               epsilonEquals(m.wx, n.wx) &&
+               epsilonEquals(m.wy, n.wy) &&
+               epsilonEquals(m.wz, n.wz) &&
+               epsilonEquals(m.ww, n.ww);
+    };
+        
+    proto.equals = function(mat){
+        return Mat4.equals(this,mat);
+    };
+
+    Mat4.set  = set;
+
+    Mat4.copy = function(md,m){
+        md.xx = m.xx;
+        md.xy = m.xy;
+        md.xz = m.xz;
+        md.xw = m.xw;
+        
+        md.yx = m.yx;
+        md.yy = m.yy;
+        md.yz = m.yz;
+        md.yw = m.yw;
+        
+        md.zx = m.zx;
+        md.zy = m.zy;
+        md.zz = m.zz;
+        md.zw = m.zw;
+        
+        md.wx = m.wx;
+        md.wy = m.wy;
+        md.wz = m.wz;
+        md.ww = m.ww;
+    };
+
+    proto.clone = function(){
+        var m = new Mat4();
+        Mat4.copy(m,this);
+        return m;
+    };
+
+    proto.toString = function(){
+        var str = "[";
+        str += this.xx + ",";
+        str += this.xy + ",";
+        str += this.xz + ",";
+        str += this.xw + ",\n ";
+        str += this.yx + ",";
+        str += this.yy + ",";
+        str += this.yz + ",";
+        str += this.yw + ",\n ";
+        str += this.zx + ",";
+        str += this.zy + ",";
+        str += this.zz + ",";
+        str += this.zw + ",\n ";
+        str += this.wx + ",";
+        str += this.wy + ",";
+        str += this.wz + ",";
+        str += this.ww + "]";
+        return str;
+    };
+
+    Mat4.add = function(md,m,n){
+        md.xx = m.xx + n.xx;
+        md.xy = m.xy + n.xy;
+        md.xz = m.xz + n.xz;
+        md.xw = m.xw + n.xw;
+        md.yx = m.yx + n.yx;
+        md.yy = m.yy + n.yy;
+        md.yz = m.yz + n.yz;
+        md.yw = m.yw + n.yw;
+        md.zx = m.zx + n.zx;
+        md.zy = m.zy + n.zy;
+        md.zz = m.zz + n.zz;
+        md.zw = m.zw + n.zw;
+        md.wx = m.wx + n.wx;
+        md.wy = m.wy + n.wy;
+        md.wz = m.wz + n.wz;
+        md.ww = m.ww + n.ww;
+    };
+
+    proto.add = function(mat){
+        var m = new Mat4();
+        Mat4.add(m,this,mat);
+        return m;
+    };
+
+    Mat4.sub = function(md,m,n){
+        md.xx = m.xx - n.xx;
+        md.xy = m.xy - n.xy;
+        md.xz = m.xz - n.xz;
+        md.xw = m.xw - n.xw;
+        md.yx = m.yx - n.yx;
+        md.yy = m.yy - n.yy;
+        md.yz = m.yz - n.yz;
+        md.yw = m.yw - n.yw;
+        md.zx = m.zx - n.zx;
+        md.zy = m.zy - n.zy;
+        md.zz = m.zz - n.zz;
+        md.zw = m.zw - n.zw;
+        md.wx = m.wx - n.wx;
+        md.wy = m.wy - n.wy;
+        md.wz = m.wz - n.wz;
+        md.ww = m.ww - n.ww;
+    };
+
+    proto.sub = function(mat){
+        var m = new Mat4();
+        Mat4.sub(m,this,mat);
+        return m;
+    };
+
+    Mat4.neg = function(md,m){
+        md.xx = -m.xx;
+        md.xy = -m.xy;
+        md.xz = -m.xz;
+        md.xw = -m.xw;
+        md.yx = -m.yx;
+        md.yy = -m.yy;
+        md.yz = -m.yz;
+        md.yw = -m.yw;
+        md.zx = -m.zx;
+        md.zy = -m.zy;
+        md.zz = -m.zz;
+        md.zw = -m.zw;
+        md.wx = -m.wx;
+        md.wy = -m.wy;
+        md.wz = -m.wz;
+        md.ww = -m.ww;
+    };
+
+    proto.neg = function(){
+        var m = new Mat4();
+        Mat4.neg(m,this);
+        return m;
+    };
+
+    Mat4.tr = function(md,m){
+        if(md === m){
+            Mat4.copy(tmp_a,m);
+            m = tmp_a;
+        }
+        md.xx = m.xx;
+        md.xy = m.yx;
+        md.xz = m.zx;
+        md.xw = m.wx;
+        md.yx = m.xy;
+        md.yy = m.yy;
+        md.yz = m.zy;
+        md.yw = m.wy;
+        md.zx = m.xz;
+        md.zy = m.yz;
+        md.zz = m.zz;
+        md.zw = m.wz;
+        md.wx = m.xw;
+        md.wy = m.yw;
+        md.wz = m.zw;
+        md.ww = m.ww;
+    };
+
+    proto.tr = function(){
+        var m = new Mat4();
+        Mat4.tr(m,this);
+        return m;
+    };
+    
+    Mat4.mult = function(md,a,b){
+        if(md === a){
+            Mat4.copy(tmp_a,a);
+            a = tmp_a;
+        }
+        if(md === b){
+            Mat4.copy(tmp_b,b);
+            b = tmp_b;
+        }
+		md.xx = a.xx * b.xx + a.xy * b.yx + a.xz * b.zx + a.xw * b.wx;
+		md.xy = a.xx * b.xy + a.xy * b.yy + a.xz * b.zy + a.xw * b.wy;
+		md.xz = a.xx * b.xz + a.xy * b.yz + a.xz * b.zz + a.xw * b.wz;
+		md.xw = a.xx * b.xw + a.xy * b.yw + a.xz * b.zw + a.xw * b.ww;
+
+		md.yx = a.yx * b.xx + a.yy * b.yx + a.yz * b.zx + a.yw * b.wx;
+		md.yy = a.yx * b.xy + a.yy * b.yy + a.yz * b.zy + a.yw * b.wy;
+		md.yz = a.yx * b.xz + a.yy * b.yz + a.yz * b.zz + a.yw * b.wz;
+		md.yw = a.yx * b.xw + a.yy * b.yw + a.yz * b.zw + a.yw * b.ww;
+
+		md.zx = a.zx * b.xx + a.zy * b.yx + a.zz * b.zx + a.zw * b.wx;
+		md.zy = a.zx * b.xy + a.zy * b.yy + a.zz * b.zy + a.zw * b.wy;
+		md.zz = a.zx * b.xz + a.zy * b.yz + a.zz * b.zz + a.zw * b.wz;
+		md.zw = a.zx * b.xw + a.zy * b.yw + a.zz * b.zw + a.zw * b.ww;
+
+		md.wx = a.wx * b.xx + a.wy * b.yx + a.wz * b.zx + a.ww * b.wx;
+		md.wy = a.wx * b.xy + a.wy * b.yy + a.wz * b.zy + a.ww * b.wy;
+		md.wz = a.wx * b.xz + a.wy * b.yz + a.wz * b.zz + a.ww * b.wz;
+		md.ww = a.wx * b.xw + a.wy * b.yw + a.wz * b.zw + a.ww * b.ww;
+    };
+
+    Mat4.multFac  = function(md,m,fac){
+        md.xx = m.xx * fac;
+        md.xy = m.xy * fac;
+        md.xz = m.xz * fac;
+        md.xw = m.xw * fac;
+        md.yx = m.yx * fac;
+        md.yy = m.yy * fac;
+        md.yz = m.yz * fac;
+        md.yw = m.yw * fac;
+        md.zx = m.zx * fac;
+        md.zy = m.zy * fac;
+        md.zz = m.zz * fac;
+        md.zw = m.zw * fac;
+        md.wx = m.wx * fac;
+        md.wy = m.wy * fac;
+        md.wz = m.wz * fac;
+        md.ww = m.ww * fac;
+    };
+
+    Mat4.multVec3 = function(vd,m,v){
+        var vx = v.x, vy = v.y, vz = v.z;
+        var  d = 1.0 / ( m.wx * vx + m.wy * vy + m.wz * vz + m.ww);
+        vd.x = ( m.xx * vx + m.xy * vy + m.xz * vz + m.xw  ) * d;
+        vd.y = ( m.yx * vx + m.yy * vy + m.yz * vz + m.yw  ) * d;
+        vd.z = ( m.zx * vx + m.zy * vy + m.zz * vz + m.zw  ) * d;
+    };
+
+    proto.mult = function(arg){
+        if(typeof arg === 'number'){
+            var m = new Mat4();
+            Mat4.multFac(m,this,arg);
+            return m;
+        }else if(arg instanceof Mat4){
+            var m = new Mat4();
+            Mat4.mult(m,this,arg);
+            return m;
+        }else if(arg instanceof Vec3){
+            var v = new Vec3();
+            Mat4.multVec3(v,this,arg);
+            return v;
+        }
+    };
+
+    Mat4.det = function(m){
+		return (
+			m.xw * m.yz * m.zy * m.wx-
+			m.xz * m.yw * m.zy * m.wx-
+			m.xw * m.yy * m.zz * m.wx+
+			m.xy * m.yw * m.zz * m.wx+
+
+			m.xz * m.yy * m.zw * m.wx-
+			m.xy * m.yz * m.zw * m.wx-
+			m.xw * m.yz * m.zx * m.wy+
+			m.xz * m.yw * m.zx * m.wy+
+
+			m.xw * m.yx * m.zz * m.wy-
+			m.xx * m.yw * m.zz * m.wy-
+			m.xz * m.yx * m.zw * m.wy+
+			m.xx * m.yz * m.zw * m.wy+
+
+			m.xw * m.yy * m.zx * m.wz-
+			m.xy * m.yw * m.zx * m.wz-
+			m.xw * m.yx * m.zy * m.wz+
+			m.xx * m.yw * m.zy * m.wz+
+
+			m.xy * m.yx * m.zw * m.wz-
+			m.xx * m.yy * m.zw * m.wz-
+			m.xz * m.yy * m.zx * m.ww+
+			m.xy * m.yz * m.zx * m.ww+
+
+			m.xz * m.yx * m.zy * m.ww-
+			m.xx * m.yz * m.zy * m.ww-
+			m.xy * m.yx * m.zz * m.ww+
+			m.xx * m.yy * m.zz * m.ww
+		);
+    };
+    proto.det = function(){
+        return Mat4.det(this);
+    }
+
+    Mat4.invert  = function(md,m){
+        var det = Mat4.det(m);
+        if(!det){
+            Mat4.copy(md,Mat4.NaN);
+        }
+        if(md === m){
+            Mat4.copy(tmp_a,m);
+            m = tmp_a;
+        }
+        det = 1 / det;
+		md.xx = ( m.yz*m.zw*m.wy - m.yw*m.zz*m.wy + m.yw*m.zy*m.wz - m.yy*m.zw*m.wz - m.yz*m.zy*m.ww + m.yy*m.zz*m.ww ) * det;
+		md.xy = ( m.xw*m.zz*m.wy - m.xz*m.zw*m.wy - m.xw*m.zy*m.wz + m.xy*m.zw*m.wz + m.xz*m.zy*m.ww - m.xy*m.zz*m.ww ) * det;
+		md.xz = ( m.xz*m.yw*m.wy - m.xw*m.yz*m.wy + m.xw*m.yy*m.wz - m.xy*m.yw*m.wz - m.xz*m.yy*m.ww + m.xy*m.yz*m.ww ) * det;
+		md.xw = ( m.xw*m.yz*m.zy - m.xz*m.yw*m.zy - m.xw*m.yy*m.zz + m.xy*m.yw*m.zz + m.xz*m.yy*m.zw - m.xy*m.yz*m.zw ) * det;
+		md.yx = ( m.yw*m.zz*m.wx - m.yz*m.zw*m.wx - m.yw*m.zx*m.wz + m.yx*m.zw*m.wz + m.yz*m.zx*m.ww - m.yx*m.zz*m.ww ) * det;
+		md.yy = ( m.xz*m.zw*m.wx - m.xw*m.zz*m.wx + m.xw*m.zx*m.wz - m.xx*m.zw*m.wz - m.xz*m.zx*m.ww + m.xx*m.zz*m.ww ) * det;
+		md.yz = ( m.xw*m.yz*m.wx - m.xz*m.yw*m.wx - m.xw*m.yx*m.wz + m.xx*m.yw*m.wz + m.xz*m.yx*m.ww - m.xx*m.yz*m.ww ) * det;
+		md.yw = ( m.xz*m.yw*m.zx - m.xw*m.yz*m.zx + m.xw*m.yx*m.zz - m.xx*m.yw*m.zz - m.xz*m.yx*m.zw + m.xx*m.yz*m.zw ) * det;
+		md.zx = ( m.yy*m.zw*m.wx - m.yw*m.zy*m.wx + m.yw*m.zx*m.wy - m.yx*m.zw*m.wy - m.yy*m.zx*m.ww + m.yx*m.zy*m.ww ) * det;
+		md.zy = ( m.xw*m.zy*m.wx - m.xy*m.zw*m.wx - m.xw*m.zx*m.wy + m.xx*m.zw*m.wy + m.xy*m.zx*m.ww - m.xx*m.zy*m.ww ) * det;
+		md.zz = ( m.xy*m.yw*m.wx - m.xw*m.yy*m.wx + m.xw*m.yx*m.wy - m.xx*m.yw*m.wy - m.xy*m.yx*m.ww + m.xx*m.yy*m.ww ) * det;
+		md.zw = ( m.xw*m.yy*m.zx - m.xy*m.yw*m.zx - m.xw*m.yx*m.zy + m.xx*m.yw*m.zy + m.xy*m.yx*m.zw - m.xx*m.yy*m.zw ) * det;
+		md.wx = ( m.yz*m.zy*m.wx - m.yy*m.zz*m.wx - m.yz*m.zx*m.wy + m.yx*m.zz*m.wy + m.yy*m.zx*m.wz - m.yx*m.zy*m.wz ) * det;
+		md.wy = ( m.xy*m.zz*m.wx - m.xz*m.zy*m.wx + m.xz*m.zx*m.wy - m.xx*m.zz*m.wy - m.xy*m.zx*m.wz + m.xx*m.zy*m.wz ) * det;
+		md.wz = ( m.xz*m.yy*m.wx - m.xy*m.yz*m.wx - m.xz*m.yx*m.wy + m.xx*m.yz*m.wy + m.xy*m.yx*m.wz - m.xx*m.yy*m.wz ) * det;
+		md.ww = ( m.xy*m.yz*m.zx - m.xz*m.yy*m.zx + m.xz*m.yx*m.zy - m.xx*m.yz*m.zy - m.xy*m.yx*m.zz + m.xx*m.yy*m.zz ) * det;
+    };
+
+    proto.invert = function(){
+        var m = new Mat4();
+        Mat4.invert(m,this);
+        return m;
+    };
+
+    var map = [ ['xx','xy','xz','xw'],
+                ['yx','yy','yz','yw'],
+                ['zx','zy','zz','zw'],
+                ['wx','wy','wz','ww'] ];
+    
+    proto.ij = function(i,j){
+        return this[ map[i][j] ];
+    };
+
+    Mat4.setId = function(md){
+        Mat4.copy(md,Mat4.id);
+    };
+
+    Mat4.setRotationX = function(md,angle){
+        Mat4.setId(md);
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.yy = c;
+        m.yz = -s;
+        m.zy = s;
+        m.zz = c;
+    };
+
+    Mat4.rotationX = function(angle){
+        var m = new Mat4();
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.yy = c;
+        m.yz = -s;
+        m.zy = s;
+        m.zz = c;
+        return m;
+
+    };
+    Mat4.setRotationY = function(md,angle){
+        Mat4.setId(md);
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xz = s;
+        m.zx = -s;
+        m.zz = c;
+    };
+    Mat4.rotationY = function(angle){
+        var m = new Mat4();
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xz = s;
+        m.zx = -s;
+        m.zz = c;
+        return m;
+    };
+    Mat4.setRotationZ = function(md,angle){
+        Mat4.setId(md);
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xy = -s;
+        m.yx = s;
+        m.yy = c;
+    };
+
+    Mat4.rotationZ = function(angle){
+        var m = new Mat4();
+        var c = Math.cos(angle);
+        var s = Math.sin(angle);
+        m.xx = c;
+        m.xy = -s;
+        m.yx = s;
+        m.yy = c;
+        return m;
+    };
+
+    Mat4.rotationEuler  = function(md,X,Y,Z){
+        Mat4.setRotationZ(tmp_a,Z);
+        Mat4.setRotationY(tmp_b,Y);
+        Mat4.mult(md,tmp_a,tmp_b);
+        Mat4.setRotationX(tmp_a,X);
+        Mat4.mult(md,md,tmp_a);
+    };
+    
+    Mat4.rotationEuler = function(X,Y,Z){
+        var m = new Mat4();
+        Mat4.setRotationEuler(m,X,Y,Z);
+        return m;
+    };
+    
+    Mat4.getEulerAngles = function(vd,m){
+        vd.x = Math.atan2(m.zy,mzz);
+        vd.y = Math.atan2(-m.zx,Math.sqrt(m.zy*m.zy+m.zz*m.zz));
+        vd.z = Math.atan2(m.yx,m.xx);
+    };
+    
+    proto.getEulerAngles = function(){
+        var v = new Vec3();
+        Mat4.getEulerAngles(v,this);
+        return v;
+    };
+
+    Mat4.setRotationAxis  = function(md,vec,angle){
+        Mat4.setId(md);
+        var u = vec;
+        var c = Math.cos(angle);
+        var nc = (1-c);
+        var s = Math.sin(angle);
+
+        md.xx = c + u.x*u.x*nc;
+        md.xy = u.x*u.y*nc - u.z*s;
+        md.xz = u.x*u.z*nc + u.y*s;
+        
+        md.yx = u.y*u.x*nc + u.z*s;
+        md.yy = c + u.y*u.y*nc;
+        md.yz = u.y*u.z*nc - u.x*s;
+
+        md.zx = u.z*u.x*nc - u.y*s;
+        md.zy = u.z*u.y*nc + u.x*s;
+        md.zz = c + u.z*u.z*nc;
+    };
+
+    Mat4.rotationAxis = function(vec,angle){
+        var m = new Mat4();
+        Mat4.setRotationAxis(m,vec,angle);
+        return m;
+    };
+    
+    Mat4.setRotationQuat = function(md,q){
+        Mat4.setId(md);
+        var x = q.x, y = q.y, z = q.z, w = q.w;
+        md.xx = 1 - 2*y*y - 2*z*z;
+        md.xy = 2*x*y - 2*w*z;
+        md.xz = 2*x*z + 2*w*y;
+        md.yx = 2*x*y + 2*w*z;
+        md.yy = 1 - 2*x*x - 2*z*z;
+        md.yz = 2*y*z + 2*w*x;
+        md.zx = 2*x*z - 2*w*y;
+        md.zy = 2*y*z - 2*w*x;
+        md.zz = 1 - 2*x*x - 2*y*y;
+    };
+
+    Mat4.rotationQuat = function(q){
+        var m = new Mat4();
+        Mat4.setRotationQuat(m,q);
+        return m;
+    };
+
+    Mat4.setScale   = function(md,sv){
+        Mat4.setId(md);
+        md.xx = sv.x;
+        md.yy = sv.y;
+        md.zz = sv.z;
+    };
+    Mat4.scale    = function(sv){
+        var m = new Mat4();
+        m.xx = sv.x;
+        m.yy = sv.y;
+        m.zz = sv.z;
+        return m;
+    };
+    Mat4.setTranslation = function(md,v){
+        md.xw = v.x;
+        md.yw = v.y;
+        md.zw = v.z;
+    };
+
+    Mat4.translation = function(v){
+        var m = new Mat4();
+        Mat4.setTranslation(m,v);
+        return m;
+    };
+
+    proto.getScale = function(){
+    };
+    proto.getRotation = function(){};
+    proto.getTranslation = function(){
+        return new Vec3(this.xw,this.yw,this.zw);
+    };
+
+    Mat4.toArray = function(array,m,offset){
+        offset = offset || 0;
+
+        // 0 4 8  12 | xx xy xz xw
+        // 1 5 9  13 | yx yy yz yw
+        // 2 6 10 14 | zx zy zz zw
+        // 3 7 11 15 | wx wy wz ww
+
+        array[0 +offset] = m.xx;
+        array[1 +offset] = m.yx;
+        array[2 +offset] = m.zx;
+        array[3 +offset] = m.wx;
+        array[4 +offset] = m.xy;
+        array[5 +offset] = m.yy;
+        array[6 +offset] = m.zy;
+        array[7 +offset] = m.wy;
+        array[8 +offset] = m.xz;
+        array[9 +offset] = m.yz;
+        array[10+offset] = m.zz;
+        array[11+offset] = m.wz;
+        array[12+offset] = m.xw;
+        array[13+offset] = m.yw;
+        array[14+offset] = m.zw;
+        array[15+offset] = m.ww;
+    };
+
+    proto.array = function(){
+        var array = [];
+        Mat4.toArray(array,this);
+        return array;
+    };
+
+    proto.float32 = function(){
+        var array = Float32Array(16);
+        Mat4.toArray(array,this);
+        return array;
+    };
+
+})(module);
+
+/* ------------------------------ Quaternions -------------------------------- */
+
+(function(module){
+
+    var Vec3 = module.Vec3;
+
+    function Quat(){
+        var alen = arguments.length;
+        this.x = 0;
+        this.y = 0;
+        this.z = 0;
+        this.w = 1;
+        if(alen){
+            if(alen === 4){
+                this.x = arguments[0];
+                this.y = arguments[1];
+                this.z = arguments[2];
+                this.w = arguments[3];
+            }else if(arguments.length === 2){
+                Quat.setRotationAxis(arguments[0],arguments[1]);
+            }
+        }
+    };
+
+    module.Quat = Quat;
+    var proto = Quat.prototype;
+
+    Quat.id   = new Quat();
+    
+    Quat.copy = function(qd,q){
+        qd.x = q.x;
+        qd.y = q.y;
+        qd.z = q.z;
+        qd.w = q.w;
+    };
+
+    Quat.set = function(qd,components_){
+        qd.x = arguments[1];
+        qd.y = arguments[2];
+        qd.z = arguments[3];
+        qd.w = arguments[4];
+    };
+
+    proto.clone = function(){
+        var q = new Quat();
+        Quat.copy(q,this);
+        return q;
+    };
+
+    proto.toString = function(){
+        var str = "[";
+        str += this.x ;
+        str += "," ;
+        str += this.y ;
+        str += "," ;
+        str += this.z ;
+        str += "," ;
+        str += this.w ;
+        str += "]" ;
+        return str;
+    };
+
+    Quat.mult = function(qd,q,r){
+        qd.w = q.w*r.w - q.x*r.x - q.y*r.y - q.z*r.z;
+        qd.x = q.w*r.x + q.x*r.w + q.y*r.z - q.z*r.y;
+        qd.y = q.w*r.y - q.x*r.z + q.y*r.w + q.z*r.x;
+        qd.z = q.w*r.z + q.x*r.y - q.y*r.x + q.z*r.w;
+    };
+
+
+    proto.mult = function(q){
+        var qd = new Quat();
+        Quat.mult(qd,this,q);
+        return qd;
+    };
+
+    Quat.neg = function(qd,q){
+        qd.x = -q.x;
+        qd.y = -q.y;
+        qd.z = -q.z;
+        qd.w =  q.w;
+    };
+
+    proto.neg = function(){
+        var qd = new Quat();
+        Quat.neg(qd,this);
+        return qd;
+    };
+
+
+    Quat.lerp = function(qd,q,r,t){
+        var qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+        var rx = r.x, ry = r.y, rz = r.z, rw = r.w;
+        var it = 1 - t;
+        qd.x = it*qx + it*rx;
+        qd.y = it*qy + it*ry;
+        qd.z = it*qz + it*rz;
+        qd.w = it*qw + it*rw;
+        Quat.normalize(qd,qd);
+    };
+
+    proto.lerp = function(q,t){
+        var qd = new Quat();
+        Quat.lerp(qd,this,q,t);
+        return qd;
+    };
+        
+
+    proto.len = function(){
+        return Math.sqrt(
+                this.x*this.x + 
+                this.y*this.y + 
+                this.z*this.z + 
+                this.w*this.w);
+    };
+
+    Quat.normalize = function(qd,q){
+        var qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+        var ilen = 1.0 / Math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw);
+        qd.x = qx * ilen;
+        qd.y = qy * ilen;
+        qd.z = qz * ilen;
+        qd.w = qw * ilen;
+    };
+
+    proto.normalize = function(){
+        var q = new Quat();
+        Quat.normalize(q,this);
+        return q;
+    };
+
+    Quat.setRotationAxis = function(qd,vec,angle){
+        var s = Math.sin(angle*0.5);
+        qd.w = Math.cos(angle*0.5);
+        qd.x = vec.x * s;
+        qd.y = vec.y * s;
+        qd.z = vec.y * s;
+    };
+
+    Quat.setRotationX = function(qd,vec,angle){
+        qd.w = Math.cos(angle*0.5);
+        qd.x = Math.sin(angle*0.5);
+        qd.y = 0;
+        qd.z = 0;
+    };
+
+    Quat.setRotationY = function(qd,vec,angle){
+        qd.w = Math.cos(angle*0.5);
+        qd.x = 0;
+        qd.y = Math.sin(angle*0.5);
+        qd.z = 0;
+    };
+
+    Quat.setRotationZ = function(qd,vec,angle){
+        qd.w = Math.cos(angle*0.5);
+        qd.x = 0;
+        qd.y = 0;
+        qd.z = Math.sin(angle*0.5);
+    };
+
+    Quat.rotationAxis = function(vec,angle){
+        var q = new Quat();
+        Quat.setRotationAxis(q,vec,angle);
+        return q;
     };
 
 })(module);

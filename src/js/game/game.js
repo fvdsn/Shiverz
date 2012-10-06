@@ -55,6 +55,37 @@ window.import_game = function(module){
 			this.phase = opt.phase || 'warmup';
             this.phaseTime = 0;
 		},
+        launch:function(){
+            var canvas   = document.getElementById('test_canvas_1');
+            var context  = canvas.getContext('2d');
+            var renderer = new RendererCanvas2d({
+                // passes:[],
+                canvas: canvas,
+                getSize: function(){
+                    return new Vec2(window.innerWidth, window.innerHeight);
+                },
+                background: 'rgba(40,35,30,1)',
+                alwaysRedraw: true,
+            });
+
+            var input: new Input({
+                //alias: bindings,
+            });
+
+            var GameScene = Scene.extend({
+                game: this,
+                onSceneStart: function(){
+                },
+                onFrameEnd: function(){
+                },
+            });
+
+            var main = new Main({
+                input: input,
+                scene: new GameScene(),
+            });
+            main.run();
+        },
 		load: function(gamedescr){
 		},
 		save: function(){
