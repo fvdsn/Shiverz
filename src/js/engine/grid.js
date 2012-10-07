@@ -269,7 +269,6 @@ window.modula = window.modula || {};
             this.pass = options.pass || this.pass;
             this.height = options.height || this.height;
             this.zindex = options.zindex || this.zindex;
-            console.log(this.pass);
             this.grid = options.grid;
             this._drawables = options.drawables || {};
             if(options.spriteMap){
@@ -299,10 +298,10 @@ window.modula = window.modula || {};
                     if(drawable){
                         var px = x * size.x;
                         var py = y * size.y;
-                        context.save();
-                        context.translate(px,py);
+                        renderer.context.save();
+                        renderer.context.translate(px,py);
                         drawable.draw(renderer,ent);
-                        context.restore();
+                        renderer.context.restore();
                     }
                 }
             }

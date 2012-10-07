@@ -1122,6 +1122,28 @@ var module = window;
         return m;
     };
 
+    Mat3.setShearX = function(m,shear){
+        Mat3.setId(m);
+        m.xy = shear;
+    };
+    
+    Mat3.shearX = function(shear){
+        var m = new Mat3();
+        m.xy = shear;
+        return m;
+    };
+
+    Mat3.setShearY = function(m,shear){
+        Mat3.setId(m);
+        m.yx = shear;
+    };
+    
+    Mat3.shearX = function(shear){
+        var m = new Mat3();
+        m.yx = shear;
+        return m;
+    };
+
     Mat3.setScale = function(m,scale){
         Mat3.setId(m);
         m.xx = scale.x;
@@ -1866,8 +1888,81 @@ var module = window;
         return m;
     };
 
+    Mat4.setShearXY = function(m,sx,sy){
+        Mat3.setId(m);
+        m.xz = sx;
+        m.yz = sy;
+    };
+
+    Mat4.shearXY  = function(sx,sy){
+        var m = new Mat4();
+        Mat4.setShearXY(m,sx,sy);
+        return m;
+    };
+
+    Mat4.setShearYZ = function(m,sy,sz){
+        Mat3.setId(m);
+        m.yx = sy;
+        m.zx = sz;
+    };
+
+    Mat4.shearYZ  = function(sy,sz){
+        var m = new Mat4();
+        Mat4.setShearYZ(m,sy,sz);
+        return m;
+    };
+
+    Mat4.setShearXZ = function(m,sx,sz){
+        Mat3.setId(m);
+        m.xy = sx;
+        m.zy = sz;
+    };
+
+    Mat4.shearXZ = function(sx,sz){
+        var m = new Mat4();
+        Mat4.setShearXZ(m,sx,sz);
+        return m;
+    };
+
+    Mat4.setOrtho = function(m,left,right,bottom,top,near,far){
+        Mat4.setId(m);
+        m.xx = 2 / ( right - left);
+        m.yy = 2 / ( top - bottom);
+        m.zz = - 2 / ( far - near );  //FIXME wikipedia says this must be negative ?
+        m.xw = - ( right + left ) / ( right - left );
+        m.yw = - ( top + button ) / ( top - bottom );
+        m.zw = - ( far + near ) / ( far - near );
+    };
+
+    Mat4.ortho = function(l,r,b,t,n,f){
+        var m = new Mat4();
+        Mat4.setOrtho(m,l,r,b,t,n,f);
+        return m;
+    };
+
+    Mat4.setFrustrum = function(m,l,r,b,t,n,f){
+        Mat4.setId(m);
+        m.xx = 2*n / (r-l);
+        m.yy = 2*n / (t-b);
+        m.zz = -(f+n)/(f-n);
+        m.xz = (r+l) / (r-l);
+        m.yz = (t+b) / (t-b);
+        m.wz = -1;
+        m.zw = -2*f*n/(f-n);
+    };
+    
+    Mat4.frustrum = function(l,r,b,t,n,f){
+        var m = new Mat4();
+        Mat4.setFrustrum(m);
+        return m;
+    };
+
+    Mat4.setLookAt = function(){
+    };
+
     proto.getScale = function(){
     };
+
     proto.getRotation = function(){};
     proto.getTranslation = function(){
         return new Vec3(this.xw,this.yw,this.zw);

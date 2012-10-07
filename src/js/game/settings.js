@@ -1,5 +1,6 @@
 window.import_settings = function(module){
-	module.bindings = {
+    module.settings = {};
+	module.settings.bindings = {
         'fire':     'mouse-left',
         'altfire':  'mouse-right',
         'left':     'a',

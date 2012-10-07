@@ -11,13 +11,16 @@ window.modula = window.modula || {};
         uid += 1;
         return uid;
     }
+
     function array_remove(array, element){
         array.splice(array.indexOf(element),1);
         return array;
     }
+
     function array_contains(array, element){
         return array.indexOf(element) >= 0;
     }
+
     modula.Main = modula.Class.extend({
         init: function(options){
             this._nextUid  = 0;
@@ -437,13 +440,12 @@ window.modula = window.modula || {};
         height: 0,
     });
 
-    
     modula.RendererCanvas2d = modula.Renderer.extend({
         init: function(options){
             options = options || {};
             this.canvas = options.canvas || this.canvas; 
             this.alwaysRedraw = options.alwaysRedraw;
-            if(!this.canvas){ console.log('ERROR: please provide a canvas!'); }
+            if(!this.canvas){ throw new Error('RendererCanvas2d: init(): please provide a canvas to the renderer!'); }
             this.context = this.canvas.getContext('2d');
             this.background = options.background;
             this.compose = options.compose || 'source-over'; 
@@ -464,8 +466,8 @@ window.modula = window.modula || {};
             }
             
             this._size = this.get('size');
-            canvas.width = this._size.x;
-            canvas.height = this._size.y;
+            this.canvas.width = this._size.x;
+            this.canvas.height = this._size.y;
 
             this.context.save();
             this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -488,7 +490,7 @@ window.modula = window.modula || {};
             }
         },
         drawEnd: function(){
-            context.restore();
+            this.context.restore();
         },
         drawFrame: function(scene,camera){
             this.drawInit(camera);
@@ -625,6 +627,7 @@ window.modula = window.modula || {};
             }
         },
     });
+
     modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
@@ -720,7 +723,6 @@ window.modula = window.modula || {};
         },
     });
 
-    
     modula.Scene = modula.Class.extend({
         init: function(options){
             options = options || {};
@@ -739,9 +741,9 @@ window.modula = window.modula || {};
 
             this._entityByUid = {};
             this._entityByName = {};
-            this.camera = options.camera || null; 
-            this.renderer = options.renderer || null;
-            this.name = options.name || 'Scene';
+            this.camera = options.camera || this.camera || null; 
+            this.renderer = options.renderer || this.renderer || null;
+            this.name = options.name || this.name || 'Scene';
             this.main = null;
             this.passes = options.passes || this.passes || {};
             this.passSequence = options.passSequence || this.passSequence || [

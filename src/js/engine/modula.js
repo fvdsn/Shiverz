@@ -1699,6 +1699,28 @@ var module = window;
         return m;
     };
 
+    Mat3.setShearX = function(m,shear){
+        Mat3.setId(m);
+        m.xy = shear;
+    };
+    
+    Mat3.shearX = function(shear){
+        var m = new Mat3();
+        m.xy = shear;
+        return m;
+    };
+
+    Mat3.setShearY = function(m,shear){
+        Mat3.setId(m);
+        m.yx = shear;
+    };
+    
+    Mat3.shearX = function(shear){
+        var m = new Mat3();
+        m.yx = shear;
+        return m;
+    };
+
     Mat3.setScale = function(m,scale){
         Mat3.setId(m);
         m.xx = scale.x;
@@ -2443,8 +2465,81 @@ var module = window;
         return m;
     };
 
+    Mat4.setShearXY = function(m,sx,sy){
+        Mat3.setId(m);
+        m.xz = sx;
+        m.yz = sy;
+    };
+
+    Mat4.shearXY  = function(sx,sy){
+        var m = new Mat4();
+        Mat4.setShearXY(m,sx,sy);
+        return m;
+    };
+
+    Mat4.setShearYZ = function(m,sy,sz){
+        Mat3.setId(m);
+        m.yx = sy;
+        m.zx = sz;
+    };
+
+    Mat4.shearYZ  = function(sy,sz){
+        var m = new Mat4();
+        Mat4.setShearYZ(m,sy,sz);
+        return m;
+    };
+
+    Mat4.setShearXZ = function(m,sx,sz){
+        Mat3.setId(m);
+        m.xy = sx;
+        m.zy = sz;
+    };
+
+    Mat4.shearXZ = function(sx,sz){
+        var m = new Mat4();
+        Mat4.setShearXZ(m,sx,sz);
+        return m;
+    };
+
+    Mat4.setOrtho = function(m,left,right,bottom,top,near,far){
+        Mat4.setId(m);
+        m.xx = 2 / ( right - left);
+        m.yy = 2 / ( top - bottom);
+        m.zz = - 2 / ( far - near );  //FIXME wikipedia says this must be negative ?
+        m.xw = - ( right + left ) / ( right - left );
+        m.yw = - ( top + button ) / ( top - bottom );
+        m.zw = - ( far + near ) / ( far - near );
+    };
+
+    Mat4.ortho = function(l,r,b,t,n,f){
+        var m = new Mat4();
+        Mat4.setOrtho(m,l,r,b,t,n,f);
+        return m;
+    };
+
+    Mat4.setFrustrum = function(m,l,r,b,t,n,f){
+        Mat4.setId(m);
+        m.xx = 2*n / (r-l);
+        m.yy = 2*n / (t-b);
+        m.zz = -(f+n)/(f-n);
+        m.xz = (r+l) / (r-l);
+        m.yz = (t+b) / (t-b);
+        m.wz = -1;
+        m.zw = -2*f*n/(f-n);
+    };
+    
+    Mat4.frustrum = function(l,r,b,t,n,f){
+        var m = new Mat4();
+        Mat4.setFrustrum(m);
+        return m;
+    };
+
+    Mat4.setLookAt = function(){
+    };
+
     proto.getScale = function(){
     };
+
     proto.getRotation = function(){};
     proto.getTranslation = function(){
         return new Vec3(this.xw,this.yw,this.zw);
@@ -3124,13 +3219,16 @@ window.modula = window.modula || {};
         uid += 1;
         return uid;
     }
+
     function array_remove(array, element){
         array.splice(array.indexOf(element),1);
         return array;
     }
+
     function array_contains(array, element){
         return array.indexOf(element) >= 0;
     }
+
     modula.Main = modula.Class.extend({
         init: function(options){
             this._nextUid  = 0;
@@ -3550,13 +3648,12 @@ window.modula = window.modula || {};
         height: 0,
     });
 
-    
     modula.RendererCanvas2d = modula.Renderer.extend({
         init: function(options){
             options = options || {};
             this.canvas = options.canvas || this.canvas; 
             this.alwaysRedraw = options.alwaysRedraw;
-            if(!this.canvas){ console.log('ERROR: please provide a canvas!'); }
+            if(!this.canvas){ throw new Error('RendererCanvas2d: init(): please provide a canvas to the renderer!'); }
             this.context = this.canvas.getContext('2d');
             this.background = options.background;
             this.compose = options.compose || 'source-over'; 
@@ -3577,8 +3674,8 @@ window.modula = window.modula || {};
             }
             
             this._size = this.get('size');
-            canvas.width = this._size.x;
-            canvas.height = this._size.y;
+            this.canvas.width = this._size.x;
+            this.canvas.height = this._size.y;
 
             this.context.save();
             this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -3601,7 +3698,7 @@ window.modula = window.modula || {};
             }
         },
         drawEnd: function(){
-            context.restore();
+            this.context.restore();
         },
         drawFrame: function(scene,camera){
             this.drawInit(camera);
@@ -3738,6 +3835,7 @@ window.modula = window.modula || {};
             }
         },
     });
+
     modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
@@ -3833,7 +3931,6 @@ window.modula = window.modula || {};
         },
     });
 
-    
     modula.Scene = modula.Class.extend({
         init: function(options){
             options = options || {};
@@ -3852,9 +3949,9 @@ window.modula = window.modula || {};
 
             this._entityByUid = {};
             this._entityByName = {};
-            this.camera = options.camera || null; 
-            this.renderer = options.renderer || null;
-            this.name = options.name || 'Scene';
+            this.camera = options.camera || this.camera || null; 
+            this.renderer = options.renderer || this.renderer || null;
+            this.name = options.name || this.name || 'Scene';
             this.main = null;
             this.passes = options.passes || this.passes || {};
             this.passSequence = options.passSequence || this.passSequence || [
@@ -4834,7 +4931,6 @@ window.modula = window.modula || {};
             this.pass = options.pass || this.pass;
             this.height = options.height || this.height;
             this.zindex = options.zindex || this.zindex;
-            console.log(this.pass);
             this.grid = options.grid;
             this._drawables = options.drawables || {};
             if(options.spriteMap){
@@ -4864,10 +4960,10 @@ window.modula = window.modula || {};
                     if(drawable){
                         var px = x * size.x;
                         var py = y * size.y;
-                        context.save();
-                        context.translate(px,py);
+                        renderer.context.save();
+                        renderer.context.translate(px,py);
                         drawable.draw(renderer,ent);
-                        context.restore();
+                        renderer.context.restore();
                     }
                 }
             }
