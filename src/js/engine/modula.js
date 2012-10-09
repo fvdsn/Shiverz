@@ -582,35 +582,40 @@ var module = window;
 (function(module){
     
     function Vec2(){
+        var self = this;
+        if(this.constructor !== Vec2){
+            self = {};
+        }
     	var alen = arguments.length;      
     	if(alen=== 0){
-            this.x = 0.0;
-            this.y = 0.0;
+            self.x = 0.0;
+            self.y = 0.0;
         }else if (alen === 1){
         	var arg = arguments[0];
         	if  (typeof arg === 'string'){
         		arg = JSON.parse(arg);
         	}
             if(typeof arg === 'number'){
-                this.x = arg;
-                this.y = arg;
+                self.x = arg;
+                self.y = arg;
             }else if(typeof arg.angle === 'number' || typeof arg.len === 'number'){
                 console.log('polar form activated');
                 console.log(arg);
-                Vec2.setPolar(this, (arg.len === undefined ? 1 : arg.len), arg.angle || 0);
+                Vec2.setPolar(self, (arg.len === undefined ? 1 : arg.len), arg.angle || 0);
             }else if(arg[0] !== undefined){
-                this.x = arg[0] || 0;
-                this.y = arg[1] || 0;
+                self.x = arg[0] || 0;
+                self.y = arg[1] || 0;
             }else{
-            	this.x = arg.x || 0;
-            	this.y = arg.y || 0;
+            	self.x = arg.x || 0;
+            	self.y = arg.y || 0;
             }
         }else if (alen === 2){
-            this.x = arguments[0];
-            this.y = arguments[1];
+            self.x = arguments[0];
+            self.y = arguments[1];
         }else{
             console.error("new Vec2(): wrong number of arguments:"+arguments.length);
         }
+        return self;
     }
 
     module.Vec2 = Vec2;
@@ -1007,35 +1012,40 @@ var module = window;
 (function(module){
 
     function Vec3(){
+        var self = this;
+        if(this.constructor !== Vec3){
+            self = {};
+        }
         if(arguments.length === 0){
-            this.x = 0;
-            this.y = 0;
-            this.z = 0;
+            self.x = 0;
+            self.y = 0;
+            self.z = 0;
         }else if (arguments.length === 1){
         	var arg = arguments[0];
         	if  (typeof arg === 'string'){
         		arg = JSON.parse(arg);
         	}
             if(typeof arg === 'number'){
-                this.x = arg;
-                this.y = arg;
-                this.z = arg;
+                self.x = arg;
+                self.y = arg;
+                self.z = arg;
             }else if(arg[0] !== undefined){
-                this.x = arg[0] || 0;
-                this.y = arg[1] || 0;
-                this.z = arg[2] || 0;
+                self.x = arg[0] || 0;
+                self.y = arg[1] || 0;
+                self.z = arg[2] || 0;
             }else{
-            	this.x = arg.x || 0;
-            	this.y = arg.y || 0;
-            	this.z = arg.z || 0;
+            	self.x = arg.x || 0;
+            	self.y = arg.y || 0;
+            	self.z = arg.z || 0;
             }
         }else if (arguments.length === 3){
-            this.x = arguments[0];
-            this.y = arguments[1];
-            this.z = arguments[2];
+            self.x = arguments[0];
+            self.y = arguments[1];
+            self.z = arguments[2];
         }else{
             console.error("new Vec3(): wrong number of arguments:"+arguments.length);
         }
+        return self;
     };
 
     Vec3.NaN  = new Vec3(Number.NaN,Number.NaN,Number.NaN);
@@ -1414,48 +1424,53 @@ var module = window;
     };
 
     function Mat3(){
+        var self = this;
+        if(this.constructor !== Mat3){
+            self = {};
+        }
         var alen = arguments.length;
         if(alen === 0){
-            this.xx = 1;
-            this.xy = 0;
-            this.xz = 0;
-            this.yx = 0;
-            this.yy = 1;
-            this.yz = 0;
-            this.zx = 0;
-            this.zy = 0;
-            this.zz = 1;
+            self.xx = 1;
+            self.xy = 0;
+            self.xz = 0;
+            self.yx = 0;
+            self.yy = 1;
+            self.yz = 0;
+            self.zx = 0;
+            self.zy = 0;
+            self.zz = 1;
         }else if (alen === 1){
             var arg = arguments[0];
             if( typeof arg === 'string'){
                 arg = JSON.parse(arg);
             }
             if(arg[0] !== undefined){
-                set(this,arg);
+                set(self,arg);
             }else if(   typeof arg.rotation === 'number'
                      || typeof arg.scale === 'number'
                      || typeof arg.translation === 'number'){
-                Mat3.setTransform(this,
+                Mat3.setTransform(self,
                         arg.translation || new Vec2(),
                         arg.scale|| new Vec2(1,1),
                         arg.rotation || 0
                 );
             }else{
-                this.xx = arg.xx || 0;
-                this.xy = arg.xy || 0;
-                this.xz = arg.xz || 0;
-                this.yx = arg.yx || 0;
-                this.yy = arg.yy || 0;
-                this.yz = arg.yz || 0;
-                this.zx = arg.zx || 0;
-                this.zy = arg.zy || 0;
-                this.zz = arg.zz || 0;
+                self.xx = arg.xx || 0;
+                self.xy = arg.xy || 0;
+                self.xz = arg.xz || 0;
+                self.yx = arg.yx || 0;
+                self.yy = arg.yy || 0;
+                self.yz = arg.yz || 0;
+                self.zx = arg.zx || 0;
+                self.zy = arg.zy || 0;
+                self.zz = arg.zz || 0;
             }
         }else if (alen === 9){
-            set(this,arguments);
+            set(self,arguments);
         }else{
             throw new Error('new Mat3(): wrong number of arguments:'+alen);
         }
+        return self;
     };
 
     module.Mat3 = Mat3;
@@ -1900,52 +1915,57 @@ var module = window;
     };
 
     function Mat4(){
+        var self = this;
+        if(this.constructor !== Mat4){
+            self = {};
+        }
         var alen = arguments.length;
         if(alen === 0){
-            this.xx = 1;
-            this.xy = 0;
-            this.xz = 0;
-            this.xw = 0;
-            this.yx = 0;
-            this.yy = 1;
-            this.yz = 0;
-            this.yw = 0;
-            this.zx = 0;
-            this.zy = 0;
-            this.zz = 1;
-            this.zw = 0;
-            this.wx = 0;
-            this.wy = 0;
-            this.wz = 0;
-            this.ww = 1;
+            self.xx = 1;
+            self.xy = 0;
+            self.xz = 0;
+            self.xw = 0;
+            self.yx = 0;
+            self.yy = 1;
+            self.yz = 0;
+            self.yw = 0;
+            self.zx = 0;
+            self.zy = 0;
+            self.zz = 1;
+            self.zw = 0;
+            self.wx = 0;
+            self.wy = 0;
+            self.wz = 0;
+            self.ww = 1;
         }else if(alen === 1){
             var arg = arguments[0];
             if(typeof arg === 'string'){
                 arg = JSON.parse(arg);
             }
             if(arg[0] !== undefined){
-                set(this,arg);
+                set(self,arg);
             }else{
-                this.xx = arg.xx || 0;
-                this.xy = arg.xy || 0;
-                this.xz = arg.xz || 0;
-                this.xw = arg.xw || 0;
-                this.yx = arg.yx || 0;
-                this.yy = arg.yy || 0;
-                this.yz = arg.yz || 0;
-                this.yw = arg.yw || 0;
-                this.zx = arg.zx || 0;
-                this.zy = arg.zy || 0;
-                this.zz = arg.zz || 0;
-                this.zw = arg.zw || 0;
-                this.wx = arg.wx || 0;
-                this.wy = arg.wy || 0;
-                this.wz = arg.wz || 0;
-                this.ww = arg.ww || 0;
+                self.xx = arg.xx || 0;
+                self.xy = arg.xy || 0;
+                self.xz = arg.xz || 0;
+                self.xw = arg.xw || 0;
+                self.yx = arg.yx || 0;
+                self.yy = arg.yy || 0;
+                self.yz = arg.yz || 0;
+                self.yw = arg.yw || 0;
+                self.zx = arg.zx || 0;
+                self.zy = arg.zy || 0;
+                self.zz = arg.zz || 0;
+                self.zw = arg.zw || 0;
+                self.wx = arg.wx || 0;
+                self.wy = arg.wy || 0;
+                self.wz = arg.wz || 0;
+                self.ww = arg.ww || 0;
             }
         }else if(alen === 16){
-            set(this,arguments);
+            set(self,arguments);
         }
+        return self;
     };
 
     var tmp_a = new Mat4();
@@ -2592,21 +2612,26 @@ var module = window;
     var Vec3 = module.Vec3;
 
     function Quat(){
+        var self = this;
+        if(this.constructor !== Quat){
+            self = {};
+        }
         var alen = arguments.length;
-        this.x = 0;
-        this.y = 0;
-        this.z = 0;
-        this.w = 1;
+        self.x = 0;
+        self.y = 0;
+        self.z = 0;
+        self.w = 1;
         if(alen){
             if(alen === 4){
-                this.x = arguments[0];
-                this.y = arguments[1];
-                this.z = arguments[2];
-                this.w = arguments[3];
+                self.x = arguments[0];
+                self.y = arguments[1];
+                self.z = arguments[2];
+                self.w = arguments[3];
             }else if(arguments.length === 2){
                 Quat.setRotationAxis(arguments[0],arguments[1]);
             }
         }
+        return self;
     };
 
     module.Quat = Quat;

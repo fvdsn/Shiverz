@@ -1,0 +1,106 @@
+body{
+	padding:0;
+	margin:0;
+	font-family:'Droid Sans','Sans';
+	font-size: 12px;
+	background: #4D8DFF;
+	color:white;
+}
+::selection{
+	background: yellow !important;
+}
+.bgnoise{
+	position: fixed;
+	left:0; right:0; top:0; bottom:0;
+	background: url('../img/noise.gif');
+	opacity: 0.04;
+}
+.vignette{
+	position: fixed;
+	left:0; right:0; top:0; bottom:0;
+	background-image: -webkit-radial-gradient(rgba(0,0,0,0),rgba(0,0,0,0.34));
+}
+.toc {
+	position: fixed;
+	left:0;
+	top:0;
+	bottom:0;
+	width:180px;
+	overflow-y: hidden;
+	overflow-x: hidden;
+	padding:10px;
+	padding-top:10px;
+	box-shadow: 1px 0px rgba(0,0,0,0.17), 2px 0px rgba(255,255,255,0.1);
+}
+.toc > *{
+	display: block;
+	margin-bottom: 7px;
+	font-family: 'Arvo'; 
+	font-size: 14px;
+	cursor: pointer;
+	text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.47);
+}
+
+.toc ul{
+	list-style: none;
+	padding:0;
+	margin:0;
+	margin-bottom: 7px;
+}
+.toc li{
+	padding-left:7px;
+	text-indent: 0px;
+	font-family: 'Droid Sans';
+	font-size: 12px;
+}
+.toc li:before{
+	content: "-";
+	margin-right: 7px;
+	color: rgba(255,255,255,0.4);
+}
+.main {
+	position: relative;
+	width:550px;
+	margin-left: 250px;
+}
+.main h1, .main h2, .main h3 {
+	font-family: 'Arvo';
+	font-weight: normal;
+}
+.main h1{
+	margin-top: 20px;
+	margin-bottom: 20px;
+	font-size: 100px;
+	text-shadow: 0px 1px #A9D3FF, 
+		     0px 2px #A9D3FF, 
+		     0px 3px #A9D3FF, 
+		     0px 4px #A9D3FF, 
+		     0px 4px 24px rgba(0, 47, 83, 0.47);
+}
+.content{
+	background: white;
+	color: #013050;
+	padding: 20px;
+	margin-bottom: 40px;
+	border-radius: 3px;
+	box-shadow:  0px 4px #A9D3FF, 
+		     0px 4px 24px rgba(0, 47, 83, 0.47);
+}
+.content pre{
+	display: inline-block;
+	font-family: 'Inconsolata';
+	margin-left: -20px;
+	width:100%;
+	padding-left:20px;
+	padding-right:20px;
+	padding-top:5px;
+	padding-bottom:5px;
+	font-size: 14px;
+	background: #f7f7f7;
+	border-top: solid 1px;
+	border-bottom: solid 1px;
+	border-color: #eee;
+	color: #06f;
+}
+
+
