@@ -10,15 +10,15 @@ window.modula = window.modula || {};
             this._cellSize = this.get('cellSize');
             if(!this._cellSize && options.cellSize){
                 if(typeof options.cellSize === 'number'){
-                    this._cellSize = new Vec2(options.cellSize, options.cellSize);
+                    this._cellSize = new V2(options.cellSize, options.cellSize);
                 }else{
                     this._cellSize = options.cellSize.clone();
                 }
             }else{
-                this._cellSize = new Vec2(32,32);
+                this._cellSize = new V2(32,32);
             }
-            this._invCellSize = new Vec2(1 / this._cellSize.x, 1 / this._cellSize.y);
-            this._size = new Vec2( this._cellX * this._cellSize.x,
+            this._invCellSize = new V2(1 / this._cellSize.x, 1 / this._cellSize.y);
+            this._size = new V2( this._cellX * this._cellSize.x,
                                   this._cellY * this._cellSize.y  );
 
             this._cell = this._cell || options.cells || [];
@@ -182,9 +182,9 @@ window.modula = window.modula || {};
                     var dx = esc_l < -esc_r ? esc_l : esc_r;
                     var dy = esc_u < -esc_d ? esc_u : esc_d;
                     if(Math.abs(dx) < Math.abs(dy)){
-                        return new Vec2(dx,0);
+                        return new V2(dx,0);
                     }else{
-                        return new Vec2(0,dy);
+                        return new V2(0,dy);
                     }
                 }else{
                     return undefined;
@@ -196,9 +196,9 @@ window.modula = window.modula || {};
                 if(solid_u && solid_d){
                     return null; // error
                 }else if(solid_u){
-                    return new Vec2(0,esc_u);
+                    return new V2(0,esc_u);
                 }else if(solid_d){
-                    return new Vec2(0,esc_d);
+                    return new V2(0,esc_d);
                 }else{
                     return undefined;
                 }
@@ -209,9 +209,9 @@ window.modula = window.modula || {};
                 if(solid_l && solid_r){
                     return null; // error
                 }else if(solid_l){
-                    return new Vec2(esc_l,0);
+                    return new V2(esc_l,0);
                 }else if(solid_r){
-                    return new Vec2(esc_r,0);
+                    return new V2(esc_r,0);
                 }else{
                     return undefined;
                 }
@@ -248,16 +248,16 @@ window.modula = window.modula || {};
                             return null; //WIP
                         }
                     }
-                    return new Vec2(dx,dy);
+                    return new V2(dx,dy);
                 }else{
                     if(solid_dl){
-                        return -esc_d < esc_l ? new Vec2(0,esc_d) : new Vec2(esc_l,0);
+                        return -esc_d < esc_l ? new V2(0,esc_d) : new V2(esc_l,0);
                     }else if(solid_dr){
-                        return -esc_d < -esc_r ? new Vec2(0,esc_d) : new Vec2(esc_r,0);
+                        return -esc_d < -esc_r ? new V2(0,esc_d) : new V2(esc_r,0);
                     }else if(solid_ur){
-                        return esc_u < -esc_r ? new Vec2(0,esc_u) : new Vec2(esc_r, 0);
+                        return esc_u < -esc_r ? new V2(0,esc_u) : new V2(esc_r, 0);
                     }else{
-                        return esc_u < esc_l ? new Vec2(0,esc_u) : new Vec2(esc_l,0);
+                        return esc_u < esc_l ? new V2(0,esc_u) : new V2(esc_l,0);
                     }
                 }
             }

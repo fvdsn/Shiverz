@@ -4,6 +4,8 @@
         <meta charset="utf-8">
         <title>Vec.js</title>
         <script src="js/lib/jquery.js"></script>
+        <script src="js/engine/vec.js"></script>
+        <script src="js/engine/vectest.js"></script>
         <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700' rel='stylesheet' type='text/css'>
         <link href='http://fonts.googleapis.com/css?family=Arvo:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
         <link href='http://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
@@ -47,23 +49,85 @@
         <div class='main'>
             <h1> Vec.js </h1>
             <div class='content'>
-                <p> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
+                <p> 
+                    Vec.js is a stand-alone 2D/3D vector math javascript library targeted at 
+                    html5 graphical applications. It is fast, concise, comprehensive
+                    and interoperates well with the WebGL and CSS stack. It provides 
+                    2D/3D vectors, 2D/3D transform matrices, and quaternions primitives with functional
+                    and imperative methods
+                    </p>
+                    <p>
+                    The project (code and website) is hosted on GitHub, and is available under the MIT Software License.
+                    Bugs,ideas and suggestions can be reported on the GitHub issues page.
+                    </p>
+                    
                 <h2> Downloads </h2>
-                <p> Here are some links</p>
-                <a href='#'>link1</a>
-                <a href='#'>link1</a>
+                <ul class='downloads'>
+                    <li><a href='#'>Developer Version (0.1)</a></li>
+                    <li><a href='#'>Minified Version (0.1)</a></li>
+                </ul>
+
                 <h2> Introduction </h2>
-                <p> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
-                <pre>
-var x = 2;
-function a(){
-        foobar();
-};
+                <p>
+                There are three big challenges when designing a vector library for javascript.
+                The first is performance:
+                </p>
+                <h3>Performance</h3>
+                <p>
+                Despite the large progress that has been made regarding javascript
+                interpreter's performance, they cannot hope to match the performance provided by
+                compiled languages like C or C++. A javascript vector library
+                must then avoid to make things worse, and even help by providing efficient implementation of the
+                common operations
+                </p>
+                <h3>Managing references</h3>
+                <p>
+                    Another challenge is the fact the vector objects are passed by references. It means 
+                    that the programmer cannot reason with vectors as values and must be carefull when
+                    doing math not to overwrite an unrelated vector by mistake. It also means that
+                    creating vectors allocates new memory, that has to be garbage collected, making
+                    vector creation an expensive operation. 
+               </p><p>
+               The solution to the first problem is having a functional API, vector instances are
+               considered of constant value, and all operators return a new vector instance. But
+               this solution makes the second problem much worse. 
+               </p><p>
+               Vec.js solves this by providing both a functional and imperative API in interoperable fashion
+               </p><p>
+               The functional API is designed to be easier to write and to read at the expense of
+               performance. The functional API is accessed trough the object's method, and all operators
+               return their result as a new instance:<p>
+                </p>
+<pre>
+// example usage of the functional API
+var center = v1.add(v2).div(2);
+var speed  = speed.add(accel.scale(deltaTime));
 </pre>
-                <h2> Performance </h2>
-                <p> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
-                <h2> Examples </h2>
-                <p> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
+                <p>
+                The imperative API never instanciates vectors; operations are always applied on the
+                first operand. The imperative API is accessed by the class methods. 
+                </p>
+<pre>
+// example usage of the imperative API
+V2.copy(center,v1);
+V2.add(center,v2);
+V2.div(center,2);
+
+V2.copy(tmp,accel);
+V2.scale(tmp,deltaTime);
+V2.add(speed,tmp);
+</pre>
+                <p>
+                The imperative API is from 50% to 200% faster than the functional, but what is gained in performance is
+                lost in code clarity. I would advise preferring the functional whenever and wherever performance is
+                not a bottleneck.
+                </p>
+                <h3>Interoperability</h3>
+                <p>
+                Another challenge is interoperability with the HTML5 API and other third party libraries;
+                a very flexible language and a moving target as a platform makes for a very chaotic development
+                environment. 
+                </p>
             </div>
         </div>
     </body>

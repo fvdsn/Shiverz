@@ -81,12 +81,12 @@ window.modula = window.modula || {};
         }
     };
 
-    if(modula.Vec2){
+    if(modula.V2){
         
-        var proto = modula.Vec2.prototype;
+        var proto = modula.V2.prototype;
         
         proto.draw = function(color){
-            modula.draw.line(new Vec2(0,0), this, color);
+            modula.draw.line(new V2(0,0), this, color);
             return this;
         };
 
@@ -103,8 +103,8 @@ window.modula = window.modula || {};
         proto.drawToWorld = function(size){
             size = size || 10;
             var center = this.getWorldPos();
-            var x = this.localToWorld(new Vec2(size,0));
-            var y = this.localToWorld(new Vec2(0,size));
+            var x = this.localToWorld(new V2(size,0));
+            var y = this.localToWorld(new V2(0,size));
             var c = modula.draw.context;
 
             c.save();

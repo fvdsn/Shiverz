@@ -34,7 +34,7 @@ window.import_assets = function(module){
         pass:'projectiles',
         src:'img/projectile-green.png',
         compose: 'lighter',
-        pos: new Vec2(-20,0),
+        pos: new V2(-20,0),
         centered:true,
     });
 
@@ -49,7 +49,7 @@ window.import_assets = function(module){
         pass:'projectiles',
         src:'img/projectile-red.png',
         compose: 'lighter',
-        pos: new Vec2(-20,0),
+        pos: new V2(-20,0),
         centered:true,
     });
 
@@ -76,31 +76,31 @@ window.import_assets = function(module){
     
     module.assets.blockSpriteUnder = new RendererCanvas2d.DrawableSprite({
         src:'img/block-under.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     module.assets.blockSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/block.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     module.assets.blockSpritePurpleUnder = new RendererCanvas2d.DrawableSprite({
         src:'img/block-purple-under.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     module.assets.blockSpritePurple = new RendererCanvas2d.DrawableSprite({
         src:'img/block-purple.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     module.assets.blockSpriteGray = new RendererCanvas2d.DrawableSprite({
         src:'img/block-gray.png',
-        pos:new Vec2(-12,16),
+        pos:new V2(-12,16),
     });
 
     module.assets.blockSpriteDark = new RendererCanvas2d.DrawableSprite({
         src:'img/block-dark-gray.png',
-        pos:new Vec2(-12,16),
+        pos:new V2(-12,16),
     });
 };

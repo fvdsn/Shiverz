@@ -32,14 +32,14 @@ window.modula = window.modula || {};
     modula.Rect = Rect;
 
     Rect.prototype = new Bound();
-    Rect.prototype.min = function(){  return new Vec2(this.x, this.y); };
+    Rect.prototype.min = function(){  return new V2(this.x, this.y); };
     Rect.prototype.minX = function(){ return this.x; };
     Rect.prototype.minY = function(){ return this.y; };
-    Rect.prototype.max = function(){  return new Vec2(this.mx, this.my); };
+    Rect.prototype.max = function(){  return new V2(this.mx, this.my); };
     Rect.prototype.maxX = function(){ return this.mx; };
     Rect.prototype.maxY = function(){ return this.my; };
-    Rect.prototype.size = function(){ return new Vec2(this.sx, this.sy); };
-    Rect.prototype.center = function(){return new Vec2(this.cx, this.cy); };
+    Rect.prototype.size = function(){ return new V2(this.sx, this.sy); };
+    Rect.prototype.center = function(){return new V2(this.cx, this.cy); };
     Rect.prototype.equals = function(b){ return ( this.cx === b.cx && this.cy === b.cy && this.sx === b.sx && this.sy === b.sy); };
     Rect.prototype.clone  = function(){  return new Rect(this.x,this.y,this.sx, this.sy)};
     Rect.prototype.cloneAt = function(center){ return new Rect(center.x - this.hx, center.y -this.hy, this.sx, this.sy); };
@@ -60,7 +60,7 @@ window.modula = window.modula || {};
         if(fcd < 0 || fcd > 1){
             return null;
         }
-        return new Vec2(a.x + fab * (b.x-a.x), a.y + fab * (b.y - a.y) );
+        return new V2(a.x + fab * (b.x-a.x), a.y + fab * (b.y - a.y) );
     }
 
     // returns an unordered list of vector defining the positions of the intersections between the ellipse's
@@ -68,8 +68,8 @@ window.modula = window.modula || {};
 
     Rect.prototype.collideSegment = function(a,b){
         var collisions = [];
-        var corners = [ new Vec2(this.x,this.y), new Vec2(this.x,this.my), 
-                        new Vec2(this.mx,this.my), new Vec2(this.mx,this.y) ];
+        var corners = [ new V2(this.x,this.y), new V2(this.x,this.my), 
+                        new V2(this.mx,this.my), new V2(this.mx,this.y) ];
         var pos = lineIntersect(a,b,corners[0],corners[1]);
         if(pos) collisions.push(pos);
         pos = lineIntersect(a,b,corners[1],corners[2]);
@@ -81,11 +81,11 @@ window.modula = window.modula || {};
         return collisions;
     };
     Rect.prototype.contains = function(arg){
-        if(arg instanceof Vec2){
+        if(arg instanceof V2){
             return ( arg.x >= this.x && arg.x <= this.mx &&
                      arg.y >= this.y && arg.y <= this.my );
         }else if(arguments.length === 2){
-            return this.contains(new Vec2(arguments[0],arguments[1]));
+            return this.contains(new V2(arguments[0],arguments[1]));
         }else if( arg instanceof Rect){
             return (arg.x >= this.x && arg.mx <= this.mx &&
                     arg.y >= this.y && arg.my <= this.my );
@@ -131,14 +131,14 @@ window.modula = window.modula || {};
         var dx = boundEscapeDist(this.x, this.mx, b.x, b.mx); 
         var dy = boundEscapeDist(this.y, this.my, b.y, b.my);
         if( Math.abs(dx) < Math.abs(dy) ){
-            return new Vec2(dx,0);
+            return new V2(dx,0);
         }else{
-            return new Vec2(0,dy);
+            return new V2(0,dy);
         }
     };
     
     Rect.prototype.collisionVector = function(b){
-        return new Vec2( 
+        return new V2( 
             boundEscapeDist(this.x, this.mx, b.x, b.mx),
             boundEscapeDist(this.y, this.my, b.y, b.my)  
         );
@@ -151,10 +151,10 @@ window.modula = window.modula || {};
         }
         var v1,v2,v3,v4,x,y,mx,my;
 
-        v1 = mat.multVec(new Vec2(this.cx-this.hx, this.cy-this.hy));
-        v2 = mat.multVec(new Vec2(this.cx-this.hx, this.cy+this.hy));
-        v3 = mat.multVec(new Vec2(this.cx+this.hx, this.cy-this.hy));
-        v4 = mat.multVec(new Vec2(this.cx+this.hx, this.cy+this.hy));
+        v1 = mat.multVec(new V2(this.cx-this.hx, this.cy-this.hy));
+        v2 = mat.multVec(new V2(this.cx-this.hx, this.cy+this.hy));
+        v3 = mat.multVec(new V2(this.cx+this.hx, this.cy-this.hy));
+        v4 = mat.multVec(new V2(this.cx+this.hx, this.cy+this.hy));
 
         x = Math.min(Math.min(v1.x,v2.x),Math.min(v3.x,v4.x));
         y = Math.min(Math.min(v1.y,v2.y),Math.min(v3.y,v4.y));

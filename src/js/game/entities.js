@@ -133,7 +133,7 @@ window.import_ents = function(module){
                     this.grid = new Grid({
                         cellX: lvl.cellX,
                         cellY: lvl.cellY,
-                        cellSize: new Vec2(lvl.cellSize),
+                        cellSize: new V2(lvl.cellSize),
                         cells: lvl.cells,
                     });
                 }
@@ -211,7 +211,7 @@ window.import_ents = function(module){
         radius: 5,
         init: function(opt){
             this._super(opt);
-            this.speedVec = opt.speedVec || new Vec2();
+            this.speedVec = opt.speedVec || new V2();
             this.transform.setRotation(this.speedVec.azimuth());
             this.bound = new Rect(0,0,this.radius*2,this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
@@ -248,7 +248,7 @@ window.import_ents = function(module){
         explDamage: 90,
         explKnockback: 500,
         expl: null,
-        dir : new Vec2(1,0),
+        dir : new V2(1,0),
         init: function(opt){
             this._super(opt);
             this.owner = opt.owner || this.owner;
@@ -271,9 +271,11 @@ window.import_ents = function(module){
                     var ent = entities[i];
                     if(ent instanceof ents.PlayerShip){
                         dist = this.transform.dist(ent.transform);
+                        console.log('dist:',dist);
                         if(dist.len() < this.explRadius){
                             if(ent.damage){
-                                var fac = 1 - dist.len() / this.explRadius;
+                                var fac = 1 - (dist.len() || 1) / this.explRadius;
+                                console.log('fac:',fac);
                                 ent.damage(this.explDamage * fac,
                                            this.explKnockback * fac,
                                            dist.normalize());
@@ -321,7 +323,7 @@ window.import_ents = function(module){
                 return;
             }
             for(var i = 0; i < 40; i++){
-                var dir = Vec2.random().setLen(Math.random()*100 + 200);
+                var dir = V2.random().setLen(Math.random()*100 + 200);
                 this.scene.add(new ents.Particle({
                     drawable: this.smoke,
                     pos:this.transform.getPos().add(dir.scale(0.1)),
@@ -351,7 +353,7 @@ window.import_ents = function(module){
                 this.scene.add(new ents.Particle({
                     drawable: assets.missileSmoke,
                     pos:this.transform.getPos(),
-                    speedVec: this.speedVec.scale(0.5).add(Vec2.random().scale(100)),
+                    speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
                 this.lastSmokeTime = this.scene.time;
@@ -374,7 +376,7 @@ window.import_ents = function(module){
                 this.scene.add(new ents.Particle({
                     drawable: assets.boltSmoke,
                     pos:this.transform.getPos(),
-                    speedVec: this.speedVec.scale(0.5).add(Vec2.random().scale(100)),
+                    speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
                 this.lastSmokeTime = this.scene.time;
@@ -428,7 +430,7 @@ window.import_ents = function(module){
                     owner: this.owner,
                     pos: pos,
                     dir: dir,
-                    heritSpeed: (heritSpeed || new Vec2()).scale(this.inheritance),
+                    heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
                 });
                 this.main.scene.add(proj);
             }
@@ -522,16 +524,16 @@ window.import_ents = function(module){
             $('.fps').html(''+this.getAvgFPS()+ ' fps');
 
             if(input.isKeyDown('z')){
-                this.increase('scale',new Vec2(1*this.main.deltaTime));
+                this.increase('scale',new V2(1*this.main.deltaTime));
             }else if(input.isKeyDown('x')){
-                this.increase('scale',new Vec2(-1*this.main.deltaTime));
+                this.increase('scale',new V2(-1*this.main.deltaTime));
             }
             if(input.isKeyDown('c')){
                 this.increase('rotation',1*this.main.deltaTime);
             }else if(input.isKeyDown('v')){
                 this.increase('rotation',-1*this.main.deltaTime);
             }
-            var center = new Vec2( 
+            var center = new V2( 
                     window.innerWidth/2,
                     window.innerHeight/2
             );
@@ -601,11 +603,11 @@ window.import_ents = function(module){
             
             this.spec = opt.spec || this.spec || new ents.ShipSpec();
 
-            this.moveSpeed    = new Vec2();
-            this.moveDir      = new Vec2();
-            this.aimdir       = new Vec2();
+            this.moveSpeed    = new V2();
+            this.moveDir      = new V2();
+            this.aimdir       = new V2();
 
-            this.knockSpeed    = new Vec2();
+            this.knockSpeed    = new V2();
             this.knockTime     = 0;
 
             this.weapons  = {
@@ -630,7 +632,7 @@ window.import_ents = function(module){
 
             this.collisionBehaviour = 'emit';
             this.bound = new Rect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
-            this.colVec = new Vec2();
+            this.colVec = new V2();
 
 
         },
@@ -737,7 +739,7 @@ window.import_ents = function(module){
             }
             
             if(!lvl.editing &&input.isKeyDown('fire')){
-                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new Vec2();
+                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
                 if(this.weapon.fire(this.get('pos'), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
                     this.lastFireTime = this.scene.time;
                 }

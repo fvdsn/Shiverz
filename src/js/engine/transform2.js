@@ -11,15 +11,15 @@ window.modula = window.modula || {};
 
     function Transform2(tr){
         tr = tr || {};
-        this.pos = tr.pos ? tr.pos.clone() : new Vec2();
+        this.pos = tr.pos ? tr.pos.clone() : new V2();
         if(tr.scale){
             if(typeof tr.scale === 'number'){
-                this.scale = new Vec2(tr.scale,tr.scale);
+                this.scale = new V2(tr.scale,tr.scale);
             }else{
                 this.scale = tr.scale.clone();
             }
         }else{
-            this.scale = new Vec2(1,1);
+            this.scale = new V2(1,1);
         }
         this.rotation = tr.rotation !== undefined ? tr.rotation : 0;
 
@@ -62,7 +62,8 @@ window.modula = window.modula || {};
             tr.parentToLocalMatrix = tr.localToParentMatrix.invert();
             if(tr.parent){
                 make_matrix(tr.parent);
-                tr.localToWorldMatrix = tr.parent.localToWorldMatrix.mult(tr.localToParentMatrix);
+                // tr.localToWorldMatrix = tr.parent.localToWorldMatrix.mult(tr.localToParentMatrix); 
+                tr.localToWorldMatrix = tr.localToParentMatrix.mult(tr.parent.localToWorldMatrix);  //INVERTED
                 tr.worldToLocalMatrix = tr.localToWorldMatrix.invert();
             }else{
                 tr.localToWorldMatrix = tr.localToParentMatrix;
@@ -100,11 +101,13 @@ window.modula = window.modula || {};
     };
 
     proto.getDistantToLocalMatrix = function(dist){
-        return this.getWorldToLocalMatrix().mult(dist.getLocalToWorldMatrix());
+        //return this.getWorldToLocalMatrix().mult(dist.getLocalToWorldMatrix());
+        return dist.getLocalToWorldMatrix().mult(this.getWorldToLocalMatrix());
     }
 
     proto.getLocalToDistantMatrix = function(dist){
-        return this.getLocalToWorldMatrix().mult(dist.getWorldToLocalMatrix());
+        //return this.getLocalToWorldMatrix().mult(dist.getWorldToLocalMatrix());
+        return dist.getWorldToLocalMatrix().mult(this.getLocalToWorldMatrix()); //FIXME looks fishy ...
     }
 
     proto.equals = function(tr){
@@ -160,7 +163,7 @@ window.modula = window.modula || {};
     };
 
     proto.getWorldPos = function(){
-        return this.getLocalToWorldMatrix().mult(new Vec2());
+        return this.getLocalToWorldMatrix().mult(new V2());
     };
 
     proto.parentToLocal = function(vec){
@@ -190,14 +193,15 @@ window.modula = window.modula || {};
     };
 
     proto.X = function(){
-        return this.localToWorld(new Vec2(1,0)).sub(this.getWorldPos()).normalize();
+        return this.localToWorld(new V2(1,0)).sub(this.getWorldPos()).normalize();
     };
 
     proto.Y = function(){
-        return this.localToWorld(new Vec2(0,1)).sub(this.getWorldPos()).normalize();
+        return this.localToWorld(new V2(0,1)).sub(this.getWorldPos()).normalize();
     };
 
     proto.dist = function(tr){
+        console.log('dist:',this,tr);
         return tr.getWorldPos().sub(this.getWorldPos());
     };
 

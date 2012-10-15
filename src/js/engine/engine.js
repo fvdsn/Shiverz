@@ -164,13 +164,13 @@ window.modula = window.modula || {};
             this._mouseStatusPrevious = 'out';
             this._mouseStatusSystem = 'out';
 
-            this._mousePosSystem = new Vec2();
-            this._mousePos = new Vec2();
-            this._mousePosPrevious = new Vec2();
-            this._mousePosDelta = new Vec2();
+            this._mousePosSystem = new V2();
+            this._mousePos = new V2();
+            this._mousePosPrevious = new V2();
+            this._mousePosDelta = new V2();
 
-            this._mouseDragPos = new Vec2();
-            this._mouseDragDeltaPos = new Vec2();
+            this._mouseDragPos = new V2();
+            this._mouseDragDeltaPos = new V2();
             this._mouseDrag = 'no'; // 'no' | 'dragging' | 'dragStart' | 'dragEnd'
             this._mouseEvents = [];
 
@@ -206,7 +206,7 @@ window.modula = window.modula || {};
                     totalOffsetY += domElement.offsetTop;
                 }while((domElement = domElement.offsetParent));
                 
-                return new Vec2(
+                return new V2(
                     event.pageX - totalOffsetX,
                     event.pageY - totalOffsetY 
                 );
@@ -275,8 +275,8 @@ window.modula = window.modula || {};
             }
             this._keyEvents = [];
 
-            this._mousePosPrevious = this._mousePos || new Vec2();
-            this._mousePos = this._mousePosSystem || new Vec2();
+            this._mousePosPrevious = this._mousePos || new V2();
+            this._mousePos = this._mousePosSystem || new V2();
             this._mousePosDelta = this._mousePos.sub(this._mousePosPrevious);
             
             this._mouseStatusPrevious = this._mouseStatus;
@@ -375,7 +375,7 @@ window.modula = window.modula || {};
         onUpdate : function(){},
         getMouseWorldPos: function(){
             if(!this.main || !this.main.input){
-                return new Vec2();
+                return new V2();
             }
             var mpos = this.main.input.getMousePos();
             if(this.scene.renderer){
@@ -420,7 +420,7 @@ window.modula = window.modula || {};
     });
 
     modula.Renderer = modula.Class.extend({
-        _size : new Vec2(),
+        _size : new V2(),
         alwaysRedraw:true,
         renderBackground: function(){},
         drawFrame: function(scene,camera){},
@@ -451,11 +451,11 @@ window.modula = window.modula || {};
             this.compose = options.compose || 'source-over'; 
             this.globalAlpha = options.globalAlpha || 1; 
             this._get_size = options.getSize || this._get_size;
-            this._size = new Vec2();
+            this._size = new V2();
             this.passes = options.passes || this.passes;
         },
         _get_size: function(){
-            return new Vec2(this.canvas.width, this.canvas.height);
+            return new V2(this.canvas.width, this.canvas.height);
         },
         mustRedraw: function(){
             return !this._size.equals(this.get('size'));
@@ -576,19 +576,19 @@ window.modula = window.modula || {};
             }
 
             function onload(){
-                self._size = new Vec2(self._image.width, self._image.height);
+                self._size = new V2(self._image.width, self._image.height);
             }
             this._image.onload = onload;
             onload();
 
             if(options.cellSize){
                 if(typeof options.cellSize === 'number'){
-                    this._cellSize = new Vec2(options.cellSize, options.cellSize);
+                    this._cellSize = new V2(options.cellSize, options.cellSize);
                 }else{
                     this._cellSize = options.cellSize.clone();
                 }
             }else{ 
-                this._cellSize = this.get('cellSize') || new Vec2(32,32);
+                this._cellSize = this.get('cellSize') || new V2(32,32);
             }
             this._sprites = {};
             this._spriteNames = [];
@@ -662,7 +662,7 @@ window.modula = window.modula || {};
                 self._dst_sx = options.dst_sx || self._src_sx;
                 self._dst_sy = options.dst_sy || self._src_sy;
 
-                self.pos   = options.pos ? options.pos.clone() : new Vec2();
+                self.pos   = options.pos ? options.pos.clone() : new V2();
             }
             this._image.onload = onload;
             onload();
@@ -1248,7 +1248,7 @@ window.modula = window.modula || {};
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collisionVector(ebound);
                 }
-                return new Vec2();
+                return new V2();
             }else if(ent instanceof Bound){
                 return this.bound.cloneAt(this.transform.getPos()).collisionVector(ent);
             }
@@ -1264,7 +1264,7 @@ window.modula = window.modula || {};
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collisionAxis(ebound);
                 }
-                return new Vec2();
+                return new V2();
             }else if(ent instanceof Bound){
                 return this.bound.cloneAt(this.transform.getPos()).collisionAxis(ent);
             }

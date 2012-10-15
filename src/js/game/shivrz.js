@@ -74,7 +74,7 @@ window.onload = function() {
         pass:'projectiles',
         src:'img/projectile-green.png',
         compose: 'lighter',
-        pos: new Vec2(-20,0),
+        pos: new V2(-20,0),
         centered:true,
     });
 
@@ -89,7 +89,7 @@ window.onload = function() {
         pass:'projectiles',
         src:'img/projectile-red.png',
         compose: 'lighter',
-        pos: new Vec2(-20,0),
+        pos: new V2(-20,0),
         centered:true,
     });
 
@@ -116,32 +116,32 @@ window.onload = function() {
     
     var blockSpriteUnder = new RendererCanvas2d.DrawableSprite({
         src:'img/block-under.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     var blockSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/block.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     var blockSpritePurpleUnder = new RendererCanvas2d.DrawableSprite({
         src:'img/block-purple-under.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     var blockSpritePurple = new RendererCanvas2d.DrawableSprite({
         src:'img/block-purple.png',
-        pos:new Vec2(-12,-16),
+        pos:new V2(-12,-16),
     });
 
     var blockSpriteGray = new RendererCanvas2d.DrawableSprite({
         src:'img/block-gray.png',
-        pos:new Vec2(-12,16),
+        pos:new V2(-12,16),
     });
 
     var blockSpriteDark = new RendererCanvas2d.DrawableSprite({
         src:'img/block-dark-gray.png',
-        pos:new Vec2(-12,16),
+        pos:new V2(-12,16),
     });
 
     var bindings = {
@@ -289,7 +289,7 @@ window.onload = function() {
                     this.grid = new Grid({
                         cellX: lvl.cellX,
                         cellY: lvl.cellY,
-                        cellSize: new Vec2(lvl.cellSize),
+                        cellSize: new V2(lvl.cellSize),
                         cells: lvl.cells,
                     });
                 }
@@ -366,7 +366,7 @@ window.onload = function() {
         radius: 5,
         init: function(opt){
             this._super(opt);
-            this.speedVec = opt.speedVec || new Vec2();
+            this.speedVec = opt.speedVec || new V2();
             this.transform.setRotation(this.speedVec.azimuth());
             this.bound = new Rect(0,0,this.radius*2,this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
@@ -403,7 +403,7 @@ window.onload = function() {
         explDamage: 90,
         explKnockback: 500,
         expl: null,
-        dir : new Vec2(1,0),
+        dir : new V2(1,0),
         init: function(opt){
             this._super(opt);
             this.owner = opt.owner || this.owner;
@@ -476,7 +476,7 @@ window.onload = function() {
                 return;
             }
             for(var i = 0; i < 40; i++){
-                var dir = Vec2.random().setLen(Math.random()*100 + 200);
+                var dir = V2.random().setLen(Math.random()*100 + 200);
                 this.scene.add(new Particle({
                     drawable: this.smoke,
                     pos:this.transform.getPos().add(dir.scale(0.1)),
@@ -506,7 +506,7 @@ window.onload = function() {
                 this.scene.add(new Particle({
                     drawable: missileSmoke,
                     pos:this.transform.getPos(),
-                    speedVec: this.speedVec.scale(0.5).add(Vec2.random().scale(100)),
+                    speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
                 this.lastSmokeTime = this.scene.time;
@@ -529,7 +529,7 @@ window.onload = function() {
                 this.scene.add(new Particle({
                     drawable: boltSmoke,
                     pos:this.transform.getPos(),
-                    speedVec: this.speedVec.scale(0.5).add(Vec2.random().scale(100)),
+                    speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
                 this.lastSmokeTime = this.scene.time;
@@ -583,7 +583,7 @@ window.onload = function() {
                     owner: this.owner,
                     pos: pos,
                     dir: dir,
-                    heritSpeed: (heritSpeed || new Vec2()).scale(this.inheritance),
+                    heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
                 });
                 this.main.scene.add(proj);
             }
@@ -677,16 +677,16 @@ window.onload = function() {
             $('.fps').html(''+this.getAvgFPS()+ ' fps');
 
             if(input.isKeyDown('z')){
-                this.increase('scale',new Vec2(1*this.main.deltaTime));
+                this.increase('scale',new V2(1*this.main.deltaTime));
             }else if(input.isKeyDown('x')){
-                this.increase('scale',new Vec2(-1*this.main.deltaTime));
+                this.increase('scale',new V2(-1*this.main.deltaTime));
             }
             if(input.isKeyDown('c')){
                 this.increase('rotation',1*this.main.deltaTime);
             }else if(input.isKeyDown('v')){
                 this.increase('rotation',-1*this.main.deltaTime);
             }
-            var center = new Vec2( 
+            var center = new V2( 
                     window.innerWidth/2,
                     window.innerHeight/2
             );
@@ -757,11 +757,11 @@ window.onload = function() {
             
             this.spec = opt.spec || this.spec || new ShipSpec();
 
-            this.moveSpeed    = new Vec2();
-            this.moveDir      = new Vec2();
-            this.aimdir       = new Vec2();
+            this.moveSpeed    = new V2();
+            this.moveDir      = new V2();
+            this.aimdir       = new V2();
 
-            this.knockSpeed    = new Vec2();
+            this.knockSpeed    = new V2();
             this.knockTime     = 0;
 
             this.weapons  = {
@@ -786,7 +786,7 @@ window.onload = function() {
 
             this.collisionBehaviour = 'emit';
             this.bound = new Rect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
-            this.colVec = new Vec2();
+            this.colVec = new V2();
 
 
         },
@@ -893,7 +893,7 @@ window.onload = function() {
             }
             
             if(!lvl.editing &&input.isKeyDown('fire')){
-                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new Vec2();
+                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
                 if(this.weapon.fire(this.get('pos'), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
                     this.lastFireTime = this.scene.time;
                 }
@@ -960,7 +960,7 @@ window.onload = function() {
         onSceneStart: function(){
             this.lastTime = -1;
             this.add(new PlayerShip({
-                pos: new Vec2(
+                pos: new V2(
                     window.innerWidth/2,
                     window.innerHeight/2
                 ),
@@ -969,7 +969,7 @@ window.onload = function() {
             /*
             for(var i = 0; i < 50; i++){
                 this.add(new Building({
-                    pos:Vec2.newRandomPositive().scale(4000,2000).add(new Vec2(-1000,-1000)),
+                    pos:V2.newRandomPositive().scale(4000,2000).add(new V2(-1000,-1000)),
                     height: Math.random(), //-(Math.random()+0.1),
                 }))
             }*/
@@ -994,7 +994,7 @@ window.onload = function() {
                 ],
                 canvas:window.canvas,
                 getSize: function(){
-                    return new Vec2(window.innerWidth,window.innerHeight);
+                    return new V2(window.innerWidth,window.innerHeight);
                 },
                 background: 'rgba(40,35,30,1)',
                 alwaysRedraw: false,

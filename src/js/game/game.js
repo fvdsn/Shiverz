@@ -52,7 +52,7 @@ window.import_game = function(module){
                 ],
                 canvas: document.getElementById('game_canvas'), 
                 getSize: function(){
-                    return new Vec2(window.innerWidth, window.innerHeight);
+                    return new V2(window.innerWidth, window.innerHeight);
                 },
                 background: 'rgba(40,35,30,1)',
                 alwaysRedraw: true,
@@ -61,7 +61,7 @@ window.import_game = function(module){
                 renderer: renderer,
                 onSceneStart: function(){
                     var player = new ents.PlayerShip({
-                        pos: new Vec2(window.innerWidth/2, window.innerHeight/2),
+                        pos: new V2(window.innerWidth/2, window.innerHeight/2),
                     });
                     this.add(player);
                     this.add(ents.lvl);

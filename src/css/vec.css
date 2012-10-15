@@ -8,6 +8,7 @@ body{
 }
 ::selection{
 	background: yellow !important;
+	color: black !important;
 }
 .bgnoise{
 	position: fixed;
@@ -60,7 +61,8 @@ body{
 }
 .main {
 	position: relative;
-	width:550px;
+	width:600px;
+	font-size:12px;
 	margin-left: 250px;
 }
 .main h1, .main h2, .main h3 {
@@ -86,6 +88,28 @@ body{
 	box-shadow:  0px 4px #A9D3FF, 
 		     0px 4px 24px rgba(0, 47, 83, 0.47);
 }
+.content .downloads a{
+	display: inline-block;
+	min-width: 150px;
+	height: 30px;
+	line-height: 30px;
+	margin: 5px;
+	background: #0070ff;
+	color: #FFF;
+	border-radius: 3px;
+	text-decoration: none;
+	text-align: center;
+	text-shadow: 0px 0px 23px black;
+	box-shadow: 0px 1px rgba(255, 255, 255, 0.2),0px 3px #6AA8F7, 0px 3px 10px rgba(0, 70, 158, 0.48);
+}
+
+.content .downloads li{
+	list-style: none;
+}
+.content p{
+	text-align: justify;
+}
+
 .content pre{
 	display: inline-block;
 	font-family: 'Inconsolata';
