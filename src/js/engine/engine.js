@@ -35,6 +35,8 @@ window.modula = window.modula || {};
             this.timeSystem = 0;
             this.startTime = 0;
             this.fps = options.fps || 60;
+            this.minfps = options.minfps || 30;
+            this.maxfps = options.maxfps || 120;
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
             if(options.input){
@@ -73,18 +75,10 @@ window.modula = window.modula || {};
         exit:       function(){
             this.running = false;
         },
-        runStart:   function(){
+        _runFrame:   function(){
             var date = new Date();
-            this.running = true;
-            this.startTime = date.getTime() * 0.001;
-            this.time = 0;
-            this.timeSystem = this.startTime;
-            this.restartTime = -1;
-            this.frame = 0;
-        },
-        runFrame:   function(){
-            var date = new Date();
-            this.deltaTime  = date.getTime() * 0.001 - this.timeSystem;
+            this.deltaTime  = Math.min(1/this.minfps,Math.max(1/this.maxfps,
+                        date.getTime() * 0.001 - this.timeSystem));
             this.timeSystem = date.getTime() * 0.001;
             this.time = this.timeSystem - this.startTime;
 
@@ -92,7 +86,6 @@ window.modula = window.modula || {};
                 this.input.processEvents();
             }
             for(i = 0; i < this.sceneList.length; i++){
-                var redraw = false;
                 this.scene = this.sceneList[i];
                 var camera = this.scene.camera;
                 var renderer = this.scene.renderer;
@@ -103,10 +96,9 @@ window.modula = window.modula || {};
                     this.scene.onSceneStart();
                 }
                 this.scene.onFrameStart();
-
-                redraw = this.scene.runFrame(this.deltaTime);
+                this.scene.step(this.deltaTime);
                 
-                if(camera && renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
+                if(camera && renderer){
                     if(renderer.zsort){
                         scene._rootEntityList.sort(function(a,b){
                             var za = a.zindex || 0;
@@ -122,19 +114,24 @@ window.modula = window.modula || {};
             this.frame += 1;
 
         },
-        runEnd: function(){
-        },
         run: function(){
             var self = this;
             if(self.running){
                 return;
             }
             self.running = true;
-            self.runStart();
+
+            var date = new Date();
+            this.running = true;
+            this.startTime = date.getTime() * 0.001;
+            this.time = 0;
+            this.timeSystem = this.startTime;
+            this.restartTime = -1;
+            this.frame = 0;
 
             function loop(){
                 if(self.running && (self.restartTime < 0 || self.time < self.restartTime)){
-                    self.runFrame();
+                    self._runFrame();
                     var elapsedTimeMillis = ((new Date).getTime() - self.timeSystem);
                     var waitTime = (self.fixedDeltaTime * 1000) - elapsedTimeMillis;
                     if(waitTime < 0){
@@ -143,7 +140,6 @@ window.modula = window.modula || {};
                     //setTimeout(loop,waitTime);
                     webkitRequestAnimationFrame(loop,waitTime);
                 }else{
-                    self.runEnd();
                     if(self.running){
                         self.run();
                     }
@@ -745,110 +741,7 @@ window.modula = window.modula || {};
             this.renderer = options.renderer || this.renderer || null;
             this.name = options.name || this.name || 'Scene';
             this.main = null;
-            this.passes = options.passes || this.passes || {};
-            this.passSequence = options.passSequence || this.passSequence || [
-                'instantiation',
-                'camera',
-                'update',
-                'physics',
-                'animations',
-                'collision',
-                'destruction',
-                'draw',
-                ];
         },
-        addPass : function(name, pass){
-            this.passes[name] = pass;
-        },
-        //returns a list of entities matching the url and satisfying the
-        //condition:
-        //url : name[/name[/...]]
-        //  name is either :
-        //      'camera' : will match the scene current camera, (only at root
-        //                 url level)
-        //      uid      : will match the entity with the an uid equal to the
-        //                 uid provided
-        //      *          will match all entities (but not the camera)
-        //      string   : will match any entity with name equal to string
-        //  
-        //  '/' selects the child entities: a/b/c will select the entity of
-        //  name 'c' that are childs of entity of name 'b' that are childs of
-        //  entityes of name 'a'
-        //
-        //  the optional condition is a function with a single parameter that
-        //  will be called on each matched entity. if the function returns
-        //  false, the entity will be removed from the matched entities.
-        //
-        //  if the condition is === true, then all entities match
-        query: function(query){
-            if(!modula.Collection){
-                return undefined;
-            }
-            if(query instanceof modula.Camera){
-                return new modula.Collection([this.camera]);
-            }else if(query instanceof modula.Class){
-                var matches = [];
-                for(var i = 0, len = this._entityList.length; i < len; i++){
-                    if(this._entityList[i] instanceof query){
-                        matches.push(this._entityList[i]);
-                    }
-                }
-                return new modula.Collection(matches);
-            }else if(typeof query === 'string'){
-                return this._urlquery(query);
-            }else{
-                return new modula.Collection();
-            }
-        },
-        _urlquery: function(url){
-            var matches = [];
-            var path = url.split('/');
-            for(var i = 0; i < path.length; i++){
-                var name = path[i];
-                if( name === ''){
-                        break;
-                }else if(i === 0){
-                    if(name === 'camera'){
-                        matches.push(this.camera);
-                    }else if(name === '*'){
-                        for(var j = 0; j < this._rootEntityList.length; j++){
-                            matches.push(this._rootEntityList[j]);
-                        }
-                    }else if(this._entityByUid[name]){
-                        matches.push(this._entityByUid[name]);
-                    }else{
-                        ents = this._entityByName[name] || [];
-                        for(var j = 0; j < ents.length; j++){
-                            matches.push(ents[j]);
-                        }
-                    }
-                }else{
-                    var nmatches = [];
-                    for(var k = 0; k < matches.length; k++){
-                        var ent = matches[k];
-                        if(!ent.transform){
-                            continue;
-                        }
-                        for(var l = 0; l < ent.tranfsorm.getChildCount(); l++){
-                            var child = ent.transform.getChild(l);
-                            if(name === '*'){
-                                nmatches.push(child);
-                            }else if(child.name === name){
-                                nmatches.push(child);
-                            }else if(child._uid === name){
-                                nmatches.push(child);
-                            }
-                        }
-                    }
-                    matches = nmatches;
-                }
-            }
-            return new modula.Collection(matches);
-        },
-        // remove all the entities found by the selector if it is a string,
-        // or removes the entity if selector is an entity
-        // adds an entity to the scene. It will be
-        // considered present in the scene at the next update.
         _addEnt: function(ent){
             if(ent.main && ent.main !== this.main){
                 throw new Error('Cannot add an entity to the scene: it belongs to another modula instance');
@@ -879,7 +772,6 @@ window.modula = window.modula || {};
                 }
             }
         },
-        //remove an entity to the scene. 
         _remEnt : function(ent){
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
@@ -935,7 +827,6 @@ window.modula = window.modula || {};
             }
         },
         _entUpdate : function(ent){
-            var draw = false;
             if(ent.active){
                 if(!ent.main){
                     ent.main = this.main;
@@ -947,25 +838,20 @@ window.modula = window.modula || {};
                     ent._state = 'alive';
                     ent._currentFrame = this.main.frame;
                     ent.onInstanciation();
-                    var updated = ent.onUpdate();
-                    draw = draw || updated;
+                    ent.onUpdate();
                 }else if(ent._currentFrame != this.main.frame){
                     ent._currentFrame = this.main.frame;
-                    var updated = ent.onUpdate();
-                    draw = draw || updated; 
+                    ent.onUpdate();
                 }
             }
             //update child entities too !
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount();i++){
-                    var updated = this._entUpdate(ent.getChild(i));
-                    draw = draw || updated;
+                    this._entUpdate(ent.getChild(i));
                 }
             }
-            return draw || false;
         },
-        instantiationPass: function(){
-            var draw = this._newEntityList.length > 0;
+        instanciationStep: function(){
             for(var i = 0, len = this._newEntityList.length; i < len; i++){
                 var ent = this._newEntityList[i];
                 this._entityList.push(ent);
@@ -981,24 +867,19 @@ window.modula = window.modula || {};
                 //FIXME make it alive and set current frame ? see J2D
             }
             this._newEntityList = [];
-            return draw || false;
         },
-        updatePass: function(){
-            var draw = false;
+        updateStep: function(){
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
                 var ent = this._rootEntityList[i];
                 if(ent._state !== 'destroyed'){
-                    var updated = this._entUpdate(ent);
-                    draw = draw || updated; 
+                    this._entUpdate(ent);
                     if(ent._destroyTime && ent._destroyTime <= this.main.time){
                         ent.destroy();
                     }
                 }
             }
-            return draw || false;
         },
-        collisionPass: function(){
-            var draw = false;
+        collisionStep: function(){
             var emitters = [];
             var receivers = [];
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
@@ -1024,25 +905,20 @@ window.modula = window.modula || {};
                     //only receivers receive collision events
                     if( (r !== e) ){
                         if( e.collides(r) ){
-                            var updated2 = r.onCollisionReceive(e);
-                            var updated = e.onCollisionEmit(r);
-                            draw = draw || updated || updated2; 
+                            r.onCollisionReceive(e);
+                            e.onCollisionEmit(r);
                         }
                     }
                 }
             }                           
-            return draw || false;
         },
-        destructionPass: function(){
-            var draw = false;
+        destructionStep: function(){
             for(var i = 0,len = this._entityList.length; i < len; i++){
                 var ent = this._entityList[i];
                 if(ent._state === "destroyed"){
                     this._destroyedEntityList.push(ent);
                 }
             }
-
-            draw = this._destroyedEntityList.length > 0;
 
             for(var i = 0,len = this._destroyedEntityList.length; i < len; i++){
                 var ent = this._destroyedEntityList[i];
@@ -1053,59 +929,28 @@ window.modula = window.modula || {};
                 ent.onDestruction();
             }
             this._destroyedEntityList = [];
-            return draw || false;
         },
-        drawPass: function(){
-            return false;
-        },
-        cameraPass: function(){
-            var draw = false;
+        cameraStep: function(){
             if(this.camera){
                 this.camera.scene = this;
                 this.camera.main  = this.main;
-                var updated = this.camera.onUpdate();
-                draw = draw || updated;
+                this.camera.onUpdate();
             }
-            return draw || false;
         },
-        runFrame : function(deltaTime){
-            var draw = false;
-
+        step : function(deltaTime){
             this.deltaTime = deltaTime * this.timeSpeed;
             this.time += this.deltaTime;
             this.frame++;
-           
-            for(var i = 0, len = this.passSequence.length; i < len; i++){
-                var pass = this.passSequence[i];
-                if(this.passes[pass]){
-                    var updated =  this.passes[pass].process(this);
-                    draw = draw || updated;
-                }else{
-                    var passFun = pass + 'Pass';
-                    if(this[passFun]){
-                        var updated = this[passFun]();
-                        draw = draw || updated;
-                    }
-                }
-            }
-            for(var i = 0, len = this._entityList.length; i < len; i++){
-                if(this._entityList[i].__updated__){
-                    var draw = true;
-                    this._entityList[i].__updated__ = false;
-                }
-            }
-            return draw || false;
+            this.instanciationStep(); 
+            this.cameraStep();
+            this.updateStep();
+            this.collisionStep();
+            this.destructionStep();
         },
         onFrameStart: function(){},
         onFrameEnd:   function(){},
         onSceneStart: function(){},
         onSceneEnd:   function(){},
-    });
-
-    modula.ScenePass = modula.Class.extend({
-        process: function(scene,updated){
-            return false;
-        },
     });
 
     modula.Ent = modula.Class.extend({ 
@@ -1309,16 +1154,6 @@ window.modula = window.modula || {};
         onCollisionEmit: function(ent){},
         // is called when the entity receives a collision from the entity 'ent'
         onCollisionReceive: function(ent){},
-    });
-
-    modula.Ray = modula.Class.extend({
-        start: null,
-        dir: null,
-        maxLength: 0,
-        length: 0,
-        pos: null,
-        next: function(length){
-        },
     });
 
 })(window.modula);

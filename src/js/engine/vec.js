@@ -56,6 +56,7 @@ var module = window;
     var tmp       = new V2();
     var tmp1      = new V2();
     var tmp2      = new V2();
+    var nan       = Number.NaN;
     
     // sets vd to a vector of length 'len' and angle 'angle' radians
     V2.setPolar = function(vd,len,angle){
@@ -95,6 +96,15 @@ var module = window;
     proto.isZero = function(){
         return this.x === 0 && this.y === 0;
     };
+
+    V2.isNaN = function(v){
+        return Number.isNaN(v.x) || Number.isNaN(v.y);
+    };
+
+    proto.isNaN = function(){
+        return V2.isNaN(this);
+    };
+
 
     V2.len = function(v){
         return Math.sqrt(v.x*v.x + v.y*v.y);
@@ -204,7 +214,11 @@ var module = window;
     };
 
     proto.mult = function(v){
-        return new V2(this.x*v.x,this.y*v.y);
+        if(typeof v === 'number'){
+            return new V2(this.x*v,this.y*v);
+        }else{
+            return new V2(this.x*v.x,this.y*v.y);
+        }
     };
     
     V2.scale = function(vd,f){

@@ -5,91 +5,74 @@ window.modula = window.modula || {};
     modula.Grid = modula.Class.extend({
         init: function(options){
             options = options || {};
-            this._cellX = this.get('cellX') || options.cellX || 1;
-            this._cellY = this.get('cellY') || options.cellY || 1;
-            this._cellSize = this.get('cellSize');
-            if(!this._cellSize && options.cellSize){
+            this.cellX = this.cellX || options.cellX || 1;
+            this.cellY = this.cellY || options.cellY || 1;
+            this.cellSize = this.cellSize;
+            if(!this.cellSize && options.cellSize){
                 if(typeof options.cellSize === 'number'){
-                    this._cellSize = new V2(options.cellSize, options.cellSize);
+                    this.cellSize = new V2(options.cellSize, options.cellSize);
                 }else{
-                    this._cellSize = options.cellSize.clone();
+                    this.cellSize = options.cellSize.clone();
                 }
             }else{
-                this._cellSize = new V2(32,32);
+                this.cellSize = new V2(32,32);
             }
-            this._invCellSize = new V2(1 / this._cellSize.x, 1 / this._cellSize.y);
-            this._size = new V2( this._cellX * this._cellSize.x,
-                                  this._cellY * this._cellSize.y  );
+            this.invCellSize = new V2(1 / this.cellSize.x, 1 / this.cellSize.y);
+            this.size = new V2( this.cellX * this.cellSize.x,
+                                  this.cellY * this.cellSize.y  );
 
-            this._cell = this._cell || options.cells || [];
+            this.cells = this.cells || options.cells || [];
             if(options.fill !== undefined && !options.cells){
                 this.fill(options.fill);
             }
         },
-        _set_cell: function(index,cell){
-            if(index[0] >= 0 && index[0] < this._cellX && index[1] >= 0 && index[1] < this._cellY){
-                this._cell[index[1]*this._cellX+index[0]] = cell;
-            }
-        },
-        _get_cell: function(index){
-            if(!index){
-                return this._cell;
-            }else if(index[0] < 0 || index[0] >= this._cellX || index[1] < 0 || index[1] >= this._cellY){
-                return undefined;
-            }else{
-                return this._cell[index[1]*this._cellX+index[0]]; 
-            }
-        },
-        _get_cells: function(){
-            return this._cell;
-        },
         getCellUnsafe: function(x,y){
-            return this._cell[y*this._cellX+x];
+            return this.cells[y*this.cellX+x];
         },
         getCell: function(x,y){
-            if(x >= 0 && y >= 0 && x < this._cellX && y < this._cellY){
-                return this._cell[y*this._cellX+x];
+            if(x >= 0 && y >= 0 && x < this.cellX && y < this.cellY){
+                return this.cells[y*this.cellX+x];
             }else{
                 return undefined;
+            }
+        },
+        setCell: function(x,y,cell){
+            if(x >= 0 && y >= 0 && x < this.cellX && y < this.cellY){
+                this.cells[y*this.cellX+x] = cell;
             }
         },
         fill: function(cell){
-            for(var x = 0; x < this._cellX; x++){
-                for (var y = 0; y < this._cellY; y++){
-                    this._cell[y*this._cellX + x] = cell;
+            for(var x = 0; x < this.cellX; x++){
+                for (var y = 0; y < this.cellY; y++){
+                    this.cells[y*this.cellX + x] = cell;
                 }
             }
         },
-        _get_bound: function(index){
-            if(index){
-                var csize = this.get('cellSize');
-                return new modula.Rect(index[0] * csize.x, index[1] * csize.x, csize.x, csize.y );
-            }else{
-                return new modula.Rect(0,0,this.get('size').x, this.get('size').y);
-            }
+        getCellBound: function(x,y){
+            return new modula.Rect(x * this.cellSize.x, y * this.cellSize.y, this.cellSize.x, this.cellSize.y);
         },
-        getBoundUnsafe: function(x,y){
-            return new modula.Rect(x * this._cellSize.x, y * this._cellSize.y, this._cellSize.x, this._cellSize.y);
+        getBound: function(){
+            return new modula.Rect(0,0,this.size.x, this.size.y);
         },
         getCellAtPixel: function(pos){
-            var size = this.get('size');
+            var size = this.size;
             if(pos.x < 0 || pos.x >= size.x || pos.y < 0 || pos.y >= size.y){
                 return undefined;
             }else{
-                var csize = this.get('cellSize');
-                var x = Math.max(0,Math.min(this._cellX - 1,Math.floor(pos.x/csize.x)));
-                var y = Math.max(0,Math.min(this._cellY - 1,Math.floor(pos.y/csize.y)));
+                var csize = this.cellSize;
+                var x = Math.max(0,Math.min(this.cellX - 1,Math.floor(pos.x/csize.x)));
+                var y = Math.max(0,Math.min(this.cellY - 1,Math.floor(pos.y/csize.y)));
                 return { x:x, y:y, cell:this.getCellUnsafe(x,y)};
             }
         },
         getCellsInRect: function(minx, miny, maxx, maxy){
-            var size = this._size;
+            var size = this.size;
             if(maxx <= 0 || maxy <= 0){
                 return [];
             }else if(minx >= size.x || miny >= size.y){
                 return [];
             }else{
-                var csize = this._cellSize.clone();
+                var csize = this.cellSize.clone();
                 csize.x = 1.0 / csize.x;
                 csize.y = 1.0 / csize.y;
                 minx = Math.floor(Math.max(minx,0) * csize.x);
@@ -111,7 +94,7 @@ window.modula = window.modula || {};
                 return [];
             }else{
                 var cells = this.getCellsInRect(bound.minX(), bound.minY(), bound.maxX(), bound.maxY());
-                var csize = this._cellSize;
+                var csize = this.cellSize;
                 var ccells = [];
                 for(var i = 0, len = cells.length; i < len; i++){
                     var cell = cells[i];
@@ -136,10 +119,10 @@ window.modula = window.modula || {};
             var maxX  = bound.maxX();
             var maxY  = bound.maxY();
      
-            var cx    = this._cellX;
-            var cy    = this._cellY;
-            var csx   = this._cellSize.x;
-            var csy   = this._cellSize.y;
+            var cx    = this.cellX;
+            var cy    = this.cellY;
+            var csx   = this.cellSize.x;
+            var csy   = this.cellSize.y;
 
 
             if(maxX <= 0 || maxY <= 0 || minX >= cx*csx || minY >= cy*csy){
@@ -263,6 +246,7 @@ window.modula = window.modula || {};
             }
         },
     });
+
     modula.DrawableGrid = modula.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
@@ -287,9 +271,9 @@ window.modula = window.modula || {};
             });
         },
         draw: function(renderer, ent, camera){
-            var cx = this.grid._cellX;
-            var cy = this.grid._cellY;
-            var size = this.grid._cellSize; 
+            var cx = this.grid.cellX;
+            var cy = this.grid.cellY;
+            var size = this.grid.cellSize; 
 
             for(var x = 0; x < cx; x++){
                 for(var y = 0; y < cy; y++){

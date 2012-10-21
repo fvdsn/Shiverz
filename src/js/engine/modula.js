@@ -306,275 +306,6 @@ window.modula = window.modula || {};
     modula.Mixin = new Mixin();
 
 })(window.modula);
-// Modula Collections
-window.modula = window.modula || {};
-(function(modula){
-
-    modula.Collection = function(matches){
-        this.matches = [];
-        if(matches instanceof modula.Collection){
-            this.matches = matches.matches;
-        }else if(matches instanceof Array){
-            this.matches = matches;
-        }else{
-            this.matches = [];
-        }
-    };
-    
-    var proto = modula.Collection.prototype;
-
-    proto.length = function(){ return this.matches.length; };
-    proto.first = function(){ return this.matches[0]; };
-    proto.last  = function(){ return this.matches[this.matches.length-1]; };
-    proto.all   = function(){ return this.matches; };
-    proto.contains = function(element){
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            if(this.matches[i] === element){
-                return true;
-            }
-        }
-        return false;
-    };
-    proto.append = function(element){
-        var c = new modula.Collection();
-        if(element instanceof modula.Collection){
-            c.matches = this.matches.concat(element.matches);
-        }else{
-            c.matches = this.matches.concat(element);
-        }
-        return c;
-    };
-    proto.filter = function(filter){
-        if(!filter){
-            return this;
-        }
-        var c = new modula.Collection();
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            if(filter(this.matches[i])){
-                c.matches.push(this.matches[i]);
-            }
-        }
-        return c;
-    };
-    proto.each = function(fun){
-        if(fun){
-            for(var i = 0, len = this.matches.length; i < len; i++){
-                if(fun(this.matches[i],i) === 'break'){
-                    break;
-                }
-            }
-        }
-        return this;
-    };
-    proto.map = function(fun){
-        if(fun){
-            var c = new modula.Collection();
-            for(var i = 0, len = this.matches.length; i < len; i++){
-                var res = fun(this.matches[i]);
-                if(res !== undefined){
-                    c.matches.push(res);
-                }
-            }
-            return c;
-        }
-        return this;
-    };
-    proto.sum = function(){
-        var sum = undefined;
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            var match = this.matches[i];
-            if(match !== undefined){
-                if(sum){
-                    if(sum.add){
-                        sum = sum.add(match);
-                    }else{
-                        sum += match;
-                    }
-                }else{
-                    sum = match;
-                }
-            }
-        }
-        return sum;
-    };
-    proto.one  = function(){
-        if(this.matches.length === 0){
-            throw new Error("Error: Collection.one() : the collection is empty");
-        }else{
-            return this.matches[0];
-        }
-    };
-    proto.ofClass  = function(klass){
-        if(klass){
-            var c = new modula.Collection();
-            for(var i = 0, len = this.matches.length; i < len; i++){
-                if(this.matches[i] instanceof klass){
-                    c.matches.push(this.matches[i]);
-                }
-            }
-            return c;
-        }
-        return this;
-    };
-    proto.ofType  = function(type){
-        if(type){
-            var c = new modula.Collection();
-            for(var i = 0, len = this.matches.length; i < len; i++){
-                if(typeof this.matches[i] === type){
-                    c.matches.push(this.matches[i]);
-                }
-            }
-            return c;
-        }
-        return this;
-    };
-    proto.limit = function(count){
-        return new modula.Collection(this.matches.slice(0,count));
-    };
-    proto.skip = function(count){
-        return new modula.Collection(this.matches.slice(count));
-    };
-    proto.reverse = function(){
-        return new modula.Collection(this.matches.slice(0,this.matches.length).reverse());
-    };
-    proto.sort = function(cmp,scalar){
-        if(cmp === 'scalar' || scalar === 'scalar'){
-            if(typeof cmp === 'function'){
-                var scalarcmp = function(a,b){
-                    return cmp(a) - cmp(b);
-                };
-            }else{
-                var scalarcmp = function(a,b){
-                    if( a > b ){
-                        return 1;
-                    }else if (a === b){
-                        return 0;
-                    }else{
-                        return -1;
-                    }
-                };
-            }
-            return new modula.Collection(this.matches.slice(0,this.matches.length).sort(scalarcmp));
-        }else{
-            if(typeof cmp === 'function'){
-                return new modula.Collection(this.matches.slice(0,this.matches.length).sort(cmp));
-            }else{
-                return new modula.Collection(this.matches.slice(0,this.matches.length).sort());
-            }
-        }
-    };
-    proto.min = function(cmp,scalar){
-        if(cmp !== 'scalar' && scalar !== 'scalar'){
-            if(typeof cmp === 'function'){
-                return this.sort(cmp).first();
-            }else{
-                return this.sort().first();
-            }
-        }else if(this.matches.length === 0){
-            return undefined;
-        }else{
-            var min = this.matches[0], vmin;
-            if(typeof cmp === 'function'){
-                vmin = cmp(min);
-                for(var i = 1, len = this.matches.length; i < len; i++){
-                    var v = cmp(this.matches[i]);
-                    if(v < vmin){
-                        vmin = v;
-                        min = this.matches[i];
-                    }
-                }
-                return min;
-            }else{
-                for(var i = 1, len = this.matches.length; i < len; i++){
-                    if(this.matches[i] < min){
-                        min = this.matches[i];
-                    }
-                }
-                return min;
-            }
-        }
-    };
-    proto.max = function(fun,scalar){
-        if(cmp !== 'scalar' && scalar !== 'scalar'){
-            if(typeof cmp === 'function'){
-                return this.sort(cmp).last();
-            }else{
-                return this.sort().last();
-            }
-        }else if(this.matches.length === 0){
-            return undefined;
-        }else{
-            var max = this.matches[0], vmax;
-            if(typeof cmp === 'function'){
-                vmax = cmp(max);
-                for(var i = 1, len = this.matches.length; i < len; i++){
-                    var v = cmp(this.matches[i]);
-                    if(v > vmax){
-                        vmax = v;
-                        max = this.matches[i];
-                    }
-                }
-                return max;
-            }else{
-                for(var i = 1, len = this.matches.length; i < len; i++){
-                    if(this.matches[i] > max){
-                        max = this.matches[i];
-                    }
-                }
-                return max;
-            }
-        }
-    };
-    proto.shuffle = function(){
-        var c = new Collection(this.matches.slice(0,this.matches.length));
-        var tmp;
-        for(var i = 0, len = c.matches.length; i < len - 1; i++){
-            var j = i + Math.floor(Math.random()*(len-i));
-            tmp = c.matches[i];
-            c.matches[i] = c.matches[j];
-            c.matches[j] = tmp;
-        }
-        return c;
-    };
-    proto.uniques = function(){
-        var c = new Collection();
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            var unique = true;
-            for(var j = 0, jlen = c.matches.length; j < jlen; j++){
-                if(this.matches[i] === c.matches[j]){
-                    unique = false;
-                    break;
-                }
-            }
-            if(unique){
-                c.matches.push(this.matches[i]);
-            }
-        }
-        return c;
-    };
-    proto.log = function(){
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            console.log(this.matches[i]);
-        }
-        return this;
-    };
-    proto.set = function(args){
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            this.matches[i].set.apply(this.matches[i],arguments);
-        }
-        return this;
-    };
-    proto.get = function(args){
-        var c = new modula.Collection();
-        for(var i = 0, len = this.matches.length; i < len; i++){
-            var res = this.matches[i].get.apply(this.matches[i],arguments);
-            if(res !== undefined){
-                c.matches.push(res);
-            }
-        }
-        return c;
-    };
-})(window.modula);
 var module = window;
 
 /* ------------------------------ 2D Vectors -------------------------------- */
@@ -633,6 +364,7 @@ var module = window;
     var tmp       = new V2();
     var tmp1      = new V2();
     var tmp2      = new V2();
+    var nan       = Number.NaN;
     
     // sets vd to a vector of length 'len' and angle 'angle' radians
     V2.setPolar = function(vd,len,angle){
@@ -672,6 +404,15 @@ var module = window;
     proto.isZero = function(){
         return this.x === 0 && this.y === 0;
     };
+
+    V2.isNaN = function(v){
+        return Number.isNaN(v.x) || Number.isNaN(v.y);
+    };
+
+    proto.isNaN = function(){
+        return V2.isNaN(this);
+    };
+
 
     V2.len = function(v){
         return Math.sqrt(v.x*v.x + v.y*v.y);
@@ -781,7 +522,11 @@ var module = window;
     };
 
     proto.mult = function(v){
-        return new V2(this.x*v.x,this.y*v.y);
+        if(typeof v === 'number'){
+            return new V2(this.x*v,this.y*v);
+        }else{
+            return new V2(this.x*v.x,this.y*v.y);
+        }
     };
     
     V2.scale = function(vd,f){
@@ -1780,7 +1525,7 @@ var module = window;
         return md;
     };
 
-    Mat3.setShearX = function(md,shear){
+    Mat3.setSkewX = function(md,shear){
         Mat3.setId(md);
         md.xy = shear;
         return md;
@@ -1792,7 +1537,7 @@ var module = window;
         return md;
     };
 
-    Mat3.setShearY = function(md,shear){
+    Mat3.setSkewY = function(md,shear){
         Mat3.setId(md);
         md.yx = shear;
         return md;
@@ -2579,7 +2324,7 @@ var module = window;
         return m;
     };
 
-    Mat4.setShearXY = function(md,sx,sy){
+    Mat4.setSkewXY = function(md,sx,sy){
         Mat4.setId(md);
         md.xz = sx;
         md.yz = sy;
@@ -2588,11 +2333,11 @@ var module = window;
 
     Mat4.shearXY  = function(sx,sy){
         var md = new Mat4();
-        Mat4.setShearXY(md,sx,sy);
+        Mat4.setSkewXY(md,sx,sy);
         return md;
     };
 
-    Mat4.setShearYZ = function(md,sy,sz){
+    Mat4.setSkewYZ = function(md,sy,sz){
         Mat4.setId(md);
         md.yx = sy;
         md.zx = sz;
@@ -2601,11 +2346,11 @@ var module = window;
 
     Mat4.shearYZ  = function(sy,sz){
         var md = new Mat4();
-        Mat4.setShearYZ(md,sy,sz);
+        Mat4.setSkewYZ(md,sy,sz);
         return md;
     };
 
-    Mat4.setShearXZ = function(md,sx,sz){
+    Mat4.setSkewXZ = function(md,sx,sz){
         Mat4.setId(md);
         md.xy = sx;
         md.zy = sz;
@@ -2614,7 +2359,7 @@ var module = window;
 
     Mat4.shearXZ = function(sx,sz){
         var md = new Mat4();
-        Mat4.setShearXZ(md,sx,sz);
+        Mat4.setSkewXZ(md,sx,sz);
         return md;
     };
 
@@ -3129,7 +2874,6 @@ window.modula = window.modula || {};
     };
 
     proto.dist = function(tr){
-        console.log('dist:',this,tr);
         return tr.getWorldPos().sub(this.getWorldPos());
     };
 
@@ -3421,6 +3165,8 @@ window.modula = window.modula || {};
             this.timeSystem = 0;
             this.startTime = 0;
             this.fps = options.fps || 60;
+            this.minfps = options.minfps || 30;
+            this.maxfps = options.maxfps || 120;
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
             if(options.input){
@@ -3459,18 +3205,10 @@ window.modula = window.modula || {};
         exit:       function(){
             this.running = false;
         },
-        runStart:   function(){
+        _runFrame:   function(){
             var date = new Date();
-            this.running = true;
-            this.startTime = date.getTime() * 0.001;
-            this.time = 0;
-            this.timeSystem = this.startTime;
-            this.restartTime = -1;
-            this.frame = 0;
-        },
-        runFrame:   function(){
-            var date = new Date();
-            this.deltaTime  = date.getTime() * 0.001 - this.timeSystem;
+            this.deltaTime  = Math.min(1/this.minfps,Math.max(1/this.maxfps,
+                        date.getTime() * 0.001 - this.timeSystem));
             this.timeSystem = date.getTime() * 0.001;
             this.time = this.timeSystem - this.startTime;
 
@@ -3478,7 +3216,6 @@ window.modula = window.modula || {};
                 this.input.processEvents();
             }
             for(i = 0; i < this.sceneList.length; i++){
-                var redraw = false;
                 this.scene = this.sceneList[i];
                 var camera = this.scene.camera;
                 var renderer = this.scene.renderer;
@@ -3489,10 +3226,9 @@ window.modula = window.modula || {};
                     this.scene.onSceneStart();
                 }
                 this.scene.onFrameStart();
-
-                redraw = this.scene.runFrame(this.deltaTime);
+                this.scene.step(this.deltaTime);
                 
-                if(camera && renderer && (redraw || renderer.alwaysRedraw || renderer.mustRedraw())){
+                if(camera && renderer){
                     if(renderer.zsort){
                         scene._rootEntityList.sort(function(a,b){
                             var za = a.zindex || 0;
@@ -3508,19 +3244,24 @@ window.modula = window.modula || {};
             this.frame += 1;
 
         },
-        runEnd: function(){
-        },
         run: function(){
             var self = this;
             if(self.running){
                 return;
             }
             self.running = true;
-            self.runStart();
+
+            var date = new Date();
+            this.running = true;
+            this.startTime = date.getTime() * 0.001;
+            this.time = 0;
+            this.timeSystem = this.startTime;
+            this.restartTime = -1;
+            this.frame = 0;
 
             function loop(){
                 if(self.running && (self.restartTime < 0 || self.time < self.restartTime)){
-                    self.runFrame();
+                    self._runFrame();
                     var elapsedTimeMillis = ((new Date).getTime() - self.timeSystem);
                     var waitTime = (self.fixedDeltaTime * 1000) - elapsedTimeMillis;
                     if(waitTime < 0){
@@ -3529,7 +3270,6 @@ window.modula = window.modula || {};
                     //setTimeout(loop,waitTime);
                     webkitRequestAnimationFrame(loop,waitTime);
                 }else{
-                    self.runEnd();
                     if(self.running){
                         self.run();
                     }
@@ -4131,110 +3871,7 @@ window.modula = window.modula || {};
             this.renderer = options.renderer || this.renderer || null;
             this.name = options.name || this.name || 'Scene';
             this.main = null;
-            this.passes = options.passes || this.passes || {};
-            this.passSequence = options.passSequence || this.passSequence || [
-                'instantiation',
-                'camera',
-                'update',
-                'physics',
-                'animations',
-                'collision',
-                'destruction',
-                'draw',
-                ];
         },
-        addPass : function(name, pass){
-            this.passes[name] = pass;
-        },
-        //returns a list of entities matching the url and satisfying the
-        //condition:
-        //url : name[/name[/...]]
-        //  name is either :
-        //      'camera' : will match the scene current camera, (only at root
-        //                 url level)
-        //      uid      : will match the entity with the an uid equal to the
-        //                 uid provided
-        //      *          will match all entities (but not the camera)
-        //      string   : will match any entity with name equal to string
-        //  
-        //  '/' selects the child entities: a/b/c will select the entity of
-        //  name 'c' that are childs of entity of name 'b' that are childs of
-        //  entityes of name 'a'
-        //
-        //  the optional condition is a function with a single parameter that
-        //  will be called on each matched entity. if the function returns
-        //  false, the entity will be removed from the matched entities.
-        //
-        //  if the condition is === true, then all entities match
-        query: function(query){
-            if(!modula.Collection){
-                return undefined;
-            }
-            if(query instanceof modula.Camera){
-                return new modula.Collection([this.camera]);
-            }else if(query instanceof modula.Class){
-                var matches = [];
-                for(var i = 0, len = this._entityList.length; i < len; i++){
-                    if(this._entityList[i] instanceof query){
-                        matches.push(this._entityList[i]);
-                    }
-                }
-                return new modula.Collection(matches);
-            }else if(typeof query === 'string'){
-                return this._urlquery(query);
-            }else{
-                return new modula.Collection();
-            }
-        },
-        _urlquery: function(url){
-            var matches = [];
-            var path = url.split('/');
-            for(var i = 0; i < path.length; i++){
-                var name = path[i];
-                if( name === ''){
-                        break;
-                }else if(i === 0){
-                    if(name === 'camera'){
-                        matches.push(this.camera);
-                    }else if(name === '*'){
-                        for(var j = 0; j < this._rootEntityList.length; j++){
-                            matches.push(this._rootEntityList[j]);
-                        }
-                    }else if(this._entityByUid[name]){
-                        matches.push(this._entityByUid[name]);
-                    }else{
-                        ents = this._entityByName[name] || [];
-                        for(var j = 0; j < ents.length; j++){
-                            matches.push(ents[j]);
-                        }
-                    }
-                }else{
-                    var nmatches = [];
-                    for(var k = 0; k < matches.length; k++){
-                        var ent = matches[k];
-                        if(!ent.transform){
-                            continue;
-                        }
-                        for(var l = 0; l < ent.tranfsorm.getChildCount(); l++){
-                            var child = ent.transform.getChild(l);
-                            if(name === '*'){
-                                nmatches.push(child);
-                            }else if(child.name === name){
-                                nmatches.push(child);
-                            }else if(child._uid === name){
-                                nmatches.push(child);
-                            }
-                        }
-                    }
-                    matches = nmatches;
-                }
-            }
-            return new modula.Collection(matches);
-        },
-        // remove all the entities found by the selector if it is a string,
-        // or removes the entity if selector is an entity
-        // adds an entity to the scene. It will be
-        // considered present in the scene at the next update.
         _addEnt: function(ent){
             if(ent.main && ent.main !== this.main){
                 throw new Error('Cannot add an entity to the scene: it belongs to another modula instance');
@@ -4265,7 +3902,6 @@ window.modula = window.modula || {};
                 }
             }
         },
-        //remove an entity to the scene. 
         _remEnt : function(ent){
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
@@ -4321,7 +3957,6 @@ window.modula = window.modula || {};
             }
         },
         _entUpdate : function(ent){
-            var draw = false;
             if(ent.active){
                 if(!ent.main){
                     ent.main = this.main;
@@ -4333,25 +3968,20 @@ window.modula = window.modula || {};
                     ent._state = 'alive';
                     ent._currentFrame = this.main.frame;
                     ent.onInstanciation();
-                    var updated = ent.onUpdate();
-                    draw = draw || updated;
+                    ent.onUpdate();
                 }else if(ent._currentFrame != this.main.frame){
                     ent._currentFrame = this.main.frame;
-                    var updated = ent.onUpdate();
-                    draw = draw || updated; 
+                    ent.onUpdate();
                 }
             }
             //update child entities too !
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount();i++){
-                    var updated = this._entUpdate(ent.getChild(i));
-                    draw = draw || updated;
+                    this._entUpdate(ent.getChild(i));
                 }
             }
-            return draw || false;
         },
-        instantiationPass: function(){
-            var draw = this._newEntityList.length > 0;
+        instanciationStep: function(){
             for(var i = 0, len = this._newEntityList.length; i < len; i++){
                 var ent = this._newEntityList[i];
                 this._entityList.push(ent);
@@ -4367,24 +3997,19 @@ window.modula = window.modula || {};
                 //FIXME make it alive and set current frame ? see J2D
             }
             this._newEntityList = [];
-            return draw || false;
         },
-        updatePass: function(){
-            var draw = false;
+        updateStep: function(){
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
                 var ent = this._rootEntityList[i];
                 if(ent._state !== 'destroyed'){
-                    var updated = this._entUpdate(ent);
-                    draw = draw || updated; 
+                    this._entUpdate(ent);
                     if(ent._destroyTime && ent._destroyTime <= this.main.time){
                         ent.destroy();
                     }
                 }
             }
-            return draw || false;
         },
-        collisionPass: function(){
-            var draw = false;
+        collisionStep: function(){
             var emitters = [];
             var receivers = [];
             for(var i = 0, len = this._rootEntityList.length; i < len; i++){
@@ -4410,25 +4035,20 @@ window.modula = window.modula || {};
                     //only receivers receive collision events
                     if( (r !== e) ){
                         if( e.collides(r) ){
-                            var updated2 = r.onCollisionReceive(e);
-                            var updated = e.onCollisionEmit(r);
-                            draw = draw || updated || updated2; 
+                            r.onCollisionReceive(e);
+                            e.onCollisionEmit(r);
                         }
                     }
                 }
             }                           
-            return draw || false;
         },
-        destructionPass: function(){
-            var draw = false;
+        destructionStep: function(){
             for(var i = 0,len = this._entityList.length; i < len; i++){
                 var ent = this._entityList[i];
                 if(ent._state === "destroyed"){
                     this._destroyedEntityList.push(ent);
                 }
             }
-
-            draw = this._destroyedEntityList.length > 0;
 
             for(var i = 0,len = this._destroyedEntityList.length; i < len; i++){
                 var ent = this._destroyedEntityList[i];
@@ -4439,59 +4059,28 @@ window.modula = window.modula || {};
                 ent.onDestruction();
             }
             this._destroyedEntityList = [];
-            return draw || false;
         },
-        drawPass: function(){
-            return false;
-        },
-        cameraPass: function(){
-            var draw = false;
+        cameraStep: function(){
             if(this.camera){
                 this.camera.scene = this;
                 this.camera.main  = this.main;
-                var updated = this.camera.onUpdate();
-                draw = draw || updated;
+                this.camera.onUpdate();
             }
-            return draw || false;
         },
-        runFrame : function(deltaTime){
-            var draw = false;
-
+        step : function(deltaTime){
             this.deltaTime = deltaTime * this.timeSpeed;
             this.time += this.deltaTime;
             this.frame++;
-           
-            for(var i = 0, len = this.passSequence.length; i < len; i++){
-                var pass = this.passSequence[i];
-                if(this.passes[pass]){
-                    var updated =  this.passes[pass].process(this);
-                    draw = draw || updated;
-                }else{
-                    var passFun = pass + 'Pass';
-                    if(this[passFun]){
-                        var updated = this[passFun]();
-                        draw = draw || updated;
-                    }
-                }
-            }
-            for(var i = 0, len = this._entityList.length; i < len; i++){
-                if(this._entityList[i].__updated__){
-                    var draw = true;
-                    this._entityList[i].__updated__ = false;
-                }
-            }
-            return draw || false;
+            this.instanciationStep(); 
+            this.cameraStep();
+            this.updateStep();
+            this.collisionStep();
+            this.destructionStep();
         },
         onFrameStart: function(){},
         onFrameEnd:   function(){},
         onSceneStart: function(){},
         onSceneEnd:   function(){},
-    });
-
-    modula.ScenePass = modula.Class.extend({
-        process: function(scene,updated){
-            return false;
-        },
     });
 
     modula.Ent = modula.Class.extend({ 
@@ -4697,146 +4286,6 @@ window.modula = window.modula || {};
         onCollisionReceive: function(ent){},
     });
 
-    modula.Ray = modula.Class.extend({
-        start: null,
-        dir: null,
-        maxLength: 0,
-        length: 0,
-        pos: null,
-        next: function(length){
-        },
-    });
-
-})(window.modula);
-// Modula 2D canvas debug draw helpers
-window.modula = window.modula || {}; 
-(function(modula){
-
-    modula.draw = {};
-
-    modula.draw.setContext = function(context){
-        modula.draw.context = context;
-        return modula.draw;
-    };
-    modula.draw.line = function(from, to, color){
-        var c = modula.draw.context;
-        if(color){
-            c.save();
-            c.strokeStyle = color;
-        }
-        c.beginPath();
-        c.moveTo(from.x,from.y);
-        c.lineTo(to.x,to.y);
-        c.closePath();
-        c.stroke();
-        
-        if(color){
-            c.restore();
-        }
-        return modula.draw;
-    };
-
-    modula.draw.line_at = function(pos, segment, color){
-        modula.draw.line(pos,pos.add(segment),color);
-        return modula.draw;
-    };
-
-    modula.draw.circle = function(pos,radius, color){
-        var c = modula.draw.context;
-        if(color){
-            c.save();
-            c.strokeStyle = color;
-        }
-        c.beginPath();
-        c.arc(pos.x,pos.y,radius,0,2*Math.PI);
-        c.closePath();
-        c.stroke();
-
-        if(color){
-            c.restore();
-        }
-        return modula.draw;
-    };
-
-    modula.draw.disc = function(pos,radius, color){
-        var c = modula.draw.context;
-        if(color){
-            c.save();
-            c.fillStyle = color;
-        }
-        c.beginPath();
-        c.arc(pos.x,pos.y,radius,0,2*Math.PI);
-        c.closePath();
-        c.fill();
-
-        if(color){
-            c.restore();
-        }
-        return modula.draw;
-    };
-    
-    modula.draw.centeredRect = function(center,size,color){
-        var c = modula.draw.context;
-        var hx = size.x * 0.5;
-        var hy = size.y * 0.5;
-        if(color){
-            c.save();
-            c.strokeStyle = color;
-        }
-        
-        c.strokeRect(center.x - size.x*0.5, center.y - size.y * 0.5, size.x, size.y);
-        
-        if(color){
-            c.restore();
-        }
-    };
-
-    if(modula.V2){
-        
-        var proto = modula.V2.prototype;
-        
-        proto.draw = function(color){
-            modula.draw.line(new V2(0,0), this, color);
-            return this;
-        };
-
-        proto.drawAt = function(pos,color){
-            modula.draw.lineAt(pos,this,color);
-            return this;
-        };
-    }
-
-    if(modula.Transform2){
-
-        var proto = modula.Transform2.prototype;
-
-        proto.drawToWorld = function(size){
-            size = size || 10;
-            var center = this.getWorldPos();
-            var x = this.localToWorld(new V2(size,0));
-            var y = this.localToWorld(new V2(0,size));
-            var c = modula.draw.context;
-
-            c.save();
-            
-            c.strokeStyle = 'red';
-            c.beginPath();
-            c.moveTo(center.x,center.y);
-            c.lineTo(x.x,x.y);
-            c.closePath();
-            c.stroke();
-
-            c.strokeStyle = 'green';
-            c.beginPath();
-            c.moveTo(center.x,center.y);
-            c.lineTo(y.x,y.y);
-            c.closePath();
-            c.stroke();
-
-            c.restore();
-        };
-    }
-
 })(window.modula);
 // Modula 2D Grid
 window.modula = window.modula || {};
@@ -4845,91 +4294,74 @@ window.modula = window.modula || {};
     modula.Grid = modula.Class.extend({
         init: function(options){
             options = options || {};
-            this._cellX = this.get('cellX') || options.cellX || 1;
-            this._cellY = this.get('cellY') || options.cellY || 1;
-            this._cellSize = this.get('cellSize');
-            if(!this._cellSize && options.cellSize){
+            this.cellX = this.cellX || options.cellX || 1;
+            this.cellY = this.cellY || options.cellY || 1;
+            this.cellSize = this.cellSize;
+            if(!this.cellSize && options.cellSize){
                 if(typeof options.cellSize === 'number'){
-                    this._cellSize = new V2(options.cellSize, options.cellSize);
+                    this.cellSize = new V2(options.cellSize, options.cellSize);
                 }else{
-                    this._cellSize = options.cellSize.clone();
+                    this.cellSize = options.cellSize.clone();
                 }
             }else{
-                this._cellSize = new V2(32,32);
+                this.cellSize = new V2(32,32);
             }
-            this._invCellSize = new V2(1 / this._cellSize.x, 1 / this._cellSize.y);
-            this._size = new V2( this._cellX * this._cellSize.x,
-                                  this._cellY * this._cellSize.y  );
+            this.invCellSize = new V2(1 / this.cellSize.x, 1 / this.cellSize.y);
+            this.size = new V2( this.cellX * this.cellSize.x,
+                                  this.cellY * this.cellSize.y  );
 
-            this._cell = this._cell || options.cells || [];
+            this.cells = this.cells || options.cells || [];
             if(options.fill !== undefined && !options.cells){
                 this.fill(options.fill);
             }
         },
-        _set_cell: function(index,cell){
-            if(index[0] >= 0 && index[0] < this._cellX && index[1] >= 0 && index[1] < this._cellY){
-                this._cell[index[1]*this._cellX+index[0]] = cell;
-            }
-        },
-        _get_cell: function(index){
-            if(!index){
-                return this._cell;
-            }else if(index[0] < 0 || index[0] >= this._cellX || index[1] < 0 || index[1] >= this._cellY){
-                return undefined;
-            }else{
-                return this._cell[index[1]*this._cellX+index[0]]; 
-            }
-        },
-        _get_cells: function(){
-            return this._cell;
-        },
         getCellUnsafe: function(x,y){
-            return this._cell[y*this._cellX+x];
+            return this.cells[y*this.cellX+x];
         },
         getCell: function(x,y){
-            if(x >= 0 && y >= 0 && x < this._cellX && y < this._cellY){
-                return this._cell[y*this._cellX+x];
+            if(x >= 0 && y >= 0 && x < this.cellX && y < this.cellY){
+                return this.cells[y*this.cellX+x];
             }else{
                 return undefined;
+            }
+        },
+        setCell: function(x,y,cell){
+            if(x >= 0 && y >= 0 && x < this.cellX && y < this.cellY){
+                this.cells[y*this.cellX+x] = cell;
             }
         },
         fill: function(cell){
-            for(var x = 0; x < this._cellX; x++){
-                for (var y = 0; y < this._cellY; y++){
-                    this._cell[y*this._cellX + x] = cell;
+            for(var x = 0; x < this.cellX; x++){
+                for (var y = 0; y < this.cellY; y++){
+                    this.cells[y*this.cellX + x] = cell;
                 }
             }
         },
-        _get_bound: function(index){
-            if(index){
-                var csize = this.get('cellSize');
-                return new modula.Rect(index[0] * csize.x, index[1] * csize.x, csize.x, csize.y );
-            }else{
-                return new modula.Rect(0,0,this.get('size').x, this.get('size').y);
-            }
+        getCellBound: function(x,y){
+            return new modula.Rect(x * this.cellSize.x, y * this.cellSize.y, this.cellSize.x, this.cellSize.y);
         },
-        getBoundUnsafe: function(x,y){
-            return new modula.Rect(x * this._cellSize.x, y * this._cellSize.y, this._cellSize.x, this._cellSize.y);
+        getBound: function(){
+            return new modula.Rect(0,0,this.size.x, this.size.y);
         },
         getCellAtPixel: function(pos){
-            var size = this.get('size');
+            var size = this.size;
             if(pos.x < 0 || pos.x >= size.x || pos.y < 0 || pos.y >= size.y){
                 return undefined;
             }else{
-                var csize = this.get('cellSize');
-                var x = Math.max(0,Math.min(this._cellX - 1,Math.floor(pos.x/csize.x)));
-                var y = Math.max(0,Math.min(this._cellY - 1,Math.floor(pos.y/csize.y)));
+                var csize = this.cellSize;
+                var x = Math.max(0,Math.min(this.cellX - 1,Math.floor(pos.x/csize.x)));
+                var y = Math.max(0,Math.min(this.cellY - 1,Math.floor(pos.y/csize.y)));
                 return { x:x, y:y, cell:this.getCellUnsafe(x,y)};
             }
         },
         getCellsInRect: function(minx, miny, maxx, maxy){
-            var size = this._size;
+            var size = this.size;
             if(maxx <= 0 || maxy <= 0){
                 return [];
             }else if(minx >= size.x || miny >= size.y){
                 return [];
             }else{
-                var csize = this._cellSize.clone();
+                var csize = this.cellSize.clone();
                 csize.x = 1.0 / csize.x;
                 csize.y = 1.0 / csize.y;
                 minx = Math.floor(Math.max(minx,0) * csize.x);
@@ -4951,7 +4383,7 @@ window.modula = window.modula || {};
                 return [];
             }else{
                 var cells = this.getCellsInRect(bound.minX(), bound.minY(), bound.maxX(), bound.maxY());
-                var csize = this._cellSize;
+                var csize = this.cellSize;
                 var ccells = [];
                 for(var i = 0, len = cells.length; i < len; i++){
                     var cell = cells[i];
@@ -4976,10 +4408,10 @@ window.modula = window.modula || {};
             var maxX  = bound.maxX();
             var maxY  = bound.maxY();
      
-            var cx    = this._cellX;
-            var cy    = this._cellY;
-            var csx   = this._cellSize.x;
-            var csy   = this._cellSize.y;
+            var cx    = this.cellX;
+            var cy    = this.cellY;
+            var csx   = this.cellSize.x;
+            var csy   = this.cellSize.y;
 
 
             if(maxX <= 0 || maxY <= 0 || minX >= cx*csx || minY >= cy*csy){
@@ -5103,6 +4535,7 @@ window.modula = window.modula || {};
             }
         },
     });
+
     modula.DrawableGrid = modula.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
@@ -5127,9 +4560,9 @@ window.modula = window.modula || {};
             });
         },
         draw: function(renderer, ent, camera){
-            var cx = this.grid._cellX;
-            var cy = this.grid._cellY;
-            var size = this.grid._cellSize; 
+            var cx = this.grid.cellX;
+            var cy = this.grid.cellY;
+            var size = this.grid.cellSize; 
 
             for(var x = 0; x < cx; x++){
                 for(var y = 0; y < cy; y++){

@@ -11,7 +11,7 @@ window.import_ents = function(module){
         },
     });
 
-	ents.Item = Ent.extend({
+	ents.Item = ents.GameEnt.extend({
         name:'item',
         spawn: 0,
         delay: 5,
@@ -80,12 +80,12 @@ window.import_ents = function(module){
             options = options || {};
             this._super(options);
             this.spawns = {
-                zen: [],
-                aku: [],
+                red: [],
+                blue: [],
             };
             this.flags = {
-                zen: null,
-                aku: null,
+                red: null,
+                blue: null,
             };
             this.theme = {
                 grid:{
@@ -107,7 +107,6 @@ window.import_ents = function(module){
             }
             this.collisionBehaviour = 'receive';
             this.name     = options.name || 'default';
-            this.editing  = false;
             this.editCell = 1;
             this.grid     = new Grid({
                 cellX: 50,
@@ -117,28 +116,27 @@ window.import_ents = function(module){
             });
             this.load();
         },
-        save: function(){
-            localStorage['shivrz_lvl_'+ this.name] = JSON.stringify({
-                cellX:    this.grid.get('cellX'),
-                cellY:    this.grid.get('cellY'),
-                cellSize: this.grid.get('cellSize'),
-                cells:    this.grid.get('cells'),
-            });
-        },
-        load: function(){
-            var lvl  = localStorage['shivrz_lvl_'+this.name];
-            if(lvl){
-                lvl = JSON.parse(lvl);
-                if(lvl){
-                    this.grid = new Grid({
-                        cellX: lvl.cellX,
-                        cellY: lvl.cellY,
-                        cellSize: new V2(lvl.cellSize),
-                        cells: lvl.cells,
-                    });
-                }
+        getState: function(){
+            return {
+                name:     this.name,
+                cellX:    this.grid.cellX,
+                cellY:    this.grid.cellY,
+                cellSize: this.grid.cellSize,
+                cells:    this.grid.cells,
+                spawns:   this.spawns,
             }
-            this.bound   = new Rect(0,0,this.grid.get('size').x, this.grid.get('size').y);
+        },
+        setState: function(state){
+            var lvl = state;
+            this.grid = new Grid({
+                cellX: lvl.cellX,
+                cellY: lvl.cellY,
+                cellSize: new V2(lvl.cellSize),
+                cells: lvl.cells,
+            });
+            this.spawns = lvl.spawns;
+            this.name = lvl.name || 'default';
+            this.bound   = new Rect(0,0,this.grid.size.x, this.grid.size.y);
             this.drawable = [
                 new DrawableGrid({
                     pass:'bgblocks',
@@ -152,40 +150,61 @@ window.import_ents = function(module){
                 }),
             ];
         },
-        onUpdate: function(){
-            var input = this.main.input;
-            if(!this.scene.camera){
-                return;
-            }
-            var mouse = this.transform.worldToLocal(this.scene.camera.getMouseWorldPos());
-            var cell = this.grid.getCellAtPixel(mouse);
-            if(cell && this.editing){
-                if(input.isKeyDown('mouse-left')){
-                    this.grid.set('cell',[cell.x,cell.y],this.editCell);
-                    this.save();
-                }else if(input.isKeyDown('mouse-middle')){
-                    this.grid.set('cell',[cell.x,cell.y],0);
-                    this.save();
+        save: function(){
+            localStorage['shivrz_lvl_'+ this.name] = JSON.stringify(this.getState());
+        },
+        load: function(){
+            var lvl  = localStorage['shivrz_lvl_'+this.name];
+            if(lvl){
+                lvl = JSON.parse(lvl);
+                if(lvl){
+                    this.setState(lvl);
                 }
             }
-            if(input.isKeyDown('1')){
-                this.editCell = 1;
-            }else if(input.isKeyDown('2')){
-                this.editCell = 2;
-            }else if(input.isKeyDown('3')){
-                this.editCell = -1;
-            }else if(input.isKeyDown('4')){
-                this.editCell = -2;
-            }else if(input.isKeyDown('0')){
-                this.editCell = 0;
-            }else if(input.isKeyPressing('editlvl')){
-                this.editing = !this.editing;
+        },
+        generate: function(opt){
+            opt = opt || {};
+            var density = opt.density || 0.1;
+            var bgdensity = opt.bgdensity || 0.1;
+            var grid = new Grid({
+                cellX: opt.cellX || 50,
+                cellY: opt.cellY || 50,
+                cellSize: 103,
+                fill:0,
+            });
+            for(var x = 0, xlen = grid.cellX; x < xlen; x++){
+                for(var y = 0, ylen = grid.cellY; y < ylen; y++){
+                    var cell = 0;
+                    if(x === 0 || x === xlen-1 || y === 0 || y === ylen-1){
+                        cell = 1;
+                    }else{
+                        var r = Math.random();
+                        if(r < density){
+                            cell = r < density * 0.5 ? 1 : 2;
+                        }else if(r - density < bgdensity){
+                            cell = r - density < bgdensity*0.5 ? -1 : -2;
+                        }
+                    }
+                    grid.set('cell',[x,y],cell);
+                }
             }
+            var spawnPoints = opt.spawnPoints || 4;
+            var spawns = {red:[],blue:[]};
+            for(var i = 0; i < spawnPoints; i++){
+                for (team in spawns){
+                    do {
+                        var pos = [Math.floor(Math.random()*grid.cellX),
+                                   Math.floor(Math.random()*grid.cellY)];
+                    }while(grid.getCell(pos.x,pos.y) > 0);
+                    spawns[team].push(pos);
+                }
+            }
+            this.grid = grid;
+            this.spawns = spawns;
+            this.save();
+            this.load();
         },
     });
-
-    var lvl = new ents.Level();
-    ents.lvl = lvl;
 
     ents.GridCollider = ents.GameEnt.extend({
         onCollisionEmit: function(ent){
@@ -269,16 +288,15 @@ window.import_ents = function(module){
                 var entities = this.scene.get('entity');
                 for(var i = 0, len = entities.length; i < len; i++){
                     var ent = entities[i];
-                    if(ent instanceof ents.PlayerShip){
+                    if(ent instanceof ents.Ship){
                         dist = this.transform.dist(ent.transform);
-                        console.log('dist:',dist);
                         if(dist.len() < this.explRadius){
                             if(ent.damage){
                                 var fac = 1 - (dist.len() || 1) / this.explRadius;
-                                console.log('fac:',fac);
                                 ent.damage(this.explDamage * fac,
                                            this.explKnockback * fac,
-                                           dist.normalize());
+                                           dist.normalize(),
+                                           this.owner);
                             }
                         }
                     }
@@ -298,6 +316,13 @@ window.import_ents = function(module){
             this.explode();
             this.destroy();
         },
+        onCollisionEmit: function(ent){
+            this._super(ent);
+            if(ent instanceof ents.Ship && ent !== this.owner){
+                this.explode();
+                this.destroy();
+            }
+        }
     });
     
     ents.MissileExplosion = Ent.extend({
@@ -366,6 +391,8 @@ window.import_ents = function(module){
         name: 'bolt',
         drawable: assets.boltSprite,
         speed:600,
+        damage:30,
+        explosionDamage:25,
         Expl: ents.BoltExplosion,
         smokeInterval : 0.001,
         lastSmokeTime : 0,
@@ -485,27 +512,11 @@ window.import_ents = function(module){
         },
     });
 
-    ents.PlayerCamera = Camera2d.extend({
-        name: 'playerCamera',
-        parallax: true,
-        init: function(player){
-            this.player = player;
-            this.set('pos',player.get('pos'));
+    ents.GameCamera = Camera2d.extend({
+        init: function(opt){
+            opt = opt || {};
+            this.game = opt.game || null;
             this.fpses = [60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-        },
-        getMinFPS: function(){
-            var min = Number.MAX_VALUE;
-            for(var i = 0; i < this.fpses.length; i++){
-                min = Math.min(min,this.fpses[i]);
-            }
-            return min;
-        },
-        getMaxFPS: function(){
-            var max = 0;
-            for(var i = 0; i < this.fpses.length; i++){
-                max = Math.max(max,this.fpses[i]);
-            }
-            return max;
         },
         getAvgFPS: function(){
             var avg = 0;
@@ -519,43 +530,34 @@ window.import_ents = function(module){
             this.fpses.push(fps);
         },
         onUpdate: function(){
-            var input = this.main.input;
+            var lvl    = this.game.lvl;
+            var player = this.game.getLocalPlayer();
+            var ship   = player ? player.ship : null;
+            var input  = this.main.input;
             this.recordFPS(1/this.main.deltaTime);
             $('.fps').html(''+this.getAvgFPS()+ ' fps');
 
-            if(input.isKeyDown('z')){
-                this.increase('scale',new V2(1*this.main.deltaTime));
-            }else if(input.isKeyDown('x')){
-                this.increase('scale',new V2(-1*this.main.deltaTime));
-            }
-            if(input.isKeyDown('c')){
-                this.increase('rotation',1*this.main.deltaTime);
-            }else if(input.isKeyDown('v')){
-                this.increase('rotation',-1*this.main.deltaTime);
-            }
-            var center = new V2( 
-                    window.innerWidth/2,
-                    window.innerHeight/2
-            );
-            var oldpos = this.get('pos');
-            var dpos = this.player.get('pos').sub(this.get('pos'));
-            var odpos = dpos;
-            
-            dpos = dpos.scale( Math.max(1, dpos.len() /10) * this.main.deltaTime);
+            if(ship){
+                var dpos = ship.get('pos').sub(this.get('pos'));
+                
+                dpos = dpos.scale( Math.min(1, Math.max(1, dpos.len() /10) * this.main.deltaTime));
 
-            this.increase('pos',dpos);
+                this.increase('pos',dpos);
 
-            var pos = this.get('pos');
+                var pos = this.get('pos');
 
-            var cscale = this.get('scaleFac');
-            if(!lvl.editing){
-                if (this.player.moveSpeed.len() > 1){
+                var cscale = this.get('scaleFac');
+                if (ship.moveSpeed.len() > 1){
                     this.set('scale',Math.min(2,cscale+0.15*this.main.deltaTime));
                 }else{
                     this.set('scale',Math.max(1,cscale-0.15*this.main.deltaTime));
                 }
+            }else{
+                var lvlcenter = V2(lvl.grid.cellX,lvl.grid.cellY).mult(lvl.grid.cellSize).mult(0.5);
+                var dpos = lvlcenter.sub(this.get('pos'))
+                dpos = dpos.scale(Math.min(1,this.main.deltaTime));
+                this.increase('pos',dpos);
             }
-            return true;
         },
     });
     
@@ -595,17 +597,17 @@ window.import_ents = function(module){
 
     });
 
-    ents.PlayerShip = ents.GridCollider.extend({
-        name: 'player',
+    ents.Ship = ents.GridCollider.extend({
         init: function(opt){
             var opt = opt || {};
             this._super(opt);
             
             this.spec = opt.spec || this.spec || new ents.ShipSpec();
+            this.player = opt.player || null;
 
             this.moveSpeed    = new V2();
             this.moveDir      = new V2();
-            this.aimdir       = new V2();
+            this.aimdir       = new V2(1,0);
 
             this.knockSpeed    = new V2();
             this.knockTime     = 0;
@@ -630,7 +632,7 @@ window.import_ents = function(module){
                 this.shipSprite,
             ];
 
-            this.collisionBehaviour = 'emit';
+            this.collisionBehaviour = 'both';
             this.bound = new Rect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
             this.colVec = new V2();
 
@@ -648,7 +650,12 @@ window.import_ents = function(module){
         _set_weapon: function(weapon){
             this.weapon = this.get('weapon',weapon);
         },
-        damage: function(damage,knockback,dir){
+        damage: function(damage,knockback,dir,owner){
+            if(owner.player.team !== this.player.team){
+                this.player.health -= damage;
+                console.log(owner.player.name+' inflicted '+damage+' damage to player '+this.player.name);
+                return;
+            }
             var knockTime = Math.max(0.5,Math.min(1.5,knockback * this.spec.knockDuration));
             var knockSpeed = dir.scale(knockback*this.spec.knockSpeed);
             if(this.knockTime > this.scene.time){
@@ -659,27 +666,18 @@ window.import_ents = function(module){
                 this.knockSpeed = knockSpeed;
             }
         },
-
-        onInstanciation: function(){
-            this.scene.camera = new ents.PlayerCamera(this);
-        },
-    
-        onUpdate: function(){
-            var input = this.main.input;
+        controls: function(){
             var dt = this.scene.deltaTime;
-            var knocked = this.knockTime > this.scene.time;
+            var input = this.main.input;
             this.aimdir = this.scene.camera.getMouseWorldPos().sub(this.transform.pos).normalize();
-
             if(input.isKeyPressing('weapon-missile')){
                 this.set('weapon','missile');
             }else if(input.isKeyPressing('weapon-bolter')){
                 this.set('weapon','bolter');
             }
-
             if(input.isKeyDown('pause')){
                 this.main.exit();
             }
-            
             if(input.isKeyDown('left')){
                 this.moveDir.x = -1;
             }else if(input.isKeyDown('right')){
@@ -738,10 +736,21 @@ window.import_ents = function(module){
                 }
             }
             
-            if(!lvl.editing &&input.isKeyDown('fire')){
-                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
-                if(this.weapon.fire(this.get('pos'), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
-                    this.lastFireTime = this.scene.time;
+            if(input.isKeyDown('fire')){
+                this.firing = true;
+            }else{
+                this.firing = false;
+            }
+        },
+        onUpdate: function(){
+            var dt = this.scene.deltaTime;
+            if(this.player.type === 'local'){
+                this.controls();
+                if(this.firing){
+                    var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
+                    if(this.weapon.fire(this.get('pos'), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
+                        this.lastFireTime = this.scene.time;
+                    }
                 }
             }
 
@@ -750,31 +759,18 @@ window.import_ents = function(module){
             }else{
                 this.drawable = [this.shipHover, this.shipHover2, this.shipSprite];
             }
-            if(knocked){
-                this.moveSpeed = this.knockSpeed.clone();
-            }
             
             this.increase('pos',this.moveSpeed.scale(this.scene.deltaTime));
             
             var prevRotation = this.get('rotation'); 
-            if(knocked){
-                this.increase('rotation',90*RAD*this.scene.deltaTime);
-            }else{
-                this.set('rotation',(this.aimdir.azimuth()*DEG + 90)*RAD);
-            }
-            var deltaRot = Math.abs(prevRotation - this.get('rotation'));
+            this.set('rotation',(this.aimdir.azimuth()*DEG + 90)*RAD);
 
             this.shipHover.alpha = 0.25 + 0.5* (1+0.5*Math.cos(this.scene.time*0.5));
             this.shipHover.scale = 0.8  + 0.4* (1-0.5*Math.cos(this.scene.time*0.5));
 
             this.shipHover2.alpha = 0.25 + 0.5* (1+0.5*Math.cos(this.scene.time*0.7));
             this.shipHover2.scale = 0.8  + 0.4* (1-0.5*Math.cos(this.scene.time*0.7));
-            
-            if(this.moveSpeed.len() >= 1 || deltaRot > 0.001){
-                return true;
-            }
         },
-
         onGridCollision: function(grid,colVec){
             var knocked = this.knockTime > this.scene.time;
             this.colVec = colVec;
@@ -798,6 +794,9 @@ window.import_ents = function(module){
                     this.moveSpeed.y = 0;
                 }
             }
+        },
+        onDestruction: function(){
+            this.player.ship = null;
         },
     });
 };

@@ -201,7 +201,6 @@ window.modula = window.modula || {};
     };
 
     proto.dist = function(tr){
-        console.log('dist:',this,tr);
         return tr.getWorldPos().sub(this.getWorldPos());
     };
 
