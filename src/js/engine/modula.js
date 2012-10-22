@@ -32,159 +32,6 @@ window.modula = window.modula || {};
 
         // The base Class implementation
         this.Class = function(){
-
-            this.attr = function(name){
-                if((typeof name) === 'string'){
-                    return this.get(name);
-                }else{
-                    this.set(name);
-                    return this;
-                }
-            };
-
-            //Returns the value of the field 'name'
-            //it will first try to execute the getter method '_get_name()'
-            //then it will try to find a readonly field '_name'
-            //then it will try to find a field 'name'
-            //it returns undefined if everything fails
-            this.get = function(name,index){
-                var fun = '_get_'+name;
-                if(this[fun]){
-                    return this[fun].apply(this,Array.prototype.slice.call(arguments,1));
-                    //return this[fun](index);
-                }else{
-                    if(index === undefined || index === null){
-                        var ret = this['_'+name];
-                        if(ret === undefined){
-                            return this[name];
-                        }else if(ret.clone){
-                            return ret.clone();
-                        }else{
-                            return ret;
-                        }
-                    }else{
-                        var ret = this['_'+name];
-                        if(ret === undefined){
-                            ret = this[name];
-                        }
-                        return ret ? ret[index] : undefined;
-                    }
-                }
-            };
-
-            // Tries to set the value of the field 'name' to 'value'
-            // it will first try to use a setter method '_set_name(value)'
-            // it will then look if the field is writable. if there exist a 
-            // readonly field of the same name '_name', then it is not writable
-            // and it will do nothing.
-            // if it is writable or the field doesn't exist, the field will be created
-            // and set to the provided value.
-            //
-            // An altermative way to call set is to provide a dictionnary of fields and value.
-            // Those are all set in undefined order with the same behaviour as set(name,value) 
-            //
-            this.set = function(name,value){
-                this.__updated__ = true;
-                if(arguments.length === 1){
-                    var arg = arguments[0];
-                    for (attr in arg){
-                        if(arg.hasOwnProperty(attr)){
-                            this.set(attr,arg[attr]);
-                        }
-                    }
-                }else{
-                    var fun = '_set_' + name;
-                    if(this[fun]){
-                        this[fun].apply(this,Array.prototype.slice.call(arguments,1));
-                        //this[fun](value);
-                    }else{
-                        if( this['_' + name] === undefined ){
-                            this[name] = value;
-                        }
-                    }
-                }
-                return this;
-            };
-
-            this.add = function(name,element){
-                if(arguments.length === 1){
-                    this._add_default(arguments[0]);
-                }else{
-                    var fun = '_add_'+name;
-                    if(this[fun]){
-                        this[fun](element);
-                    }else if(this['_'+name] === undefined){
-                        var field = this.get(name);
-                        if((typeof field) === 'array'){
-                            field.push(element);
-                        }
-                    }
-                }
-                return this;
-            };
-
-            this.remove = function(name,element){
-                if(arguments.length === 1){
-                    this._remove_default(argument[0]);
-                }else{
-                    var fun = '_remove_'+name;
-                    if(this[fun]){
-                        this[fun](element);
-                    }else if(this['_'+name] === undefined){
-                        var field = this.get(name);
-                        if((typeof field) === 'array'){
-                            field.splice(field.indexOf(element),1);
-                        }
-                    }
-                }
-                return this;
-            };
-
-            // Increases the value to a field :
-            // if there is a function _increase_name(value) in the object, it will be called.
-            // if the field is a number, the value will be added to the existing value
-            // if the field is an object and has a .add method, the value will be increased
-            // using this method
-            this.increase = function(name,value){
-                this.__updated__ = true;
-                if(arguments.length === 1){
-                    var arg = arguments[0];
-                    for(attr in arg){
-                        if(arg.hasOwnProperty(attr)){
-                            this.add(attr,arg[attr]);
-                        }
-                    }
-                }else{
-                    var fun = '_increase_' + name;
-                    if(this[fun]){
-                        this[fun](value);
-                    }else if(this['_'+name] === undefined){
-                        var field = this.get(name); 
-                        if(field === null || field === undefined){
-                            this.set(name,value);
-                        }else if(typeof field === 'number'){
-                            this.set(name, field + value);
-                        }else if(field.add){
-                            this.set(name, field.add(value));
-                        }
-                    }
-                }
-                return this;
-            };
-
-            this.mixin = function(mixin){ //TODO match the better mixin function behaviour
-                    if(arguments.length === 1){
-                        for( prop in mixin){
-                            if(this[prop] === undefined && mixin.hasOwnProperty(prop)){
-                                    this[prop] = mixin[prop];
-                            }
-                        }
-                    }else{
-                            for(var i = 0; i < arguments.length; i++){
-                                    this.mixin(arguments[i]);
-                            }
-                    }
-            };
         };
       
         this.Class.extend = function(prop) {
@@ -306,11 +153,11 @@ window.modula = window.modula || {};
     modula.Mixin = new Mixin();
 
 })(window.modula);
-var module = window;
+var exports = typeof exports !== 'undefined' && this.exports !== exports ? exports : window;
 
 /* ------------------------------ 2D Vectors -------------------------------- */
 
-(function(module){
+(function(exports){
     
     function V2(){
         var self = this;
@@ -349,7 +196,7 @@ var module = window;
         return self;
     }
 
-    module.V2 = V2;
+    exports.V2 = V2;
 
     var proto = V2.prototype;
     
@@ -749,11 +596,11 @@ var module = window;
         return a;
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ 3D Vectors -------------------------------- */
 
-(function(module){
+(function(exports){
 
     function V3(){
         var self = this;
@@ -805,7 +652,7 @@ var module = window;
     var tmp1 = new V3();
     var tmp2 = new V3();
     
-    module.V3 = V3;
+    exports.V3 = V3;
 
     var proto = V3.prototype;
 
@@ -1186,13 +1033,13 @@ var module = window;
         return a;
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ 3x3 Matrix -------------------------------- */
 
-(function(module){
+(function(exports){
 
-    var V3 = module.V3;
+    var V3 = exports.V3;
         
     // 0 3 6 | xx xy xz
     // 1 4 7 | yx yy yz
@@ -1267,7 +1114,7 @@ var module = window;
         return self;
     };
 
-    module.Mat3 = Mat3;
+    exports.Mat3 = Mat3;
 
     Mat3.epsilon  = 0.00000001;    
     Mat3.id       = new Mat3();
@@ -1693,13 +1540,13 @@ var module = window;
         return array;
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ 4x4 Matrix -------------------------------- */
 
-(function(module){
+(function(exports){
 
-    var V3 = module.V3;
+    var V3 = exports.V3;
 
 
     var setArray = function(md,array,offset){
@@ -1778,7 +1625,7 @@ var module = window;
 
     var tmp   = new Mat4();
 
-    module.Mat4 = Mat4;
+    exports.Mat4 = Mat4;
 
     Mat4.epsilon  = 0.00000001;    
     Mat4.id       = new Mat4();
@@ -2443,13 +2290,13 @@ var module = window;
         return Mat4.toArray(new Float32Array(16),this);
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ Quaternions -------------------------------- */
 
-(function(module){
+(function(exports){
 
-    var V3 = module.V3;
+    var V3 = exports.V3;
 
     function setArray(qd,array,offset){
         offset = offset || 0;
@@ -2493,7 +2340,7 @@ var module = window;
         return self;
     }
 
-    module.Quat = Quat;
+    exports.Quat = Quat;
 
     var tmp = new Quat();
     
@@ -2670,7 +2517,7 @@ var module = window;
         return Mat4.toArray(new Float32Array(4),this);
     };
 
-})(module);
+})(exports);
 // Modula 2D Transforms
 window.modula = window.modula || {};
 (function(modula){
@@ -2728,7 +2575,6 @@ window.modula = window.modula || {};
             }
         }
     }
-
     function make_matrix(tr){
         if(!tr.localToParentMatrix){
             tr.localToParentMatrix = Mat3.transform(tr.pos,tr.scale,tr.rotation);
@@ -2744,52 +2590,44 @@ window.modula = window.modula || {};
             }
         }
     }
-
     proto.getLocalToParentMatrix = function(){
         if(!this.localToParentMatrix){
             make_matrix(this);
         }
         return this.localToParentMatrix;
     };
-
     proto.getParentToLocalMatrix = function(){
         if(!this.parentToLocalMatrix){
             make_matrix(this);
         }
         return this.parentToLocalMatrix;
     };
-
     proto.getLocalToWorldMatrix = function(){
         if(!this.localToWorldMatrix){
             make_matrix(this);
         }
         return this.localToWorldMatrix;
     };
-
     proto.getWorldToLocalMatrix = function(){
         if(!this.worldToLocalMatrix){
             make_matrix(this);
         }
         return this.worldToLocalMatrix;
     };
-
     proto.getDistantToLocalMatrix = function(dist){
         //return this.getWorldToLocalMatrix().mult(dist.getLocalToWorldMatrix());
         return dist.getLocalToWorldMatrix().mult(this.getWorldToLocalMatrix());
     }
-
     proto.getLocalToDistantMatrix = function(dist){
         //return this.getLocalToWorldMatrix().mult(dist.getWorldToLocalMatrix());
         return dist.getWorldToLocalMatrix().mult(this.getLocalToWorldMatrix()); //FIXME looks fishy ...
     }
-
     proto.equals = function(tr){
         return  this.fullType === tr.fullType &&
             this.pos.equals(tr.pos) &&
             epsilonEquals(this.rotation, tr.rotation) &&
             epsilonEquals(this.scale.x, tr.scale.y);
     };
-
     proto.clone = function(){
         var tr = new Transform2();
         tr.pos  = this.pos.clone();
@@ -2797,14 +2635,12 @@ window.modula = window.modula || {};
         tr.rotation = this.rotation;
         return tr;
     };
-
     proto.setPos = function(vec){
         this.pos.x = vec.x;
         this.pos.y = vec.y;
         reset_matrix(this);
         return this;
     };
-
     proto.setScale = function(scale){
         if((typeof scale) === 'number'){
             this.scale.x = scale;
@@ -2816,67 +2652,55 @@ window.modula = window.modula || {};
         reset_matrix(this);
         return this;
     };
-
     proto.setRotation = function(rotation){
         this.rotation = rotation;
         reset_matrix(this);
         return this;
     };
-
     proto.getPos = function(){
         return this.pos.clone();
     };
-
     proto.getScale = function(){
         return this.scale.clone();
     };
-
+    proto.getScaleFac = function(){
+        return Math.max(this.scale.x,this.scale.y);
+    };
     proto.getRotation = function(){
         return this.rotation;
     };
-
     proto.getWorldPos = function(){
         return this.getLocalToWorldMatrix().mult(new V2());
     };
-
     proto.parentToLocal = function(vec){
         return this.getParentToLocalMatrix().mult(vec);
     };
-
     proto.worldToLocal = function(vec){
         return this.getWorldToLocalMatrix().mult(vec);
     };
-
     proto.localToParent = function(vec){
         return this.getLocalToParentMatrix().mult(vec);
     };
-
     proto.localToWorld = function(vec){
         return this.getLocalToWorldMatrix().mult(vec);
     };
-    
     proto.distantToLocal = function(distTransform, vec){
         vec = distTransform.localToWorld(vec);
         return this.worldToLocal(vec);
     };
-
     proto.localToDistant = function(dist, vec){
         vec = this.localToWorld(vec);
         return dist.worldToLocal(vec);
     };
-
     proto.X = function(){
         return this.localToWorld(new V2(1,0)).sub(this.getWorldPos()).normalize();
     };
-
     proto.Y = function(){
         return this.localToWorld(new V2(0,1)).sub(this.getWorldPos()).normalize();
     };
-
     proto.dist = function(tr){
         return tr.getWorldPos().sub(this.getWorldPos());
     };
-
     proto.addChild = function(tr){
         if(tr.parent != this){
             tr.makeRoot();
@@ -2885,22 +2709,18 @@ window.modula = window.modula || {};
         }
         return this;
     };
-
     proto.remChild = function(tr){
         if(tr && tr.parent === this){
             tr.makeRoot();
         }
         return this;
     };
-
     proto.getChildCount = function(){
         return this.childs.length;
     };
-
     proto.getChild = function(index){
         return this.childs[index];
     };
-
     proto.getRoot  = function(){
         if(this.parent){
             return this.parent.getRoot();
@@ -2908,7 +2728,6 @@ window.modula = window.modula || {};
             return this;
         }
     };
-
     proto.makeRoot = function(){
         if(this.parent){
             var pchilds = this.parent.childs;
@@ -2921,38 +2740,31 @@ window.modula = window.modula || {};
         }
         return this;
     };
-
     proto.isLeaf   = function(){ return this.childs.length === 0; };
-
     proto.isRoot   = function(){ return !this.parent; };
-
     proto.rotate = function(angle){ 
         this.rotation += angle;
         reset_matrix(this);
         return this;
     };
-
     proto.scale = function(scale){
         this.scale.x *= scale.x;
         this.scale.y *= scale.y;
         reset_matrix(this);
         return this;
     };
-
     proto.scaleFac = function(f){
         this.scale.x *= f;
         this.scale.y *= f;
         reset_matrix(this);
         return this;
     };
-
     proto.translate = function(deltaPos){
         this.pos.x += deltaPos.x;
         this.pos.y += deltaPos.y;
         reset_matrix(this);
         return this;
     };
-
 
 })(window.modula);
 // Modla 2D Bounding Volumes
@@ -3169,9 +2981,8 @@ window.modula = window.modula || {};
             this.maxfps = options.maxfps || 120;
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
-            if(options.input){
-                this.set('input',(options.input));
-            }
+            this.input = options.input || this.input;
+            this.input.main = this;
             if(options.scene){
                 this.add(options.scene);
             }
@@ -3180,24 +2991,17 @@ window.modula = window.modula || {};
             this._nextUid += 1;
             return this._nextUid;
         },
-        _add_default: function(scene){
-            this._add_scene(scene);
-        },
-        _add_scene: function(scene){
+        add: function(scene){
             scene.main = this;
             this.sceneList.push(scene);
             if(!this.scene){
                 this.scene = scene;
             }
-            if(!scene._uid){
-                scene._uid = this.getNewUid();
+            if(!scene.uid){
+                scene.uid = this.getNewUid();
             }
         },
-        _set_input:   function(input){
-            this.input = input;
-            input.main = this;
-        },
-        _set_fps: function(fps){
+        setFps: function(fps){
             this.fps = fps;
             this.fixedDeltaTime = 1/fps;
             this.deltaTime = 1/fps;
@@ -3497,7 +3301,7 @@ window.modula = window.modula || {};
     modula.Camera = modula.Class.extend({
         scene: null,
         main: null, 
-        transform : new Transform2(),
+        tr : new Transform2(),
         onUpdate : function(){},
         getMouseWorldPos: function(){
             if(!this.main || !this.main.input){
@@ -3505,38 +3309,10 @@ window.modula = window.modula || {};
             }
             var mpos = this.main.input.getMousePos();
             if(this.scene.renderer){
-                mpos = mpos.sub(this.scene.renderer.get('size').scale(0.5));
+                mpos = mpos.sub(this.scene.renderer.getSize().scale(0.5));
             }
-            mpos = this.transform.localToWorld(mpos);
+            mpos = this.tr.localToWorld(mpos);
             return mpos;
-        },
-        _get_pos: function(){
-            return this.transform.getPos();
-        },
-        _set_pos: function(pos){
-            this.transform.setPos(pos);
-        },
-        _get_scale: function(){
-            return this.transform.scale;
-        },
-        _get_scaleFac: function(){
-            return Math.max(this.transform.scale.x,this.transform.scale.y);
-        },
-        _set_scale: function(scale){
-            this.transform.setScale(scale);
-        },
-        _get_rotation: function(){
-            return this.transform.rotation;
-        },
-        _set_rotation: function(rot){
-            this.transform.setRotation(rot);
-        },
-        _get_bound: function(){
-            var pos = this.transform.getPos();
-            var size = this.scene.renderer.get('size');
-            return new modula.Rect(pos.x,pos.y,
-                    size.x*this.transform.scale.x,
-                    size.y*this.transform.scale.y,'centered');
         },
     });
 
@@ -3576,22 +3352,22 @@ window.modula = window.modula || {};
             this.background = options.background;
             this.compose = options.compose || 'source-over'; 
             this.globalAlpha = options.globalAlpha || 1; 
-            this._get_size = options.getSize || this._get_size;
+            this.getSize = options.getSize || this.getSize;
             this._size = new V2();
             this.passes = options.passes || this.passes;
         },
-        _get_size: function(){
+        getSize: function(){
             return new V2(this.canvas.width, this.canvas.height);
         },
         mustRedraw: function(){
-            return !this._size.equals(this.get('size'));
+            return !this._size.equals(this.getSize());
         },
         drawInit: function(camera){
             if(modula.draw){
                 modula.draw.setContext(this.context);
             }
             
-            this._size = this.get('size');
+            this._size = this.getSize();
             this.canvas.width = this._size.x;
             this.canvas.height = this._size.y;
 
@@ -3606,13 +3382,13 @@ window.modula = window.modula || {};
             if(camera){
                 this.context.translate(this.canvas.width/2, this.canvas.height/2);
                 if(camera.parallax && camera.height){
-                    this.context.scale( 1/(camera.transform.scale.x * camera.height), 
-                                        1/(camera.transform.scale.y * camera.height));
+                    this.context.scale( 1/(camera.tr.scale.x * camera.height), 
+                                        1/(camera.tr.scale.y * camera.height));
                 }else{
-                    this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
+                    this.context.scale(1/camera.tr.scale.x, 1/camera.tr.scale.y);
                 }
-                this.context.rotate(-camera.transform.rotation);
-                this.context.translate(-camera.transform.pos.x,-camera.transform.pos.y);
+                this.context.rotate(-camera.tr.rotation);
+                this.context.translate(-camera.tr.pos.x,-camera.tr.pos.y);
             }
         },
         drawEnd: function(){
@@ -3634,9 +3410,9 @@ window.modula = window.modula || {};
             
             function drawEntity(ent,pass){
                 self.context.save();
-                self.context.translate(ent.transform.pos.x, ent.transform.pos.y);
-                self.context.scale(ent.transform.scale.x, ent.transform.scale.y);
-                self.context.rotate(ent.transform.rotation);
+                self.context.translate(ent.tr.pos.x, ent.tr.pos.y);
+                self.context.scale(ent.tr.scale.x, ent.tr.scale.y);
+                self.context.rotate(ent.tr.rotation);
                 if(ent.render){
                     var drawables = ent.drawable;
                     if(!drawables){
@@ -3649,7 +3425,7 @@ window.modula = window.modula || {};
                         self.context.save();
                         if(camera.parallax && camera.height && drawable.height){
                             var fac = camera.height / (camera.height - drawable.height);
-                            var cpos = camera.transform.pos;
+                            var cpos = camera.tr.pos;
                             cpos = cpos.scale(1-fac);
                             context.translate(cpos.x,cpos.y);
                             context.scale(fac,fac);
@@ -3670,8 +3446,8 @@ window.modula = window.modula || {};
                     }
                 }
                 if(ent.renderChilds){
-                    for(var i = 0, len = ent.transform.getChildCount(); i < len; i++){
-                        drawEntity(ent.transform.getChild(i).ent,pass);
+                    for(var i = 0, len = ent.tr.getChildCount(); i < len; i++){
+                        drawEntity(ent.tr.getChild(i).ent,pass);
                     }
                 }
                 self.context.restore();
@@ -3714,7 +3490,7 @@ window.modula = window.modula || {};
                     this._cellSize = options.cellSize.clone();
                 }
             }else{ 
-                this._cellSize = this.get('cellSize') || new V2(32,32);
+                this._cellSize = this.cellSize || this._cellSize || new V2(32,32);
             }
             this._sprites = {};
             this._spriteNames = [];
@@ -3726,11 +3502,11 @@ window.modula = window.modula || {};
                 }
             }
         },
-        _set_sprite: function(name,index,size){
+        setSprite: function(name,index,size){
             this._sprites[name] = { index: index, size: size };
             this._spriteNames.push(name);
         },
-        _get_sprite: function(name,options){
+        getSprite: function(name,options){
             options = options || {};
             var sprite = this._sprites[name];
             if(sprite){
@@ -3751,6 +3527,9 @@ window.modula = window.modula || {};
                 }
                 return new modula.RendererCanvas2d.DrawableSprite(arg);
             }
+        },
+        getSpriteNames: function(){
+            return this._spriteNames;
         },
     });
 
@@ -3857,7 +3636,7 @@ window.modula = window.modula || {};
             this._rootEntityList = [];
             this._newEntityList = [];
             this._destroyedEntityList = [];
-            this._uid = options.uid || this._uid || undefined;
+            this.uid = options.uid || this.uid || undefined;
 
             this.frame = 0;
             this.time = 0;
@@ -3872,24 +3651,24 @@ window.modula = window.modula || {};
             this.name = options.name || this.name || 'Scene';
             this.main = null;
         },
-        _addEnt: function(ent){
+        add: function(ent){
             if(ent.main && ent.main !== this.main){
                 throw new Error('Cannot add an entity to the scene: it belongs to another modula instance');
                 return;
             }else if(this.main){
                 ent.main = this.main;
-                if(!ent._uid){
-                    ent._uid = this.main.getNewUid();
+                if(!ent.uid){
+                    ent.uid = this.main.getNewUid();
                 }
             }
             if(ent.scene && ent.scene !== this){
-                ent.scene._remEnt(ent);
+                ent.scene.remove(ent);
             }
             if(ent.scene !== this){
                 ent.scene = this;
                 this._newEntityList.push(ent);
-                this._entityByUid[ent.get('uid')] = ent;
-                var name = ent.get('name');
+                this._entityByUid[ent.uid] = ent;
+                var name = ent.name;
                 if(!(name in this._entityByName)){
                     this._entityByName[name] = [ent];
                 }else{
@@ -3898,24 +3677,24 @@ window.modula = window.modula || {};
             }
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
-                    this._addEnt(ent.getChild(i));
+                    this.add(ent.getChild(i));
                 }
             }
         },
-        _remEnt : function(ent){
+        remove: function(ent){
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
-                    this._remEnt(ent.getChild(i));
+                    this.remove(ent.getChild(i));
                 }
             }
             if(ent.scene = this){
                 array_remove(this._newEntityList,ent);
                 array_remove(this._entityList,ent);
-                delete this._entityByUid[ent.get('uid')];
-                var s = this._entityByName[ent.get('name')];
+                delete this._entityByUid[ent.uid];
+                var s = this._entityByName[ent.name];
                 array_remove(s.ent);
                 if(s.length == 0){
-                    delete this._entityByName[ent.get('name')];
+                    delete this._entityByName[ent.name];
                 }
                 if(ent.isRoot()){
                     array_remove(_rootEntityList,ent);
@@ -3923,33 +3702,10 @@ window.modula = window.modula || {};
                 ent.scene = null;
             }
         },
-        _add_default: function(ent){
-            this._addEnt(ent);
+        getEntities: function(){
+            return this._entityList;
         },
-       _remove_default : function(selector){
-            if(arguments.length === 1){
-                this.map(selector, function(ent){ 
-                    this._remEnt(ent); 
-                });
-            }else{
-                this._remEnt(arguments[0]);
-            }
-            return this;
-        },
-        _remove_entity: function(ent){
-            this._remEnt(ent);
-        },
-        _add_entity : function(ent){
-            this._addEnt(ent);
-        },
-        _get_entity : function(index){
-            if(index !== undefined && index !== null){
-                return this._entityList[index];
-            }else{
-                return this._entityList;
-            }
-        },
-        _get_rootEntities : function(index){
+        getRootEntities : function(index){
             if(index !== undefined && index !== null){
                 return this._rootEntityList[index];
             }else{
@@ -4087,26 +3843,26 @@ window.modula = window.modula || {};
         init: function( options ){
             options = options || {};
 
-            this._uid = options.uid || this._uid || undefined;  //  The uid is unique to each entity
+            this.uid = options.uid || this.uid || undefined;  //  The uid is unique to each entity
             this._state = 'new';    //  'new' | 'alive' | 'destroyed'   
             this._currentFrame = 0;
-            this._destroyTime = this.get('destroyTime') || options.duration || Number.MAX_VALUE; // TODO correct delay
+            this._destroyTime = options.duration || this._destroyTime || Number.MAX_VALUE; // TODO correct delay
 
             this.scene = null;
             this.main  = null;
 
-            // The transform contains the position, rotation, scale, and parent/childs of the entity
-            this.transform     = new modula.Transform2();
-            this.transform.ent = this;
+            // The tr contains the position, rotation, scale, and parent/childs of the entity
+            this.tr     = new modula.Transform2();
+            this.tr.ent = this;
 
             if(options.pos){
-                this.transform.setPos(options.pos);
+                this.tr.setPos(options.pos);
             }
             if(options.rotation){
-                this.transform.setRotation(options.rotation);
+                this.tr.setRotation(options.rotation);
             }
             if(options.scale){
-                this.transform.setScale(options.scale);
+                this.tr.setScale(options.scale);
             }
             
             // the collisionBehaviour decides how collision events are emitted :
@@ -4132,66 +3888,45 @@ window.modula = window.modula || {};
         },
         // return true if the entity has no childs
         isLeaf : function(){
-            return this.transform.isLeaf();
+            return this.tr.isLeaf();
         },
         // return true if the entity has no parents
         isRoot : function(){
-            return this.transform.isRoot();
+            return this.tr.isRoot();
         },
-        // adds a child to the entity. The previous coordinates will become local coordinates
-        _add_default : function(ent){
-            this._add_childs(ent);
-        },
-        _remove_default: function(ent){
-            this._remove_childs(ent);
-        },
-        _add_child : function(ent){
-            this.transform.addChild(ent.transform);
+        addChild: function(ent){
+            this.tr.addChild(ent.tr);
             return this;
         },
         // removes a child from the entity
-        _remove_child : function(ent){
-            this.transform.remChild(ent.transform);
+        remChild : function(ent){
+            this.tr.remChild(ent.tr);
             return this;
         },
         // returns the child entity of index 'index'
-        _get_child: function(index){
+        getChild: function(index){
             if(index !== null && index !== undefined){
-                var tr = this.transform.getChild(index);
+                var tr = this.tr.getChild(index);
                 return tr ? tr.ent : undefined;
             }else{
                 var childs = [];
-                for(var i = 0, len = this.transform.getChildCount(); i < len; i++){
-                    childs.push(this.transform.getChild(index));
+                for(var i = 0, len = this.tr.getChildCount(); i < len; i++){
+                    childs.push(this.tr.getChild(index));
                 }
                 return childs;
             }
-        },
-        // same as 'set'  but applies it recursively to the entity and all its childs
-        setRecursively: function(name, value){
-            if(arguments.length === 2){
-                args = {};
-                args[name] = value;
-                this.setRecursively(args);
-            }else{
-                this.set(arguments[0]);
-                for(var i = 0; i < this.transform.getChildCount(); i++){
-                    this.transform.getChild(i).ent.setRecursively(arguments[0]);
-                }
-            }
-            return this;
         },
         // destroys the entity (and all childs) now or after an optional delay (in seconds) 
         destroy: function(delay){
             if(delay){
                 this._destroyTime = Math.min(this._destroyTime, this.main.time + delay);
-                for(var i = 0; i < this.transform.getChildCount(); i++){
-                    this.transform.getChild(i).ent.destroy(delay);
+                for(var i = 0; i < this.tr.getChildCount(); i++){
+                    this.tr.getChild(i).ent.destroy(delay);
                 }
             }else if(this._state !== "destroyed"){
                 this._state = "destroyed";
-                for(var i = 0; i < this.transform.getChildCount(); i++){
-                    this.transform.getChild(i).ent.destroy();
+                for(var i = 0; i < this.tr.getChildCount(); i++){
+                    this.tr.getChild(i).ent.destroy();
                 }
             }
             return this; 
@@ -4202,8 +3937,8 @@ window.modula = window.modula || {};
         // returns true if the entity collides with another bound or entity
         collides: function(ent){
             if(ent instanceof modula.Ent){
-                var epos = ent.transform.getWorldPos();
-                var epos = epos.sub(this.transform.getWorldPos());
+                var epos = ent.tr.getWorldPos();
+                var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collides(ebound);
@@ -4211,62 +3946,38 @@ window.modula = window.modula || {};
                     return this.contains(epos);
                 }
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.transform.getPos()).collides(ent);
+                return this.bound.cloneAt(this.tr.getPos()).collides(ent);
             }
         },
         // returns the smallest vector that would make this entity not collide 'ent' by translation
         collisionVector: function(ent){
             if(ent instanceof modula.Ent){
-                var epos = ent.transform.getWorldPos();
-                var epos = epos.sub(this.transform.getWorldPos());
+                var epos = ent.tr.getWorldPos();
+                var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collisionVector(ebound);
                 }
                 return new V2();
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.transform.getPos()).collisionVector(ent);
+                return this.bound.cloneAt(this.tr.getPos()).collisionVector(ent);
             }
         },
         // returns the smallest distance on each axis that would make this entity not collide with
         // 'ent' by translation on one axis
         collisionAxis: function(ent){
             if(ent instanceof modula.Ent){
-                    var epos = ent.transform.getWorldPos();
-                var epos = ent.transform.getWorldPos();
-                var epos = epos.sub(this.transform.getWorldPos());
+                    var epos = ent.tr.getWorldPos();
+                var epos = ent.tr.getWorldPos();
+                var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collisionAxis(ebound);
                 }
                 return new V2();
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.transform.getPos()).collisionAxis(ent);
+                return this.bound.cloneAt(this.tr.getPos()).collisionAxis(ent);
             }
-        },
-        _get_X: function(){
-            return this.transform.X();
-        },
-        _get_Y: function(){
-            return this.transform.Y();
-        },
-        _get_pos: function(){
-            return this.transform.getPos();
-        },
-        _set_pos: function(pos){
-            this.transform.setPos(pos);
-        },
-        _get_scale: function(){
-            return this.transform.getScale();
-        },
-        _set_scale: function(scale){
-            this.transform.setScale(scale);
-        },
-        _get_rotation: function(){
-            return this.transform.getRotation();
-        },
-        _set_rotation: function(rot){
-            this.transform.setRotation(rot);
         },
         // is called before onUpdate the first time the entity is updated
         onInstanciation: function(){},
@@ -4545,9 +4256,9 @@ window.modula = window.modula || {};
             this.grid = options.grid;
             this._drawables = options.drawables || {};
             if(options.spriteMap){
-                sprites = options.spriteMap.get('spriteNames');
+                sprites = options.spriteMap.getSpriteNames();
                 for(var i = 0, len = sprites.length; i < len; i++){
-                    this._drawables[sprites[i]] = options.spriteMap.get('sprite',sprites[i]);
+                    this._drawables[sprites[i]] = options.spriteMap.getSprite(sprites[i]);
                 }
             }
         },

@@ -39,9 +39,8 @@ window.modula = window.modula || {};
             this.maxfps = options.maxfps || 120;
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
-            if(options.input){
-                this.set('input',(options.input));
-            }
+            this.input = options.input || this.input;
+            this.input.main = this;
             if(options.scene){
                 this.add(options.scene);
             }
@@ -50,24 +49,17 @@ window.modula = window.modula || {};
             this._nextUid += 1;
             return this._nextUid;
         },
-        _add_default: function(scene){
-            this._add_scene(scene);
-        },
-        _add_scene: function(scene){
+        add: function(scene){
             scene.main = this;
             this.sceneList.push(scene);
             if(!this.scene){
                 this.scene = scene;
             }
-            if(!scene._uid){
-                scene._uid = this.getNewUid();
+            if(!scene.uid){
+                scene.uid = this.getNewUid();
             }
         },
-        _set_input:   function(input){
-            this.input = input;
-            input.main = this;
-        },
-        _set_fps: function(fps){
+        setFps: function(fps){
             this.fps = fps;
             this.fixedDeltaTime = 1/fps;
             this.deltaTime = 1/fps;
@@ -367,7 +359,7 @@ window.modula = window.modula || {};
     modula.Camera = modula.Class.extend({
         scene: null,
         main: null, 
-        transform : new Transform2(),
+        tr : new Transform2(),
         onUpdate : function(){},
         getMouseWorldPos: function(){
             if(!this.main || !this.main.input){
@@ -375,38 +367,10 @@ window.modula = window.modula || {};
             }
             var mpos = this.main.input.getMousePos();
             if(this.scene.renderer){
-                mpos = mpos.sub(this.scene.renderer.get('size').scale(0.5));
+                mpos = mpos.sub(this.scene.renderer.getSize().scale(0.5));
             }
-            mpos = this.transform.localToWorld(mpos);
+            mpos = this.tr.localToWorld(mpos);
             return mpos;
-        },
-        _get_pos: function(){
-            return this.transform.getPos();
-        },
-        _set_pos: function(pos){
-            this.transform.setPos(pos);
-        },
-        _get_scale: function(){
-            return this.transform.scale;
-        },
-        _get_scaleFac: function(){
-            return Math.max(this.transform.scale.x,this.transform.scale.y);
-        },
-        _set_scale: function(scale){
-            this.transform.setScale(scale);
-        },
-        _get_rotation: function(){
-            return this.transform.rotation;
-        },
-        _set_rotation: function(rot){
-            this.transform.setRotation(rot);
-        },
-        _get_bound: function(){
-            var pos = this.transform.getPos();
-            var size = this.scene.renderer.get('size');
-            return new modula.Rect(pos.x,pos.y,
-                    size.x*this.transform.scale.x,
-                    size.y*this.transform.scale.y,'centered');
         },
     });
 
@@ -446,22 +410,22 @@ window.modula = window.modula || {};
             this.background = options.background;
             this.compose = options.compose || 'source-over'; 
             this.globalAlpha = options.globalAlpha || 1; 
-            this._get_size = options.getSize || this._get_size;
+            this.getSize = options.getSize || this.getSize;
             this._size = new V2();
             this.passes = options.passes || this.passes;
         },
-        _get_size: function(){
+        getSize: function(){
             return new V2(this.canvas.width, this.canvas.height);
         },
         mustRedraw: function(){
-            return !this._size.equals(this.get('size'));
+            return !this._size.equals(this.getSize());
         },
         drawInit: function(camera){
             if(modula.draw){
                 modula.draw.setContext(this.context);
             }
             
-            this._size = this.get('size');
+            this._size = this.getSize();
             this.canvas.width = this._size.x;
             this.canvas.height = this._size.y;
 
@@ -476,13 +440,13 @@ window.modula = window.modula || {};
             if(camera){
                 this.context.translate(this.canvas.width/2, this.canvas.height/2);
                 if(camera.parallax && camera.height){
-                    this.context.scale( 1/(camera.transform.scale.x * camera.height), 
-                                        1/(camera.transform.scale.y * camera.height));
+                    this.context.scale( 1/(camera.tr.scale.x * camera.height), 
+                                        1/(camera.tr.scale.y * camera.height));
                 }else{
-                    this.context.scale(1/camera.transform.scale.x, 1/camera.transform.scale.y);
+                    this.context.scale(1/camera.tr.scale.x, 1/camera.tr.scale.y);
                 }
-                this.context.rotate(-camera.transform.rotation);
-                this.context.translate(-camera.transform.pos.x,-camera.transform.pos.y);
+                this.context.rotate(-camera.tr.rotation);
+                this.context.translate(-camera.tr.pos.x,-camera.tr.pos.y);
             }
         },
         drawEnd: function(){
@@ -504,9 +468,9 @@ window.modula = window.modula || {};
             
             function drawEntity(ent,pass){
                 self.context.save();
-                self.context.translate(ent.transform.pos.x, ent.transform.pos.y);
-                self.context.scale(ent.transform.scale.x, ent.transform.scale.y);
-                self.context.rotate(ent.transform.rotation);
+                self.context.translate(ent.tr.pos.x, ent.tr.pos.y);
+                self.context.scale(ent.tr.scale.x, ent.tr.scale.y);
+                self.context.rotate(ent.tr.rotation);
                 if(ent.render){
                     var drawables = ent.drawable;
                     if(!drawables){
@@ -519,7 +483,7 @@ window.modula = window.modula || {};
                         self.context.save();
                         if(camera.parallax && camera.height && drawable.height){
                             var fac = camera.height / (camera.height - drawable.height);
-                            var cpos = camera.transform.pos;
+                            var cpos = camera.tr.pos;
                             cpos = cpos.scale(1-fac);
                             context.translate(cpos.x,cpos.y);
                             context.scale(fac,fac);
@@ -540,8 +504,8 @@ window.modula = window.modula || {};
                     }
                 }
                 if(ent.renderChilds){
-                    for(var i = 0, len = ent.transform.getChildCount(); i < len; i++){
-                        drawEntity(ent.transform.getChild(i).ent,pass);
+                    for(var i = 0, len = ent.tr.getChildCount(); i < len; i++){
+                        drawEntity(ent.tr.getChild(i).ent,pass);
                     }
                 }
                 self.context.restore();
@@ -584,7 +548,7 @@ window.modula = window.modula || {};
                     this._cellSize = options.cellSize.clone();
                 }
             }else{ 
-                this._cellSize = this.get('cellSize') || new V2(32,32);
+                this._cellSize = this.cellSize || this._cellSize || new V2(32,32);
             }
             this._sprites = {};
             this._spriteNames = [];
@@ -596,11 +560,11 @@ window.modula = window.modula || {};
                 }
             }
         },
-        _set_sprite: function(name,index,size){
+        setSprite: function(name,index,size){
             this._sprites[name] = { index: index, size: size };
             this._spriteNames.push(name);
         },
-        _get_sprite: function(name,options){
+        getSprite: function(name,options){
             options = options || {};
             var sprite = this._sprites[name];
             if(sprite){
@@ -621,6 +585,9 @@ window.modula = window.modula || {};
                 }
                 return new modula.RendererCanvas2d.DrawableSprite(arg);
             }
+        },
+        getSpriteNames: function(){
+            return this._spriteNames;
         },
     });
 
@@ -727,7 +694,7 @@ window.modula = window.modula || {};
             this._rootEntityList = [];
             this._newEntityList = [];
             this._destroyedEntityList = [];
-            this._uid = options.uid || this._uid || undefined;
+            this.uid = options.uid || this.uid || undefined;
 
             this.frame = 0;
             this.time = 0;
@@ -742,24 +709,24 @@ window.modula = window.modula || {};
             this.name = options.name || this.name || 'Scene';
             this.main = null;
         },
-        _addEnt: function(ent){
+        add: function(ent){
             if(ent.main && ent.main !== this.main){
                 throw new Error('Cannot add an entity to the scene: it belongs to another modula instance');
                 return;
             }else if(this.main){
                 ent.main = this.main;
-                if(!ent._uid){
-                    ent._uid = this.main.getNewUid();
+                if(!ent.uid){
+                    ent.uid = this.main.getNewUid();
                 }
             }
             if(ent.scene && ent.scene !== this){
-                ent.scene._remEnt(ent);
+                ent.scene.remove(ent);
             }
             if(ent.scene !== this){
                 ent.scene = this;
                 this._newEntityList.push(ent);
-                this._entityByUid[ent.get('uid')] = ent;
-                var name = ent.get('name');
+                this._entityByUid[ent.uid] = ent;
+                var name = ent.name;
                 if(!(name in this._entityByName)){
                     this._entityByName[name] = [ent];
                 }else{
@@ -768,24 +735,24 @@ window.modula = window.modula || {};
             }
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
-                    this._addEnt(ent.getChild(i));
+                    this.add(ent.getChild(i));
                 }
             }
         },
-        _remEnt : function(ent){
+        remove: function(ent){
             if(!ent.isLeaf()){
                 for(var i = 0; i < ent.getChildCount(); i++){
-                    this._remEnt(ent.getChild(i));
+                    this.remove(ent.getChild(i));
                 }
             }
             if(ent.scene = this){
                 array_remove(this._newEntityList,ent);
                 array_remove(this._entityList,ent);
-                delete this._entityByUid[ent.get('uid')];
-                var s = this._entityByName[ent.get('name')];
+                delete this._entityByUid[ent.uid];
+                var s = this._entityByName[ent.name];
                 array_remove(s.ent);
                 if(s.length == 0){
-                    delete this._entityByName[ent.get('name')];
+                    delete this._entityByName[ent.name];
                 }
                 if(ent.isRoot()){
                     array_remove(_rootEntityList,ent);
@@ -793,33 +760,10 @@ window.modula = window.modula || {};
                 ent.scene = null;
             }
         },
-        _add_default: function(ent){
-            this._addEnt(ent);
+        getEntities: function(){
+            return this._entityList;
         },
-       _remove_default : function(selector){
-            if(arguments.length === 1){
-                this.map(selector, function(ent){ 
-                    this._remEnt(ent); 
-                });
-            }else{
-                this._remEnt(arguments[0]);
-            }
-            return this;
-        },
-        _remove_entity: function(ent){
-            this._remEnt(ent);
-        },
-        _add_entity : function(ent){
-            this._addEnt(ent);
-        },
-        _get_entity : function(index){
-            if(index !== undefined && index !== null){
-                return this._entityList[index];
-            }else{
-                return this._entityList;
-            }
-        },
-        _get_rootEntities : function(index){
+        getRootEntities : function(index){
             if(index !== undefined && index !== null){
                 return this._rootEntityList[index];
             }else{
@@ -957,26 +901,26 @@ window.modula = window.modula || {};
         init: function( options ){
             options = options || {};
 
-            this._uid = options.uid || this._uid || undefined;  //  The uid is unique to each entity
+            this.uid = options.uid || this.uid || undefined;  //  The uid is unique to each entity
             this._state = 'new';    //  'new' | 'alive' | 'destroyed'   
             this._currentFrame = 0;
-            this._destroyTime = this.get('destroyTime') || options.duration || Number.MAX_VALUE; // TODO correct delay
+            this._destroyTime = options.duration || this._destroyTime || Number.MAX_VALUE; // TODO correct delay
 
             this.scene = null;
             this.main  = null;
 
-            // The transform contains the position, rotation, scale, and parent/childs of the entity
-            this.transform     = new modula.Transform2();
-            this.transform.ent = this;
+            // The tr contains the position, rotation, scale, and parent/childs of the entity
+            this.tr     = new modula.Transform2();
+            this.tr.ent = this;
 
             if(options.pos){
-                this.transform.setPos(options.pos);
+                this.tr.setPos(options.pos);
             }
             if(options.rotation){
-                this.transform.setRotation(options.rotation);
+                this.tr.setRotation(options.rotation);
             }
             if(options.scale){
-                this.transform.setScale(options.scale);
+                this.tr.setScale(options.scale);
             }
             
             // the collisionBehaviour decides how collision events are emitted :
@@ -1002,66 +946,45 @@ window.modula = window.modula || {};
         },
         // return true if the entity has no childs
         isLeaf : function(){
-            return this.transform.isLeaf();
+            return this.tr.isLeaf();
         },
         // return true if the entity has no parents
         isRoot : function(){
-            return this.transform.isRoot();
+            return this.tr.isRoot();
         },
-        // adds a child to the entity. The previous coordinates will become local coordinates
-        _add_default : function(ent){
-            this._add_childs(ent);
-        },
-        _remove_default: function(ent){
-            this._remove_childs(ent);
-        },
-        _add_child : function(ent){
-            this.transform.addChild(ent.transform);
+        addChild: function(ent){
+            this.tr.addChild(ent.tr);
             return this;
         },
         // removes a child from the entity
-        _remove_child : function(ent){
-            this.transform.remChild(ent.transform);
+        remChild : function(ent){
+            this.tr.remChild(ent.tr);
             return this;
         },
         // returns the child entity of index 'index'
-        _get_child: function(index){
+        getChild: function(index){
             if(index !== null && index !== undefined){
-                var tr = this.transform.getChild(index);
+                var tr = this.tr.getChild(index);
                 return tr ? tr.ent : undefined;
             }else{
                 var childs = [];
-                for(var i = 0, len = this.transform.getChildCount(); i < len; i++){
-                    childs.push(this.transform.getChild(index));
+                for(var i = 0, len = this.tr.getChildCount(); i < len; i++){
+                    childs.push(this.tr.getChild(index));
                 }
                 return childs;
             }
-        },
-        // same as 'set'  but applies it recursively to the entity and all its childs
-        setRecursively: function(name, value){
-            if(arguments.length === 2){
-                args = {};
-                args[name] = value;
-                this.setRecursively(args);
-            }else{
-                this.set(arguments[0]);
-                for(var i = 0; i < this.transform.getChildCount(); i++){
-                    this.transform.getChild(i).ent.setRecursively(arguments[0]);
-                }
-            }
-            return this;
         },
         // destroys the entity (and all childs) now or after an optional delay (in seconds) 
         destroy: function(delay){
             if(delay){
                 this._destroyTime = Math.min(this._destroyTime, this.main.time + delay);
-                for(var i = 0; i < this.transform.getChildCount(); i++){
-                    this.transform.getChild(i).ent.destroy(delay);
+                for(var i = 0; i < this.tr.getChildCount(); i++){
+                    this.tr.getChild(i).ent.destroy(delay);
                 }
             }else if(this._state !== "destroyed"){
                 this._state = "destroyed";
-                for(var i = 0; i < this.transform.getChildCount(); i++){
-                    this.transform.getChild(i).ent.destroy();
+                for(var i = 0; i < this.tr.getChildCount(); i++){
+                    this.tr.getChild(i).ent.destroy();
                 }
             }
             return this; 
@@ -1072,8 +995,8 @@ window.modula = window.modula || {};
         // returns true if the entity collides with another bound or entity
         collides: function(ent){
             if(ent instanceof modula.Ent){
-                var epos = ent.transform.getWorldPos();
-                var epos = epos.sub(this.transform.getWorldPos());
+                var epos = ent.tr.getWorldPos();
+                var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collides(ebound);
@@ -1081,62 +1004,38 @@ window.modula = window.modula || {};
                     return this.contains(epos);
                 }
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.transform.getPos()).collides(ent);
+                return this.bound.cloneAt(this.tr.getPos()).collides(ent);
             }
         },
         // returns the smallest vector that would make this entity not collide 'ent' by translation
         collisionVector: function(ent){
             if(ent instanceof modula.Ent){
-                var epos = ent.transform.getWorldPos();
-                var epos = epos.sub(this.transform.getWorldPos());
+                var epos = ent.tr.getWorldPos();
+                var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collisionVector(ebound);
                 }
                 return new V2();
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.transform.getPos()).collisionVector(ent);
+                return this.bound.cloneAt(this.tr.getPos()).collisionVector(ent);
             }
         },
         // returns the smallest distance on each axis that would make this entity not collide with
         // 'ent' by translation on one axis
         collisionAxis: function(ent){
             if(ent instanceof modula.Ent){
-                    var epos = ent.transform.getWorldPos();
-                var epos = ent.transform.getWorldPos();
-                var epos = epos.sub(this.transform.getWorldPos());
+                    var epos = ent.tr.getWorldPos();
+                var epos = ent.tr.getWorldPos();
+                var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
                     var ebound = ent.bound.cloneAt(epos.add(ent.bound.center()));
                     return this.bound.collisionAxis(ebound);
                 }
                 return new V2();
             }else if(ent instanceof Bound){
-                return this.bound.cloneAt(this.transform.getPos()).collisionAxis(ent);
+                return this.bound.cloneAt(this.tr.getPos()).collisionAxis(ent);
             }
-        },
-        _get_X: function(){
-            return this.transform.X();
-        },
-        _get_Y: function(){
-            return this.transform.Y();
-        },
-        _get_pos: function(){
-            return this.transform.getPos();
-        },
-        _set_pos: function(pos){
-            this.transform.setPos(pos);
-        },
-        _get_scale: function(){
-            return this.transform.getScale();
-        },
-        _set_scale: function(scale){
-            this.transform.setScale(scale);
-        },
-        _get_rotation: function(){
-            return this.transform.getRotation();
-        },
-        _set_rotation: function(rot){
-            this.transform.setRotation(rot);
         },
         // is called before onUpdate the first time the entity is updated
         onInstanciation: function(){},

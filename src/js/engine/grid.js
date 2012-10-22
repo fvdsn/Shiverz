@@ -256,9 +256,9 @@ window.modula = window.modula || {};
             this.grid = options.grid;
             this._drawables = options.drawables || {};
             if(options.spriteMap){
-                sprites = options.spriteMap.get('spriteNames');
+                sprites = options.spriteMap.getSpriteNames();
                 for(var i = 0, len = sprites.length; i < len; i++){
-                    this._drawables[sprites[i]] = options.spriteMap.get('sprite',sprites[i]);
+                    this._drawables[sprites[i]] = options.spriteMap.getSprite(sprites[i]);
                 }
             }
         },

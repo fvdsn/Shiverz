@@ -50,7 +50,7 @@ window.import_game = function(module){
             var ship = new ents.Ship({
                 game: this,
                 player: player,
-                pos: new V2(spawn).add(V2(0.5,0.5)).mult(this.lvl.grid.get('cellSize')), 
+                pos: new V2(spawn).add(V2(0.5,0.5)).mult(this.lvl.grid.cellSize), 
             });
             player.ship = ship;
             this.main.scene.add(ship);

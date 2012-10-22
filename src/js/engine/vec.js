@@ -1,8 +1,8 @@
-var module = window;
+var exports = typeof exports !== 'undefined' && this.exports !== exports ? exports : window;
 
 /* ------------------------------ 2D Vectors -------------------------------- */
 
-(function(module){
+(function(exports){
     
     function V2(){
         var self = this;
@@ -41,7 +41,7 @@ var module = window;
         return self;
     }
 
-    module.V2 = V2;
+    exports.V2 = V2;
 
     var proto = V2.prototype;
     
@@ -441,11 +441,11 @@ var module = window;
         return a;
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ 3D Vectors -------------------------------- */
 
-(function(module){
+(function(exports){
 
     function V3(){
         var self = this;
@@ -497,7 +497,7 @@ var module = window;
     var tmp1 = new V3();
     var tmp2 = new V3();
     
-    module.V3 = V3;
+    exports.V3 = V3;
 
     var proto = V3.prototype;
 
@@ -878,13 +878,13 @@ var module = window;
         return a;
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ 3x3 Matrix -------------------------------- */
 
-(function(module){
+(function(exports){
 
-    var V3 = module.V3;
+    var V3 = exports.V3;
         
     // 0 3 6 | xx xy xz
     // 1 4 7 | yx yy yz
@@ -959,7 +959,7 @@ var module = window;
         return self;
     };
 
-    module.Mat3 = Mat3;
+    exports.Mat3 = Mat3;
 
     Mat3.epsilon  = 0.00000001;    
     Mat3.id       = new Mat3();
@@ -1385,13 +1385,13 @@ var module = window;
         return array;
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ 4x4 Matrix -------------------------------- */
 
-(function(module){
+(function(exports){
 
-    var V3 = module.V3;
+    var V3 = exports.V3;
 
 
     var setArray = function(md,array,offset){
@@ -1470,7 +1470,7 @@ var module = window;
 
     var tmp   = new Mat4();
 
-    module.Mat4 = Mat4;
+    exports.Mat4 = Mat4;
 
     Mat4.epsilon  = 0.00000001;    
     Mat4.id       = new Mat4();
@@ -2135,13 +2135,13 @@ var module = window;
         return Mat4.toArray(new Float32Array(16),this);
     };
 
-})(module);
+})(exports);
 
 /* ------------------------------ Quaternions -------------------------------- */
 
-(function(module){
+(function(exports){
 
-    var V3 = module.V3;
+    var V3 = exports.V3;
 
     function setArray(qd,array,offset){
         offset = offset || 0;
@@ -2185,7 +2185,7 @@ var module = window;
         return self;
     }
 
-    module.Quat = Quat;
+    exports.Quat = Quat;
 
     var tmp = new Quat();
     
@@ -2362,4 +2362,4 @@ var module = window;
         return Mat4.toArray(new Float32Array(4),this);
     };
 
-})(module);
+})(exports);

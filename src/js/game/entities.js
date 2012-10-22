@@ -185,7 +185,7 @@ window.import_ents = function(module){
                             cell = r - density < bgdensity*0.5 ? -1 : -2;
                         }
                     }
-                    grid.set('cell',[x,y],cell);
+                    grid.setCell(x,y,cell);
                 }
             }
             var spawnPoints = opt.spawnPoints || 4;
@@ -211,7 +211,7 @@ window.import_ents = function(module){
             var self = this;
             if(ent instanceof ents.Level){
                 var vec = ent.grid.collisionVec(
-                    this.bound.cloneAt(this.transform.getPos()),
+                    this.bound.cloneAt(this.tr.getPos()),
                     function(cell,x,y){ return self.isSolid(cell,x,y); }
                 );
                 if(vec){
@@ -231,12 +231,12 @@ window.import_ents = function(module){
         init: function(opt){
             this._super(opt);
             this.speedVec = opt.speedVec || new V2();
-            this.transform.setRotation(this.speedVec.azimuth());
+            this.tr.setRotation(this.speedVec.azimuth());
             this.bound = new Rect(0,0,this.radius*2,this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
             this.rotSpeed = opt.rotSpeed || 0;
             this.drawable = this.drawable ? this.drawable.clone() : assets.missileSmoke.clone();
-            this.transform.setRotation(Math.random()*6.28);
+            this.tr.setRotation(Math.random()*6.28);
         },
         onInstanciation:function(){
             this.destroy(0.8);
@@ -244,15 +244,15 @@ window.import_ents = function(module){
         onUpdate: function(){
             this._super();
             var  time = this.scene.time - this.startTime;
-            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
-            this.increase('rotation',this.rotSpeed*this.scene.deltaTime);
+            this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
+            this.tr.rotate(this.rotSpeed*this.scene.deltaTime);
             this.drawable.alpha = Math.max(0,0.15-(0.3*time));
-            this.transform.setScale(0.4+3*time);
+            this.tr.setScale(0.4+3*time);
             this.speedVec = this.speedVec.scale(0.99);
             return true;
         },
         onGridCollision: function(grid,vec){
-            this.increase('pos',vec);
+            this.tr.translate(vec);
             this.destroy();
         },
     });
@@ -276,7 +276,7 @@ window.import_ents = function(module){
             if(opt.heritSpeed){
                 this.speedVec = this.speedVec.add(opt.heritSpeed);
             }
-            this.transform.setRotation(this.speedVec.azimuth());
+            this.tr.setRotation(this.speedVec.azimuth());
             this.bound = new Rect(0,0,this.radius*2, this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
         },
@@ -285,11 +285,11 @@ window.import_ents = function(module){
         },
         explode: function(){
             if(this.explDamage && this.explRadius){
-                var entities = this.scene.get('entity');
+                var entities = this.scene.getEntities();
                 for(var i = 0, len = entities.length; i < len; i++){
                     var ent = entities[i];
                     if(ent instanceof ents.Ship){
-                        dist = this.transform.dist(ent.transform);
+                        dist = this.tr.dist(ent.tr);
                         if(dist.len() < this.explRadius){
                             if(ent.damage){
                                 var fac = 1 - (dist.len() || 1) / this.explRadius;
@@ -303,16 +303,16 @@ window.import_ents = function(module){
                 }
             }
             if(this.Expl){
-                this.scene.add(new this.Expl({pos:this.transform.pos}) );
+                this.scene.add(new this.Expl({pos:this.tr.pos}) );
             }
         },
         onUpdate: function(){
             this._super();
-            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
+            this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
             return true;
         },
         onGridCollision: function(grid,vec){
-            this.increase('pos',vec);
+            this.tr.translate(vec);
             this.explode();
             this.destroy();
         },
@@ -332,14 +332,14 @@ window.import_ents = function(module){
         init: function(opt){
             this._super(opt);
             this.drawable = this.drawable.clone();
-            this.set('rotation', Math.random() * 6.28);
+            this.tr.setRotation( Math.random() * 6.28);
         },
         onInstanciation:function(){
             this.destroy(0.4);
         },
         onUpdate: function(){
             this.drawable.alpha = Math.max(0,1-(5*(this.scene.time - this.startTime)));
-            this.transform.scaleFac(1.05);
+            this.tr.scaleFac(1.05);
             return true;
         },
         onInstanciation: function(){
@@ -351,7 +351,7 @@ window.import_ents = function(module){
                 var dir = V2.random().setLen(Math.random()*100 + 200);
                 this.scene.add(new ents.Particle({
                     drawable: this.smoke,
-                    pos:this.transform.getPos().add(dir.scale(0.1)),
+                    pos:this.tr.getPos().add(dir.scale(0.1)),
                     speedVec: dir,
                     rotSpeed: Math.random()*4 -2,
                 }));
@@ -373,11 +373,11 @@ window.import_ents = function(module){
         lastSmokeTime : 0,
         onUpdate: function(){
             this._super();
-            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
+            this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
             if(this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new ents.Particle({
                     drawable: assets.missileSmoke,
-                    pos:this.transform.getPos(),
+                    pos:this.tr.getPos(),
                     speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
@@ -398,11 +398,11 @@ window.import_ents = function(module){
         lastSmokeTime : 0,
         onUpdate: function(){
             this._super();
-            this.increase('pos',this.speedVec.scale(this.scene.deltaTime));
+            this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
             if(this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new ents.Particle({
                     drawable: assets.boltSmoke,
-                    pos:this.transform.getPos(),
+                    pos:this.tr.getPos(),
                     speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
                     rotSpeed: Math.random()*2 -1,
                 }));
@@ -508,7 +508,7 @@ window.import_ents = function(module){
             var height = opt.height || this.height || 0;
             this.drawable.height = -0.1 - 0.05*height;
             this.drawable.alpha  = 0.5 - 0.5*height;
-            this.transform.setScale(5);
+            this.tr.setScale(5);
         },
     });
 
@@ -538,25 +538,25 @@ window.import_ents = function(module){
             $('.fps').html(''+this.getAvgFPS()+ ' fps');
 
             if(ship){
-                var dpos = ship.get('pos').sub(this.get('pos'));
+                var dpos = ship.tr.getPos().sub(this.tr.getPos());
                 
                 dpos = dpos.scale( Math.min(1, Math.max(1, dpos.len() /10) * this.main.deltaTime));
 
-                this.increase('pos',dpos);
+                this.tr.translate(dpos);
 
-                var pos = this.get('pos');
+                var pos = this.tr.getPos();
 
-                var cscale = this.get('scaleFac');
+                var cscale = this.tr.getScaleFac();
                 if (ship.moveSpeed.len() > 1){
-                    this.set('scale',Math.min(2,cscale+0.15*this.main.deltaTime));
+                    this.tr.setScale(Math.min(2,cscale+0.15*this.main.deltaTime));
                 }else{
-                    this.set('scale',Math.max(1,cscale-0.15*this.main.deltaTime));
+                    this.tr.setScale(Math.max(1,cscale-0.15*this.main.deltaTime));
                 }
             }else{
                 var lvlcenter = V2(lvl.grid.cellX,lvl.grid.cellY).mult(lvl.grid.cellSize).mult(0.5);
-                var dpos = lvlcenter.sub(this.get('pos'))
+                var dpos = lvlcenter.sub(this.tr.getPos())
                 dpos = dpos.scale(Math.min(1,this.main.deltaTime));
-                this.increase('pos',dpos);
+                this.tr.translate(dpos);
             }
         },
     });
@@ -620,7 +620,7 @@ window.import_ents = function(module){
                 'missile',
                 'bolter',
             ];
-            this.weapon = this.get('weapon',0);
+            this.weapon = this.getWeapon(0);
             
             this.shipSprite   = assets.shipSprite.clone();
             this.shipSpriteFiring = assets.shipSpriteFiring.clone();
@@ -638,7 +638,7 @@ window.import_ents = function(module){
 
 
         },
-        _get_weapon: function(index){
+        getWeapon: function(index){
             if(typeof index === 'number'){
                 return this.weapons[this.weaponIndexes[index]];
             }else if(index){
@@ -647,8 +647,8 @@ window.import_ents = function(module){
                 return this.weapon;
             }
         },
-        _set_weapon: function(weapon){
-            this.weapon = this.get('weapon',weapon);
+        setWeapon: function(weapon){
+            this.weapon = this.getWeapon(weapon);
         },
         damage: function(damage,knockback,dir,owner){
             if(owner.player.team !== this.player.team){
@@ -669,11 +669,11 @@ window.import_ents = function(module){
         controls: function(){
             var dt = this.scene.deltaTime;
             var input = this.main.input;
-            this.aimdir = this.scene.camera.getMouseWorldPos().sub(this.transform.pos).normalize();
+            this.aimdir = this.scene.camera.getMouseWorldPos().sub(this.tr.pos).normalize();
             if(input.isKeyPressing('weapon-missile')){
-                this.set('weapon','missile');
+                this.setWeapon('missile');
             }else if(input.isKeyPressing('weapon-bolter')){
-                this.set('weapon','bolter');
+                this.setWeapon('bolter');
             }
             if(input.isKeyDown('pause')){
                 this.main.exit();
@@ -748,7 +748,7 @@ window.import_ents = function(module){
                 this.controls();
                 if(this.firing){
                     var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
-                    if(this.weapon.fire(this.get('pos'), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
+                    if(this.weapon.fire(this.tr.getPos(), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
                         this.lastFireTime = this.scene.time;
                     }
                 }
@@ -760,10 +760,9 @@ window.import_ents = function(module){
                 this.drawable = [this.shipHover, this.shipHover2, this.shipSprite];
             }
             
-            this.increase('pos',this.moveSpeed.scale(this.scene.deltaTime));
+            this.tr.translate(this.moveSpeed.scale(this.scene.deltaTime));
             
-            var prevRotation = this.get('rotation'); 
-            this.set('rotation',(this.aimdir.azimuth()*DEG + 90)*RAD);
+            this.tr.setRotation((this.aimdir.azimuth()*DEG + 90)*RAD);
 
             this.shipHover.alpha = 0.25 + 0.5* (1+0.5*Math.cos(this.scene.time*0.5));
             this.shipHover.scale = 0.8  + 0.4* (1-0.5*Math.cos(this.scene.time*0.5));
@@ -774,7 +773,7 @@ window.import_ents = function(module){
         onGridCollision: function(grid,colVec){
             var knocked = this.knockTime > this.scene.time;
             this.colVec = colVec;
-            this.increase('pos',this.colVec);
+            this.tr.translate(this.colVec);
             if(this.colVec.x){
                 if(knocked){
                     this.knockSpeed.x = - this.knockSpeed.x * this.spec.knockBounce;
