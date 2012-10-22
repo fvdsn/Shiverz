@@ -4,9 +4,6 @@ window.modula = window.modula || {};
 
     var Transform2 = modula.Transform2;
 
-    modula.radToDeg = 180.0/Math.PI;
-    modula.degToRad = Math.PI/180;
-    
     function getNewUid(){
         uid += 1;
         return uid;
