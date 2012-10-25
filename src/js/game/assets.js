@@ -7,6 +7,13 @@ window.import_assets = function(module){
         centered:true,
     });
 
+	module.assets.shipSpriteBlue = module.assets.shipSprite.clone();
+    module.assets.shipSpriteRed = new RendererCanvas2d.DrawableSprite({
+        pass:'ships',
+        src:'img/ship_blue.png',
+        centered:true,
+    });
+
     module.assets.buildingSprite = new RendererCanvas2d.DrawableSprite({
         pass:'buildings',
         alpha: 0.5,
@@ -18,6 +25,15 @@ window.import_assets = function(module){
     module.assets.shipHover = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/explosion128blue.png',
+        compose: 'lighter',
+        alpha: 0.5,
+        centered:true,
+        scale:1,
+    });
+    module.assets.shipHoverBlue = module.assets.shipHover.clone();
+    module.assets.shipHoverRed = new RendererCanvas2d.DrawableSprite({
+        pass:'ships',
+        src:'img/explosion128red.png',
         compose: 'lighter',
         alpha: 0.5,
         centered:true,

@@ -258,13 +258,13 @@ window.import_ents = function(module){
     });
     ents.Projectile = ents.GridCollider.extend({
         name: 'projectile',
-        damage: 100,
+        damage: 95,
         owner: null,
         speed: 950,
         range: 2000,
         radius: 5,
         explRadius: 200,
-        explDamage: 90,
+        explDamage: 80,
         explKnockback: 500,
         expl: null,
         dir : new V2(1,0),
@@ -292,18 +292,15 @@ window.import_ents = function(module){
                         dist = this.tr.dist(ent.tr);
                         if(dist.len() < this.explRadius){
                             if(ent.damage){
-                                var fac = 1 - (dist.len() || 1) / this.explRadius;
-                                ent.damage(this.explDamage * fac,
-                                           this.explKnockback * fac,
-                                           dist.normalize(),
-                                           this.owner);
+                                var fac = 1 - dist.len() / this.explRadius;
+                                ent.damage(this.owner, this.explDamage * fac)
                             }
                         }
                     }
                 }
             }
             if(this.Expl){
-                this.scene.add(new this.Expl({pos:this.tr.pos}) );
+                this.scene.add(new this.Expl({pos:this.tr.getPos()}) );
             }
         },
         onUpdate: function(){
@@ -319,7 +316,10 @@ window.import_ents = function(module){
         onCollisionEmit: function(ent){
             this._super(ent);
             if(ent instanceof ents.Ship && ent !== this.owner){
-                this.explode();
+                ent.damage(this.owner,this.damage);
+                if(this.Expl){
+                    this.scene.add(new this.Expl({pos:this.tr.getPos()}));
+                }
                 this.destroy();
             }
         }
@@ -622,10 +622,14 @@ window.import_ents = function(module){
             ];
             this.weapon = this.getWeapon(0);
             
-            this.shipSprite   = assets.shipSprite.clone();
+            this.shipSprite   = this.player.team === 'red' ? 
+                assets.shipSpriteRed.clone():
+                assets.shipSpriteBlue.clone();
             this.shipSpriteFiring = assets.shipSpriteFiring.clone();
-            this.shipHover    = assets.shipHover.clone();
-            this.shipHover2    = assets.shipHover.clone();
+            this.shipHover    = this.player.team === 'red' ?
+                assets.shipHoverRed.clone():
+                assets.shipHoverBlue.clone();
+            this.shipHover2    = this.shipHover.clone();
             this.drawable     = opt.drawable || [
                 this.shipHover,
                 this.shipHover2,
@@ -650,20 +654,11 @@ window.import_ents = function(module){
         setWeapon: function(weapon){
             this.weapon = this.getWeapon(weapon);
         },
-        damage: function(damage,knockback,dir,owner){
+        damage: function(owner,damage){
             if(owner.player.team !== this.player.team){
                 this.player.health -= damage;
                 console.log(owner.player.name+' inflicted '+damage+' damage to player '+this.player.name);
                 return;
-            }
-            var knockTime = Math.max(0.5,Math.min(1.5,knockback * this.spec.knockDuration));
-            var knockSpeed = dir.scale(knockback*this.spec.knockSpeed);
-            if(this.knockTime > this.scene.time){
-                this.knockSpeed = this.knockSpeed.add(knockSpeed);
-                this.knockTime += knockTime;
-            }else{
-                this.knockTime = this.scene.time + knockTime;
-                this.knockSpeed = knockSpeed;
             }
         },
         controls: function(){

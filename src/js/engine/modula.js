@@ -172,13 +172,12 @@ var exports = typeof exports !== 'undefined' && this.exports !== exports ? expor
         	var arg = arguments[0];
         	if  (typeof arg === 'string'){
         		arg = JSON.parse(arg);
+                console.log(arg);
         	}
             if(typeof arg === 'number'){
                 self.x = arg;
                 self.y = arg;
             }else if(typeof arg.angle === 'number' || typeof arg.len === 'number'){
-                console.log('polar form activated');
-                console.log(arg);
                 V2.setPolar(self, (arg.len === undefined ? 1 : arg.len), arg.angle || 0);
             }else if(arg[0] !== undefined){
                 self.x = arg[0] || 0;
@@ -548,10 +547,27 @@ var exports = typeof exports !== 'undefined' && this.exports !== exports ? expor
     };
 
     proto.round = function(){
-        var vd = new V2();
-        V2.copy(vd,this);
-        V2.round(vd,this);
+        return new V2(Math.round(this.x),Math.round(this.y));
+    };
+
+    V2.floor = function(vd){
+        vd.x = Math.floor(vd.x);
+        vd.y = Math.floor(vd.y);
         return vd;
+    };
+
+    proto.floor = function(){
+        return new V2(Math.floor(this.x),Math.floor(this.y));
+    };
+
+    V2.ceil = function(vd){
+        vd.x = Math.ceil(vd.x);
+        vd.y = Math.ceil(vd.y);
+        return vd;
+    };
+
+    proto.ceil = function(){
+        return new V2(Math.ceil(this.x),Math.ceil(this.y));
     };
 
     V2.crossArea = function(u,v){
@@ -2946,9 +2962,6 @@ window.modula = window.modula || {};
 
     var Transform2 = modula.Transform2;
 
-    modula.radToDeg = 180.0/Math.PI;
-    modula.degToRad = Math.PI/180;
-    
     function getNewUid(){
         uid += 1;
         return uid;
@@ -3628,6 +3641,49 @@ window.modula = window.modula || {};
         },
     });
 
+    modula.Timer = modula.Class.extend({
+        init: function(scene,opt){
+            this.scene = scene;
+            this.duration = 0;
+            opt = opt || {};
+            if(typeof opt === 'number'){
+                this.duration = opt;
+            }else{
+                this.duration = opt.duration || this.duration;
+            }
+            this.startTime = this.scene.time;
+        },
+        expired: function(){
+            return this.scene.time >= this.startTime + this.duration;
+        },
+        remaining: function(){
+            return Math.max(0,this.startTime + duration - this.scene.time);
+        },
+    });
+
+    modula.Ray = function(opt){
+        var opt = opt || {};
+        this.start = opt.start || opt.pos || new V2();
+        this.length = opt.length || Number.MAX_VALUE;
+        this.dir = (opt.dir || new V2(1,0)).normalize();
+        if(opt.end){
+            this.length = this.start.dist(opt.end);
+            this.dir = opt.end.sub(this.start).normalize();
+        }
+    };
+    modula.Ray.prototype.scale = function(fac){
+        if(typeof fac === 'number'){
+            this.length *= fac;
+            if(fac < 0){
+                this.dir = this.dir.neg();
+            }
+        }else{
+            this.dir = this.dir.mult(fac);
+            this.length *= this.dir.len();
+            this.dir = this.dir.normalize();
+        }
+        return this;
+    };
     modula.Scene = modula.Class.extend({
         init: function(options){
             options = options || {};
@@ -3701,6 +3757,9 @@ window.modula = window.modula || {};
                 }
                 ent.scene = null;
             }
+        },
+        timer: function(opt){
+            return new modula.Timer(this,opt);
         },
         getEntities: function(){
             return this._entityList;
@@ -4002,6 +4061,8 @@ window.modula = window.modula || {};
 window.modula = window.modula || {};
 (function(modula){
 
+    var Ray = modula.Ray;
+
     modula.Grid = modula.Class.extend({
         init: function(options){
             options = options || {};
@@ -4226,9 +4287,21 @@ window.modula = window.modula || {};
                     }
                     if(count === 2){
                         if(solid_dr && solid_ul){
-                            return null; //WIP
+                            console.log('\\',Math.round(esc_d + esc_l));
+                            //console.log('\\',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
+                            // XXXX
+                            // XXXX
+                            //     XXXX
+                            //     XXXX
+                            return null;
                         }else if(solid_dl && solid_ur){
-                            return null; //WIP
+                            //     XXXX
+                            //   ###XXX
+                            // XX###
+                            // XXXX
+                            console.log('/',Math.round(esc_d + esc_r));
+                            //console.log('/',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
+                            return null;
                         }
                     }
                     return new V2(dx,dy);
@@ -4245,6 +4318,19 @@ window.modula = window.modula || {};
                 }
             }
         },
+        collidesRay: function(ray, isSolid){
+            var r = new Ray(ray).scale(this.cellSize.inv());
+            var start = r.start.floor();
+            if( (r.dir.x > 0 && r.dir.x > r.dir.y) || (r.dir.x < 0 && r.dir.x < r.dir.y)){
+                var dx = 1;
+                var dy = r.dir.y/r.dir.x;
+            }else{
+                var dy = 1;
+                var dx = r.dir.x/r.dir.y;
+            }
+
+        },
+
     });
 
     modula.DrawableGrid = modula.Renderer.Drawable2d.extend({

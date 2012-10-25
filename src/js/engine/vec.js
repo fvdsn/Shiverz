@@ -22,8 +22,6 @@ var exports = typeof exports !== 'undefined' && this.exports !== exports ? expor
                 self.x = arg;
                 self.y = arg;
             }else if(typeof arg.angle === 'number' || typeof arg.len === 'number'){
-                console.log('polar form activated');
-                console.log(arg);
                 V2.setPolar(self, (arg.len === undefined ? 1 : arg.len), arg.angle || 0);
             }else if(arg[0] !== undefined){
                 self.x = arg[0] || 0;
@@ -393,10 +391,27 @@ var exports = typeof exports !== 'undefined' && this.exports !== exports ? expor
     };
 
     proto.round = function(){
-        var vd = new V2();
-        V2.copy(vd,this);
-        V2.round(vd,this);
+        return new V2(Math.round(this.x),Math.round(this.y));
+    };
+
+    V2.floor = function(vd){
+        vd.x = Math.floor(vd.x);
+        vd.y = Math.floor(vd.y);
         return vd;
+    };
+
+    proto.floor = function(){
+        return new V2(Math.floor(this.x),Math.floor(this.y));
+    };
+
+    V2.ceil = function(vd){
+        vd.x = Math.ceil(vd.x);
+        vd.y = Math.ceil(vd.y);
+        return vd;
+    };
+
+    proto.ceil = function(){
+        return new V2(Math.ceil(this.x),Math.ceil(this.y));
     };
 
     V2.crossArea = function(u,v){

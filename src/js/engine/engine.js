@@ -683,6 +683,49 @@ window.modula = window.modula || {};
         },
     });
 
+    modula.Timer = modula.Class.extend({
+        init: function(scene,opt){
+            this.scene = scene;
+            this.duration = 0;
+            opt = opt || {};
+            if(typeof opt === 'number'){
+                this.duration = opt;
+            }else{
+                this.duration = opt.duration || this.duration;
+            }
+            this.startTime = this.scene.time;
+        },
+        expired: function(){
+            return this.scene.time >= this.startTime + this.duration;
+        },
+        remaining: function(){
+            return Math.max(0,this.startTime + duration - this.scene.time);
+        },
+    });
+
+    modula.Ray = function(opt){
+        var opt = opt || {};
+        this.start = opt.start || opt.pos || new V2();
+        this.length = opt.length || Number.MAX_VALUE;
+        this.dir = (opt.dir || new V2(1,0)).normalize();
+        if(opt.end){
+            this.length = this.start.dist(opt.end);
+            this.dir = opt.end.sub(this.start).normalize();
+        }
+    };
+    modula.Ray.prototype.scale = function(fac){
+        if(typeof fac === 'number'){
+            this.length *= fac;
+            if(fac < 0){
+                this.dir = this.dir.neg();
+            }
+        }else{
+            this.dir = this.dir.mult(fac);
+            this.length *= this.dir.len();
+            this.dir = this.dir.normalize();
+        }
+        return this;
+    };
     modula.Scene = modula.Class.extend({
         init: function(options){
             options = options || {};
@@ -756,6 +799,9 @@ window.modula = window.modula || {};
                 }
                 ent.scene = null;
             }
+        },
+        timer: function(opt){
+            return new modula.Timer(this,opt);
         },
         getEntities: function(){
             return this._entityList;

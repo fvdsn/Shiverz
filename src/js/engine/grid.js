@@ -2,6 +2,8 @@
 window.modula = window.modula || {};
 (function(modula){
 
+    var Ray = modula.Ray;
+
     modula.Grid = modula.Class.extend({
         init: function(options){
             options = options || {};
@@ -226,9 +228,21 @@ window.modula = window.modula || {};
                     }
                     if(count === 2){
                         if(solid_dr && solid_ul){
-                            return null; //WIP
+                            console.log('\\',Math.round(esc_d + esc_l));
+                            //console.log('\\',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
+                            // XXXX
+                            // XXXX
+                            //     XXXX
+                            //     XXXX
+                            return null;
                         }else if(solid_dl && solid_ur){
-                            return null; //WIP
+                            //     XXXX
+                            //   ###XXX
+                            // XX###
+                            // XXXX
+                            console.log('/',Math.round(esc_d + esc_r));
+                            //console.log('/',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
+                            return null;
                         }
                     }
                     return new V2(dx,dy);

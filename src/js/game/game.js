@@ -10,6 +10,13 @@ window.import_game = function(module){
             this.team  = opt.team || 'spectator'; // 'spectator','auto','red','blue','foes','monsters'
             this.ship  = opt.ship || null;
             this.health = 100;
+            this.respawnTimer = null;
+        },
+        isDead: function(){
+            return this.health <= 0;
+        },
+        kill: function(){
+            this.health = -1;
         },
     });
 
@@ -53,11 +60,17 @@ window.import_game = function(module){
                 pos: new V2(spawn).add(V2(0.5,0.5)).mult(this.lvl.grid.cellSize), 
             });
             player.ship = ship;
+            player.health = 100;
             this.main.scene.add(ship);
         },
         updatePlayer: function(player){
-            if(player.ship && player.health < 0){
-                player.ship.destroy();
+            if(player.isDead()){
+                if(player.ship){
+                    player.ship.destroy();
+                    player.spawnTimer = this.main.scene.timer(2);
+                }else if(player.spawnTimer && player.spawnTimer.expired()){
+                    this.spawnPlayer(player);
+                }
             }
         },
         onGameUpdate: function(){
