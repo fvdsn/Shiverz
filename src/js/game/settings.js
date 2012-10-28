@@ -1,6 +1,5 @@
-window.import_settings = function(module){
-    module.settings = {};
-	module.settings.bindings = {
+(function(exports){
+	exports.bindings = {
         'fire':     'mouse-left',
         'altfire':  'mouse-right',
         'left':     'a',
@@ -22,4 +21,4 @@ window.import_settings = function(module){
         'pause'  :  'p',
         'exit'   :  'esc',
      };
- };
+ })(exports);

@@ -1,6 +1,10 @@
-window.import_game = function(module){
+(function(exports){
+    require('../engine/modula.js').use();
+    var assets = require('./assets.js');
+    var settings = require('./settings.js');
+    var ents = require('./entities.js');
     
-    module.Player = Class.extend({
+    exports.Player = Class.extend({
         init: function(opt){
             opt = opt || {};
             this.name  = opt.name || 'unnamed';
@@ -20,7 +24,7 @@ window.import_game = function(module){
         },
     });
 
-	module.Game = Class.extend({
+	exports.Game = Class.extend({
 		init: function(opt){
             opt = opt || {};
             this.players = {};
@@ -88,22 +92,26 @@ window.import_game = function(module){
         },
 		start: function(){
             var self = this;
-            var renderer = new RendererCanvas2d({
-                passes:[
-                'buildings',
-                'bgblocks',
-                'ships',
-                'projectiles',
-                'explosions',
-                'blocks',
-                ],
-                canvas: document.getElementById('game_canvas'), 
-                getSize: function(){
-                    return new V2(window.innerWidth, window.innerHeight);
-                },
-                background: 'rgba(40,35,30,1)',
-                alwaysRedraw: true,
-            });
+            if(clientSide){
+                var renderer = new RendererCanvas2d({
+                    passes:[
+                    'buildings',
+                    'bgblocks',
+                    'ships',
+                    'projectiles',
+                    'explosions',
+                    'blocks',
+                    ],
+                    canvas: document.getElementById('game_canvas'), 
+                    getSize: function(){
+                        return new V2(window.innerWidth, window.innerHeight);
+                    },
+                    background: 'rgba(40,35,30,1)',
+                    alwaysRedraw: true,
+                });
+            }else{
+                renderer = null;
+            }
             var GameScene = Scene.extend({
                 renderer: renderer,
                 camera : new ents.GameCamera({game:self}),
@@ -126,4 +134,19 @@ window.import_game = function(module){
             this.main.exit();
 		},
 	});
-};
+})(exports);
+
+/*
+(function(exports){
+    function extend(obj1,obj2){
+        for( field in obj2){
+            if( obj2.hasOwnProperty(field)){
+                obj1[field] = obj2[field];
+            }
+        }
+    };
+    extend(exports,require('./assets.js'));
+    extend(exports,require('./settings.js'));
+    extend(exports,require('./ents.js'));
+})(exports);
+*/

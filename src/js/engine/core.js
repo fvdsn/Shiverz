@@ -1,26 +1,36 @@
 // Modula core
-window.modula = window.modula || {};
-(function(modula){
+(function(exports){
 	
-	modula.use = function(){
-		if(arguments.length){
-			for (var i = 0; i < arguments.length; i++){
-				var prop = arguments[i];
-				if(modula.hasOwnProperty(prop)){
-					window[prop] = modula[prop];
-				}
-			}
-		}else{
-			for (var prop in modula){
-				if(	prop !== modula.use &&
-					prop !== modula.hasOwnProperty(prop)){
-					
-					window[prop] = modula[prop];
-				}
-			}
-		}
-		return modula;
+	exports.use = function(modules){
+        if(typeof window !== 'undefined'){
+            //browser
+            var namespace = window;
+        }else if(typeof global !== 'undefined'){
+            //nodejs
+            var namespace = global;
+        }
+        if(arguments.length){
+            for (var i = 0, len = arguments.length; i < len; i++){
+                var module = arguments[i];
+                if(!namespace[module]){
+                    if(this.hasOwnProperty(module)){
+                        namespace[module] = this[module];
+                    }else{
+                        throw new Error('use(): could not find module: '+module);
+                    }
+                }
+            }
+        }else{
+            for (var module in this){
+                if(	module !== this.use && this.hasOwnProperty(module) && !namespace[module]){
+                    namespace[module] = this[module];
+                }
+            }
+        }
+		return namespace;
 	};
+    exports.serverSide = typeof window === 'undefined';
+    exports.clientSide = !exports.serverSide;
 	
     /* Simple JavaScript Inheritance
      * By John Resig http://ejohn.org/
@@ -126,7 +136,7 @@ window.modula = window.modula || {};
             return Class;
         };
 
-    }).call(modula);
+    }).call(exports);
     
     var Mixin = function(){};
 
@@ -150,6 +160,8 @@ window.modula = window.modula || {};
         }
     };
 
-    modula.Mixin = new Mixin();
+    exports.Mixin = new Mixin();
 
-})(window.modula);
+})(exports);
+
+

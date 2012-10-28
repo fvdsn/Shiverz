@@ -1,9 +1,12 @@
-window.import_ents = function(module){
+(function(exports){
+    require('../engine/modula.js').use();
+    var assets = require('./assets.js');
+    var settings = require('./settings.js');
+
     var DEG = 180/Math.PI;
     var RAD = Math.PI/180;
-    module.ents = {};
 
-    ents.GameEnt = Ent.extend({
+    exports.GameEnt = Ent.extend({
         init: function(opt){
             opt = opt || {};
             this._super(opt);
@@ -11,17 +14,17 @@ window.import_ents = function(module){
         },
     });
 
-	ents.Item = ents.GameEnt.extend({
+	exports.Item = exports.GameEnt.extend({
         name:'item',
         spawn: 0,
         delay: 5,
         collisionBehaviour:'emit',
-        bound: new Rect(0,0,50,50,'centered'),
+        bound: new BRect(0,0,50,50,'centered'),
         effect: function(player){
         },
     });
 
-    ents.Flag = ents.Item.extend({
+    exports.Flag = exports.Item.extend({
         name:'flag',
         team:'zen',
         effect: function(player){
@@ -29,7 +32,7 @@ window.import_ents = function(module){
         },
     });
 
-    ents.Armor = ents.Item.extend({
+    exports.Armor = exports.Item.extend({
         name: 'armor',
         armor: 5,
         effect: function(player){
@@ -37,7 +40,7 @@ window.import_ents = function(module){
         },
     });
 
-    ents.HealthKit = ents.Item.extend({
+    exports.HealthKit = exports.Item.extend({
         name:'healthkit',
         health: 50,
         effect: function(player){
@@ -45,19 +48,19 @@ window.import_ents = function(module){
         },
     });
 
-    ents.SuperPower = ents.Item.extend({
+    exports.SuperPower = exports.Item.extend({
         effect: function(player){
             player.powerup(this.name);
         },
     });
 
-    ents.QuadDamage = ents.SuperPower.extend({
+    exports.QuadDamage = exports.SuperPower.extend({
         name:'quad',
         spawn: 20,
         delay: 20,
     });
 
-    ents.Ammo = ents.Item.extend({
+    exports.Ammo = exports.Item.extend({
         name:'ammo',
         weapon:'none',
         ammo:10,
@@ -66,7 +69,7 @@ window.import_ents = function(module){
         },
     });
 
-    ents.WeaponItem = ents.Ammo.extend({
+    exports.WeaponItem = exports.Ammo.extend({
         name:'weaponItem',
         weapon:'none',
         ammo:10,
@@ -75,7 +78,7 @@ window.import_ents = function(module){
         },
     });
 
-    ents.Level = Ent.extend({
+    exports.Level = Ent.extend({
         init: function(options){
             options = options || {};
             this._super(options);
@@ -136,7 +139,7 @@ window.import_ents = function(module){
             });
             this.spawns = lvl.spawns;
             this.name = lvl.name || 'default';
-            this.bound   = new Rect(0,0,this.grid.size.x, this.grid.size.y);
+            this.bound   = new BRect(0,0,this.grid.size.x, this.grid.size.y);
             this.drawable = [
                 new DrawableGrid({
                     pass:'bgblocks',
@@ -151,14 +154,18 @@ window.import_ents = function(module){
             ];
         },
         save: function(){
-            localStorage['shivrz_lvl_'+ this.name] = JSON.stringify(this.getState());
+            if(typeof localStorage !== 'undefined'){
+                localStorage['shivrz_lvl_'+ this.name] = JSON.stringify(this.getState());
+            }
         },
         load: function(){
-            var lvl  = localStorage['shivrz_lvl_'+this.name];
-            if(lvl){
-                lvl = JSON.parse(lvl);
+            if(typeof localStorage !== 'undefined'){
+                var lvl  = localStorage['shivrz_lvl_'+this.name];
                 if(lvl){
-                    this.setState(lvl);
+                    lvl = JSON.parse(lvl);
+                    if(lvl){
+                        this.setState(lvl);
+                    }
                 }
             }
         },
@@ -206,10 +213,10 @@ window.import_ents = function(module){
         },
     });
 
-    ents.GridCollider = ents.GameEnt.extend({
+    exports.GridCollider = exports.GameEnt.extend({
         onCollisionEmit: function(ent){
             var self = this;
-            if(ent instanceof ents.Level){
+            if(ent instanceof exports.Level){
                 var vec = ent.grid.collisionVec(
                     this.bound.cloneAt(this.tr.getPos()),
                     function(cell,x,y){ return self.isSolid(cell,x,y); }
@@ -225,14 +232,14 @@ window.import_ents = function(module){
         onGridCollision: function(cells){},
     });
 
-    ents.Particle   = ents.GridCollider.extend({
+    exports.Particle   = exports.GridCollider.extend({
         name: 'particle',
         radius: 5,
         init: function(opt){
             this._super(opt);
             this.speedVec = opt.speedVec || new V2();
             this.tr.setRotation(this.speedVec.azimuth());
-            this.bound = new Rect(0,0,this.radius*2,this.radius*2,'centered');
+            this.bound = new BRect(0,0,this.radius*2,this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
             this.rotSpeed = opt.rotSpeed || 0;
             this.drawable = this.drawable ? this.drawable.clone() : assets.missileSmoke.clone();
@@ -256,7 +263,7 @@ window.import_ents = function(module){
             this.destroy();
         },
     });
-    ents.Projectile = ents.GridCollider.extend({
+    exports.Projectile = exports.GridCollider.extend({
         name: 'projectile',
         damage: 95,
         owner: null,
@@ -277,7 +284,7 @@ window.import_ents = function(module){
                 this.speedVec = this.speedVec.add(opt.heritSpeed);
             }
             this.tr.setRotation(this.speedVec.azimuth());
-            this.bound = new Rect(0,0,this.radius*2, this.radius*2,'centered');
+            this.bound = new BRect(0,0,this.radius*2, this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
         },
         onInstantiation: function(){
@@ -288,7 +295,7 @@ window.import_ents = function(module){
                 var entities = this.scene.getEntities();
                 for(var i = 0, len = entities.length; i < len; i++){
                     var ent = entities[i];
-                    if(ent instanceof ents.Ship){
+                    if(ent instanceof exports.Ship){
                         dist = this.tr.dist(ent.tr);
                         if(dist.len() < this.explRadius){
                             if(ent.damage){
@@ -315,7 +322,7 @@ window.import_ents = function(module){
         },
         onCollisionEmit: function(ent){
             this._super(ent);
-            if(ent instanceof ents.Ship && ent !== this.owner){
+            if(ent instanceof exports.Ship && ent !== this.owner){
                 ent.damage(this.owner,this.damage);
                 if(this.Expl){
                     this.scene.add(new this.Expl({pos:this.tr.getPos()}));
@@ -325,7 +332,7 @@ window.import_ents = function(module){
         }
     });
     
-    ents.MissileExplosion = Ent.extend({
+    exports.MissileExplosion = Ent.extend({
         name: 'missileExplosion',
         drawable: assets.explosionSprite,
         smoke: assets.missileSmoke,
@@ -349,7 +356,7 @@ window.import_ents = function(module){
             }
             for(var i = 0; i < 40; i++){
                 var dir = V2.random().setLen(Math.random()*100 + 200);
-                this.scene.add(new ents.Particle({
+                this.scene.add(new exports.Particle({
                     drawable: this.smoke,
                     pos:this.tr.getPos().add(dir.scale(0.1)),
                     speedVec: dir,
@@ -360,22 +367,22 @@ window.import_ents = function(module){
         }
     });
 
-    ents.BoltExplosion = ents.MissileExplosion.extend({
+    exports.BoltExplosion = exports.MissileExplosion.extend({
         drawable: assets.boltExplosion,
         smoke: assets.boltSmoke,
     });
 
-    ents.Missile = ents.Projectile.extend({
+    exports.Missile = exports.Projectile.extend({
         name: 'missile',
         drawable: assets.missileSprite,
-        Expl: ents.MissileExplosion,
+        Expl: exports.MissileExplosion,
         smokeInterval : 0.001,
         lastSmokeTime : 0,
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
             if(this.lastSmokeTime < this.scene.time - this.smokeInterval){
-                this.scene.add(new ents.Particle({
+                this.scene.add(new exports.Particle({
                     drawable: assets.missileSmoke,
                     pos:this.tr.getPos(),
                     speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
@@ -387,20 +394,20 @@ window.import_ents = function(module){
         },
     });
 
-    ents.Bolt = ents.Projectile.extend({
+    exports.Bolt = exports.Projectile.extend({
         name: 'bolt',
         drawable: assets.boltSprite,
         speed:600,
         damage:30,
         explosionDamage:25,
-        Expl: ents.BoltExplosion,
+        Expl: exports.BoltExplosion,
         smokeInterval : 0.001,
         lastSmokeTime : 0,
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
             if(this.lastSmokeTime < this.scene.time - this.smokeInterval){
-                this.scene.add(new ents.Particle({
+                this.scene.add(new exports.Particle({
                     drawable: assets.boltSmoke,
                     pos:this.tr.getPos(),
                     speedVec: this.speedVec.scale(0.5).add(V2.random().scale(100)),
@@ -412,7 +419,7 @@ window.import_ents = function(module){
         },
     });
 
-    ents.Weapon = Class.extend({
+    exports.Weapon = Class.extend({
         name:'BasicWeapon',
         Projectile: null,
         delay: 0.2,
@@ -466,9 +473,9 @@ window.import_ents = function(module){
         },
     });
 
-    ents.MissileLauncher = ents.Weapon.extend({
+    exports.MissileLauncher = exports.Weapon.extend({
         name:'Missile Launcher',
-        Projectile: ents.Missile,
+        Projectile: exports.Missile,
         delay: 0.7,
         sequence: 1,
         cooldown: 0,
@@ -477,9 +484,9 @@ window.import_ents = function(module){
         ammo: -1,
     });
 
-    ents.Bolter = ents.Weapon.extend({
+    exports.Bolter = exports.Weapon.extend({
         name:'Bolter',
-        Projectile: ents.Bolt,
+        Projectile: exports.Bolt,
         delay: 0.1,
         sequence: 5,
         cooldown: 0.2,
@@ -488,18 +495,18 @@ window.import_ents = function(module){
         ammo: -1,
     });
     
-    ents.Block = Ent.extend({
+    exports.Block = Ent.extend({
         name: 'block',
         init: function(opt){
             this._super(opt);
             this.drawable = opt.sprite || Math.random() < 0.5 ? assets.blockSprite : assets.blockSpriteYellow;
             this.width = 110;
             this.collisionBehaviour = 'receive';
-            this.bound = new Rect(0,0,this.width,this.width,'centered');
+            this.bound = new BRect(0,0,this.width,this.width,'centered');
         },
     });
 
-    ents.Building = Ent.extend({
+    exports.Building = Ent.extend({
         name: 'building',
         drawable: assets.buildingSprite,
         init: function(opt){
@@ -512,7 +519,7 @@ window.import_ents = function(module){
         },
     });
 
-    ents.GameCamera = Camera2d.extend({
+    exports.GameCamera = Camera2d.extend({
         init: function(opt){
             opt = opt || {};
             this.game = opt.game || null;
@@ -535,7 +542,9 @@ window.import_ents = function(module){
             var ship   = player ? player.ship : null;
             var input  = this.main.input;
             this.recordFPS(1/this.main.deltaTime);
-            $('.fps').html(''+this.getAvgFPS()+ ' fps');
+            if(clientSide){
+                $('.fps').html(''+this.getAvgFPS()+ ' fps');
+            }
 
             if(ship){
                 var dpos = ship.tr.getPos().sub(this.tr.getPos());
@@ -561,7 +570,7 @@ window.import_ents = function(module){
         },
     });
     
-    ents.ShipSpec = Class.extend({
+    exports.ShipSpec = Class.extend({
         name:  'basic',
         type:  'fighter',  // 'fighter' | 'tank' | 'dpm' | 'scout' | 'defense' | 'skills' 
         startSpeed:  160,
@@ -597,12 +606,12 @@ window.import_ents = function(module){
 
     });
 
-    ents.Ship = ents.GridCollider.extend({
+    exports.Ship = exports.GridCollider.extend({
         init: function(opt){
             var opt = opt || {};
             this._super(opt);
             
-            this.spec = opt.spec || this.spec || new ents.ShipSpec();
+            this.spec = opt.spec || this.spec || new exports.ShipSpec();
             this.player = opt.player || null;
 
             this.moveSpeed    = new V2();
@@ -613,8 +622,8 @@ window.import_ents = function(module){
             this.knockTime     = 0;
 
             this.weapons  = {
-                'missile': new ents.MissileLauncher({ owner:this, main:this.main }),
-                'bolter':  new ents.Bolter({ owner:this, main:this.main }),
+                'missile': new exports.MissileLauncher({ owner:this, main:this.main }),
+                'bolter':  new exports.Bolter({ owner:this, main:this.main }),
             };
             this.weaponIndexes = [
                 'missile',
@@ -637,7 +646,7 @@ window.import_ents = function(module){
             ];
 
             this.collisionBehaviour = 'both';
-            this.bound = new Rect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
+            this.bound = new BRect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
             this.colVec = new V2();
 
 
@@ -793,4 +802,4 @@ window.import_ents = function(module){
             this.player.ship = null;
         },
     });
-};
+})(exports);

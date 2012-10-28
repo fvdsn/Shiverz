@@ -1,10 +1,13 @@
 // Modula 2D Grid
-window.modula = window.modula || {};
-(function(modula){
+(function(exports){
+    var core = require('./core.js');
+    var V2 = require('./vec.js').V2;
+    var BRect = require('./bounds2.js').BRect;
+    var engine = require('./engine.js');
 
-    var Ray = modula.Ray;
+    var Ray = engine.Ray;
 
-    modula.Grid = modula.Class.extend({
+    exports.Grid = core.Class.extend({
         init: function(options){
             options = options || {};
             this.cellX = this.cellX || options.cellX || 1;
@@ -51,10 +54,10 @@ window.modula = window.modula || {};
             }
         },
         getCellBound: function(x,y){
-            return new modula.Rect(x * this.cellSize.x, y * this.cellSize.y, this.cellSize.x, this.cellSize.y);
+            return new BRect(x * this.cellSize.x, y * this.cellSize.y, this.cellSize.x, this.cellSize.y);
         },
         getBound: function(){
-            return new modula.Rect(0,0,this.size.x, this.size.y);
+            return new BRect(0,0,this.size.x, this.size.y);
         },
         getCellAtPixel: function(pos){
             var size = this.size;
@@ -91,26 +94,21 @@ window.modula = window.modula || {};
             }
         },
         getColldingCells: function(bound){
-            var Rect  = modula.Rect;
-            if(!Rect){
-                return [];
-            }else{
-                var cells = this.getCellsInRect(bound.minX(), bound.minY(), bound.maxX(), bound.maxY());
-                var csize = this.cellSize;
-                var ccells = [];
-                for(var i = 0, len = cells.length; i < len; i++){
-                    var cell = cells[i];
-                    var rect = new Rect( cell.x * csize.x,
-                                                cell.y * csize.y,
-                                                csize.x,
-                                                csize.y );
-                    if( bound.collides(rect)){
-                        cell.bound = rect;
-                        ccells.push(cell);
-                    }
+            var cells = this.getCellsInRect(bound.minX(), bound.minY(), bound.maxX(), bound.maxY());
+            var csize = this.cellSize;
+            var ccells = [];
+            for(var i = 0, len = cells.length; i < len; i++){
+                var cell = cells[i];
+                var rect = new BRect( cell.x * csize.x,
+                                            cell.y * csize.y,
+                                            csize.x,
+                                            csize.y );
+                if( bound.collides(rect)){
+                    cell.bound = rect;
+                    ccells.push(cell);
                 }
-                return ccells;
             }
+            return ccells;
         },
         collisionVec: function(bound, isSolid){
             var self  = this;
@@ -261,7 +259,7 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.DrawableGrid = modula.Renderer.Drawable2d.extend({
+    exports.DrawableGrid = engine.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
             this.pass = options.pass || this.pass;
@@ -277,7 +275,7 @@ window.modula = window.modula || {};
             }
         },
         clone: function(){
-            return new modula.DrawableGrid({
+            return new exports.DrawableGrid({
                 height: this.height,
                 zindex: this.zindex,
                 drawables: this._drawables,
@@ -305,4 +303,4 @@ window.modula = window.modula || {};
             }
         },
     });
-})(modula);
+})(exports);

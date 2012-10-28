@@ -1,8 +1,10 @@
 // Modula Engine
-window.modula = window.modula || {};
-(function(modula){
+(function(exports){
 
-    var Transform2 = modula.Transform2;
+    var core = require('./core.js');
+    var V2 = require('./vec.js').V2;
+    var Transform2 = require('./transform2.js').Transform2;
+    var Bound = require('./bounds2.js').Bound;
 
     function getNewUid(){
         uid += 1;
@@ -18,8 +20,9 @@ window.modula = window.modula || {};
         return array.indexOf(element) >= 0;
     }
 
-    modula.Main = modula.Class.extend({
+    exports.Main = core.Class.extend({
         init: function(options){
+            options = options || {};
             this._nextUid  = 0;
             this.input = null;
             this.scene = null;
@@ -37,7 +40,9 @@ window.modula = window.modula || {};
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
             this.input = options.input || this.input;
-            this.input.main = this;
+            if(this.input){
+                this.input.main = this;
+            }
             if(options.scene){
                 this.add(options.scene);
             }
@@ -127,7 +132,11 @@ window.modula = window.modula || {};
                         waitTime = 0;
                     }
                     //setTimeout(loop,waitTime);
-                    webkitRequestAnimationFrame(loop,waitTime);
+                    if(typeof webkitRequestAnimationFrame !== 'undefined'){
+                        webkitRequestAnimationFrame(loop,waitTime);
+                    }else{
+                        setTimeout(loop,waitTime);
+                    }
                 }else{
                     if(self.running){
                         self.run();
@@ -141,10 +150,11 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.Input = modula.Class.extend({
+    exports.Input = core.Class.extend({
         init: function(options){
             options = options || {};
             var self = this;
+            if(core.serverSide){ return; }
             this._mouseStatus = 'out'; // 'out' | 'over' | 'entering' | 'leaving'
             this._mouseStatusPrevious = 'out';
             this._mouseStatusSystem = 'out';
@@ -226,6 +236,7 @@ window.modula = window.modula || {};
             
         },
         processEvents: function(){
+            if(core.serverSide){ return; }
             var time = this.main.timeSystem;
             
             for(var i = 0; i < this._keyEvents.length; i++){
@@ -290,22 +301,26 @@ window.modula = window.modula || {};
 
         // return true the first frame of a key being pressed
         isKeyPressing : function(key){
+            if(core.serverSide){ return false; }
             key = this.getAlias(key);
             return this._keyStatus[key] === 'press';
         },
         // return true the first frame of a key being depressed
         isKeyReleasing : function(key){
+            if(core.serverSide){ return false; }
             key = this.getAlias(key);
             return this._keyStatus[key] === 'release';
         },
         // return true as long as a key is pressed
         isKeyDown: function(key){
+            if(core.serverSide){ return false; }
             key = this.getAlias(key);
             var s = this._keyStatus[key];
             return s === 'down' || s === 'press';
         },
         // return true as long as a key is depressed. equivalent to !isKeyDown() 
         isKeyUp: function(key){
+            if(core.serverSide){ return true; }
             key = this.getAlias(key);
             var s = this._keyStatus[key];
             return s === undefined || s === 'up' || s === 'release';
@@ -313,14 +328,17 @@ window.modula = window.modula || {};
 
         // return true if the mouse is over the canvas
         isMouseOver: function(){
+            if(core.serverSide){ return false; }
             return this._mouseStatus === 'over' || this._mouseStatus === 'entering';
         },
         // return true the first frame the mouse is over the canvas
         isMouseEntering: function(){
+            if(core.serverSide){ return false; }
             return this._mouseStatus === 'entering';
         },
         // return true the first frame the mouse is outside the canvas
         isMouseLeaving: function(){
+            if(core.serverSide){ return false; }
             return this._mouseStatus === 'leaving';
         },
         // return -1 if scrolling down, 1 if scrolling up, 0 if not scrolling
@@ -334,9 +352,10 @@ window.modula = window.modula || {};
         },
         // returns the mouse position over the canvas in pixels
         getMousePos: function(){
-            return this._mousePos;
+            return this._mousePos || new V2();
         },
         setAlias: function(action,key){
+            if(core.serverSide){ return; }
             if(typeof action === 'object'){
                 var aliases = action;
                 for(act in aliases){
@@ -346,6 +365,7 @@ window.modula = window.modula || {};
             this._alias[action] = key;
         },
         getAlias: function(alias){
+            if(core.serverSide){ return ''; }
             while(alias in this._alias){
                 alias = this._alias[alias];
             }
@@ -353,7 +373,7 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.Camera = modula.Class.extend({
+    exports.Camera = core.Class.extend({
         scene: null,
         main: null, 
         tr : new Transform2(),
@@ -371,12 +391,12 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.Camera2d = modula.Camera.extend({
+    exports.Camera2d = exports.Camera.extend({
         height: 1,
         parallax: false,
     });
 
-    modula.Renderer = modula.Class.extend({
+    exports.Renderer = core.Class.extend({
         _size : new V2(),
         alwaysRedraw:true,
         renderBackground: function(){},
@@ -387,17 +407,17 @@ window.modula = window.modula || {};
         },
     });
     
-    modula.Renderer.Drawable = modula.Class.extend({
+    exports.Renderer.Drawable = core.Class.extend({
         pass: null,
         draw: function(renderer, entity, camera){},
     });
 
-    modula.Renderer.Drawable2d = modula.Renderer.Drawable.extend({
+    exports.Renderer.Drawable2d = exports.Renderer.Drawable.extend({
         zindex: 0,
         height: 0,
     });
 
-    modula.RendererCanvas2d = modula.Renderer.extend({
+    exports.RendererCanvas2d = exports.Renderer.extend({
         init: function(options){
             options = options || {};
             this.canvas = options.canvas || this.canvas; 
@@ -418,8 +438,8 @@ window.modula = window.modula || {};
             return !this._size.equals(this.getSize());
         },
         drawInit: function(camera){
-            if(modula.draw){
-                modula.draw.setContext(this.context);
+            if(exports.draw){
+                exports.draw.setContext(this.context);
             }
             
             this._size = this.getSize();
@@ -514,7 +534,7 @@ window.modula = window.modula || {};
         },
     });
     
-    modula.RendererCanvas2d.SpriteMap = modula.Class.extend({
+    exports.RendererCanvas2d.SpriteMap = core.Class.extend({
         init: function(options){
             options = options || {};
             var self = this;
@@ -525,18 +545,24 @@ window.modula = window.modula || {};
             this.pass     = options.pass     || this.pass;
             this.height   = options.height   || this.height;
 
-            if(this._src === undefined){
-                this._src = this.image.src;
-            }else{
-                this._image = new Image();
-                this._image.src = this._src;
-            }
+            if(typeof Image !== 'undefined'){
+                if(this._src === undefined){
+                    this._src = this.image.src;
+                }else{
+                    this._image = new Image();
+                    this._image.src = this._src;
+                }
 
-            function onload(){
-                self._size = new V2(self._image.width, self._image.height);
+                function onload(){
+                    self._size = new V2(self._image.width, self._image.height);
+                }
+                this._image.onload = onload;
+                onload();
+            }else{
+                this._src = this._src || '';
+                this._image = {};
+                this._size = new V2();
             }
-            this._image.onload = onload;
-            onload();
 
             if(options.cellSize){
                 if(typeof options.cellSize === 'number'){
@@ -580,7 +606,7 @@ window.modula = window.modula || {};
                 for( key in options){
                     arg[key] = options[key];
                 }
-                return new modula.RendererCanvas2d.DrawableSprite(arg);
+                return new exports.RendererCanvas2d.DrawableSprite(arg);
             }
         },
         getSpriteNames: function(){
@@ -588,7 +614,7 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.RendererCanvas2d.DrawableSprite = modula.Renderer.Drawable2d.extend({
+    exports.RendererCanvas2d.DrawableSprite = exports.Renderer.Drawable2d.extend({
         init: function(options){
             options = options || {};
             var self = this;
@@ -602,21 +628,14 @@ window.modula = window.modula || {};
             this.height    = options.height || this.height;
             this.zindex    = options.zindex || this.zindex;
 
-            if(this._src === undefined){
-                this._src = this._image.src;
-            }else{
-                this._image = new Image();
-                this._image.src = this._src;
-            }
-
             function onload(){
                 self.z     = options.z || 0;    
                 self.alpha = options.alpha;
                 self.compose = options.compose;
                 self._src_x  = options.src_x  || 0;
                 self._src_y  = options.src_y  || 0;
-                self._src_sx = options.src_sx || self._image.width;
-                self._src_sy = options.src_sy || self._image.height;
+                self._src_sx = options.src_sx || self._image.width || 0;
+                self._src_sy = options.src_sy || self._image.height ||0;
                 self._dst_x  = options.dst_x  || 0;
                 self._dst_y  = options.dst_y  || 0;
                 self._dst_sx = options.dst_sx || self._src_sx;
@@ -624,11 +643,22 @@ window.modula = window.modula || {};
 
                 self.pos   = options.pos ? options.pos.clone() : new V2();
             }
-            this._image.onload = onload;
+            if(typeof Image !== 'undefined'){
+                if(this._src === undefined){
+                    this._src = this._image.src;
+                }else{
+                    this._image = new Image();
+                    this._image.src = this._src;
+                }
+                this._image.onload = onload;
+            }else{
+                this._src = this._src || (this._image ? this._image.src : null) || '';
+                this._image = {};
+            }
             onload();
         },
         clone: function(){
-            return new modula.RendererCanvas2d.DrawableSprite({
+            return new exports.RendererCanvas2d.DrawableSprite({
                 image : this._image,
                 pos   : this.pos,
                 alpha : this.alpha,
@@ -683,7 +713,7 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.Timer = modula.Class.extend({
+    exports.Timer = core.Class.extend({
         init: function(scene,opt){
             this.scene = scene;
             this.duration = 0;
@@ -703,7 +733,7 @@ window.modula = window.modula || {};
         },
     });
 
-    modula.Ray = function(opt){
+    exports.Ray = function(opt){
         var opt = opt || {};
         this.start = opt.start || opt.pos || new V2();
         this.length = opt.length || Number.MAX_VALUE;
@@ -713,7 +743,7 @@ window.modula = window.modula || {};
             this.dir = opt.end.sub(this.start).normalize();
         }
     };
-    modula.Ray.prototype.scale = function(fac){
+    exports.Ray.prototype.scale = function(fac){
         if(typeof fac === 'number'){
             this.length *= fac;
             if(fac < 0){
@@ -726,7 +756,7 @@ window.modula = window.modula || {};
         }
         return this;
     };
-    modula.Scene = modula.Class.extend({
+    exports.Scene = core.Class.extend({
         init: function(options){
             options = options || {};
             this._started = false;
@@ -751,7 +781,7 @@ window.modula = window.modula || {};
         },
         add: function(ent){
             if(ent.main && ent.main !== this.main){
-                throw new Error('Cannot add an entity to the scene: it belongs to another modula instance');
+                throw new Error('Cannot add an entity to the scene: it belongs to another exports instance');
                 return;
             }else if(this.main){
                 ent.main = this.main;
@@ -801,7 +831,7 @@ window.modula = window.modula || {};
             }
         },
         timer: function(opt){
-            return new modula.Timer(this,opt);
+            return new exports.Timer(this,opt);
         },
         getEntities: function(){
             return this._entityList;
@@ -940,7 +970,7 @@ window.modula = window.modula || {};
         onSceneEnd:   function(){},
     });
 
-    modula.Ent = modula.Class.extend({ 
+    exports.Ent = core.Class.extend({ 
         init: function( options ){
             options = options || {};
 
@@ -953,7 +983,7 @@ window.modula = window.modula || {};
             this.main  = null;
 
             // The tr contains the position, rotation, scale, and parent/childs of the entity
-            this.tr     = new modula.Transform2();
+            this.tr     = new Transform2();
             this.tr.ent = this;
 
             if(options.pos){
@@ -984,7 +1014,7 @@ window.modula = window.modula || {};
             // what will be drawn
             this.drawable = options.drawable || this.drawable || undefined;
             // the time (in seconds) when the entity had its first update
-            this.startTime = -1; // todo modula.main.time;
+            this.startTime = -1; // todo exports.main.time;
         
         },
         // return true if the entity has no childs
@@ -1037,7 +1067,7 @@ window.modula = window.modula || {};
         },
         // returns true if the entity collides with another bound or entity
         collides: function(ent){
-            if(ent instanceof modula.Ent){
+            if(ent instanceof exports.Ent){
                 var epos = ent.tr.getWorldPos();
                 var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
@@ -1052,7 +1082,7 @@ window.modula = window.modula || {};
         },
         // returns the smallest vector that would make this entity not collide 'ent' by translation
         collisionVector: function(ent){
-            if(ent instanceof modula.Ent){
+            if(ent instanceof exports.Ent){
                 var epos = ent.tr.getWorldPos();
                 var epos = epos.sub(this.tr.getWorldPos());
                 if(ent.bound){
@@ -1067,7 +1097,7 @@ window.modula = window.modula || {};
         // returns the smallest distance on each axis that would make this entity not collide with
         // 'ent' by translation on one axis
         collisionAxis: function(ent){
-            if(ent instanceof modula.Ent){
+            if(ent instanceof exports.Ent){
                     var epos = ent.tr.getWorldPos();
                 var epos = ent.tr.getWorldPos();
                 var epos = epos.sub(this.tr.getWorldPos());
@@ -1098,4 +1128,4 @@ window.modula = window.modula || {};
         onCollisionReceive: function(ent){},
     });
 
-})(window.modula);
+})(exports);

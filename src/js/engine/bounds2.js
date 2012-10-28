@@ -1,10 +1,10 @@
 // Modla 2D Bounding Volumes
-window.modula = window.modula || {};
-(function(modula){
+(function(exports){
 
+    var V2 = require('./vec.js').V2;
     function Bound(){
     }
-    modula.Bound = Bound;
+    exports.Bound = Bound;
     // A bounding rectangle
     // x,y the minimum coordinate contained in the rectangle
     // sx,sy the size of the rectangle along the x,y axis
@@ -29,7 +29,7 @@ window.modula = window.modula || {};
         }
     }
 
-    modula.Rect = Rect;
+    exports.BRect = Rect;
 
     Rect.prototype = new Bound();
     Rect.prototype.min = function(){  return new V2(this.x, this.y); };
@@ -170,4 +170,4 @@ window.modula = window.modula || {};
     Rect.prototype.toString = function(){
         return "["+this.cx+","+this.cy+"|"+this.sx+","+this.sy+"]";
     };
-})(window.modula);
+})(exports);

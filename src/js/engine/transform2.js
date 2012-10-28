@@ -1,12 +1,11 @@
 // Modula 2D Transforms
-window.modula = window.modula || {};
-(function(modula){
+(function(exports){
 
-    // The numerical precision used to compare vector equality
-    modula.epsilon   = 0.0000001;
+    var vec = require('./vec.js');
+    var V2 = vec.V2, Mat3 = vec.Mat3;
 
     var epsilonEquals = function(a,b){
-        return Math.abs(a-b) <= modula.epsilon;
+        return Math.abs(a-b) <= 0.0000001;
     };
 
     function Transform2(tr){
@@ -40,7 +39,7 @@ window.modula = window.modula || {};
         this.worldToLocalMatrix  = null;
     }
 
-    modula.Transform2 = Transform2;
+    exports.Transform2 = Transform2;
 
     var proto = Transform2.prototype;
 
@@ -246,4 +245,4 @@ window.modula = window.modula || {};
         return this;
     };
 
-})(window.modula);
+})(exports);

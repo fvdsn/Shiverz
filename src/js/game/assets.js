@@ -1,20 +1,20 @@
-window.import_assets = function(module){
-	module.assets = {};
-	
-	module.assets.shipSprite = new RendererCanvas2d.DrawableSprite({
+(function(exports){
+    require('../engine/modula.js').use();
+
+	exports.shipSprite = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/ship_yellow.png',
         centered:true,
     });
 
-	module.assets.shipSpriteBlue = module.assets.shipSprite.clone();
-    module.assets.shipSpriteRed = new RendererCanvas2d.DrawableSprite({
+	exports.shipSpriteBlue = exports.shipSprite.clone();
+    exports.shipSpriteRed = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/ship_blue.png',
         centered:true,
     });
 
-    module.assets.buildingSprite = new RendererCanvas2d.DrawableSprite({
+    exports.buildingSprite = new RendererCanvas2d.DrawableSprite({
         pass:'buildings',
         alpha: 0.5,
         src:'img/blurred-buildings.png',
@@ -22,7 +22,7 @@ window.import_assets = function(module){
         height:-1,
     });
 
-    module.assets.shipHover = new RendererCanvas2d.DrawableSprite({
+    exports.shipHover = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/explosion128blue.png',
         compose: 'lighter',
@@ -30,8 +30,8 @@ window.import_assets = function(module){
         centered:true,
         scale:1,
     });
-    module.assets.shipHoverBlue = module.assets.shipHover.clone();
-    module.assets.shipHoverRed = new RendererCanvas2d.DrawableSprite({
+    exports.shipHoverBlue = exports.shipHover.clone();
+    exports.shipHoverRed = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/explosion128red.png',
         compose: 'lighter',
@@ -40,13 +40,13 @@ window.import_assets = function(module){
         scale:1,
     });
 
-    module.assets.shipSpriteFiring = new RendererCanvas2d.DrawableSprite({
+    exports.shipSpriteFiring = new RendererCanvas2d.DrawableSprite({
         pass:'ships',
         src:'img/ship_yellow_firing.png',
         centered:true,
     });
     
-    module.assets.missileSprite = new RendererCanvas2d.DrawableSprite({
+    exports.missileSprite = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/projectile-green.png',
         compose: 'lighter',
@@ -54,14 +54,14 @@ window.import_assets = function(module){
         centered:true,
     });
 
-    module.assets.missileSmoke = new RendererCanvas2d.DrawableSprite({
+    exports.missileSmoke = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/smoke-green.png',
         compose: 'lighter',
         centered:true,
     });
 
-    module.assets.boltSprite = new RendererCanvas2d.DrawableSprite({
+    exports.boltSprite = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/projectile-red.png',
         compose: 'lighter',
@@ -69,54 +69,54 @@ window.import_assets = function(module){
         centered:true,
     });
 
-    module.assets.boltSmoke = new RendererCanvas2d.DrawableSprite({
+    exports.boltSmoke = new RendererCanvas2d.DrawableSprite({
         pass:'projectiles',
         src:'img/smoke-red.png',
         compose: 'lighter',
         centered:true,
     });
 
-    module.assets.boltExplosion = new RendererCanvas2d.DrawableSprite({
+    exports.boltExplosion = new RendererCanvas2d.DrawableSprite({
         pass:'explosions',
         src:'img/explosion128red.png',
         compose: 'lighter',
         centered:true,
     });
     
-    module.assets.explosionSprite = new RendererCanvas2d.DrawableSprite({
+    exports.explosionSprite = new RendererCanvas2d.DrawableSprite({
         pass:'explosions',
         src:'img/explosion128green.png',
         compose: 'lighter',
         centered:true,
     });
     
-    module.assets.blockSpriteUnder = new RendererCanvas2d.DrawableSprite({
+    exports.blockSpriteUnder = new RendererCanvas2d.DrawableSprite({
         src:'img/block-under.png',
         pos:new V2(-12,-16),
     });
 
-    module.assets.blockSprite = new RendererCanvas2d.DrawableSprite({
+    exports.blockSprite = new RendererCanvas2d.DrawableSprite({
         src:'img/block.png',
         pos:new V2(-12,-16),
     });
 
-    module.assets.blockSpritePurpleUnder = new RendererCanvas2d.DrawableSprite({
+    exports.blockSpritePurpleUnder = new RendererCanvas2d.DrawableSprite({
         src:'img/block-purple-under.png',
         pos:new V2(-12,-16),
     });
 
-    module.assets.blockSpritePurple = new RendererCanvas2d.DrawableSprite({
+    exports.blockSpritePurple = new RendererCanvas2d.DrawableSprite({
         src:'img/block-purple.png',
         pos:new V2(-12,-16),
     });
 
-    module.assets.blockSpriteGray = new RendererCanvas2d.DrawableSprite({
+    exports.blockSpriteGray = new RendererCanvas2d.DrawableSprite({
         src:'img/block-gray.png',
         pos:new V2(-12,16),
     });
 
-    module.assets.blockSpriteDark = new RendererCanvas2d.DrawableSprite({
+    exports.blockSpriteDark = new RendererCanvas2d.DrawableSprite({
         src:'img/block-dark-gray.png',
         pos:new V2(-12,16),
     });
-};
+})(exports);
