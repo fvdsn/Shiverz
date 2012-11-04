@@ -226,7 +226,7 @@
                     }
                     if(count === 2){
                         if(solid_dr && solid_ul){
-                            console.log('\\',Math.round(esc_d + esc_l));
+                            //console.log('\\',Math.round(esc_d + esc_l));
                             //console.log('\\',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
                             // XXXX
                             // XXXX
@@ -238,7 +238,7 @@
                             //   ###XXX
                             // XX###
                             // XXXX
-                            console.log('/',Math.round(esc_d + esc_r));
+                            //console.log('/',Math.round(esc_d + esc_r));
                             //console.log('/',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
                             return null;
                         }

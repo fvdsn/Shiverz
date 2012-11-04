@@ -35,8 +35,9 @@
             this.timeSystem = 0;
             this.startTime = 0;
             this.fps = options.fps || 60;
-            this.minfps = options.minfps || 30;
-            this.maxfps = options.maxfps || 120;
+            console.log('fps:',this.fps);
+            this.minfps = options.minfps || Math.min(this.fps,30);
+            this.maxfps = options.maxfps || Math.max(this.fps,120);
             this.fixedDeltaTime = 1 / this.fps;
             this.deltaTime = 1 / this.fps
             this.input = options.input || this.input;
@@ -126,17 +127,12 @@
             function loop(){
                 if(self.running && (self.restartTime < 0 || self.time < self.restartTime)){
                     self._runFrame();
-                    var elapsedTimeMillis = ((new Date).getTime() - self.timeSystem);
+                    var elapsedTimeMillis = ((new Date).getTime() - self.timeSystem*1000);
                     var waitTime = (self.fixedDeltaTime * 1000) - elapsedTimeMillis;
                     if(waitTime < 0){
                         waitTime = 0;
                     }
-                    //setTimeout(loop,waitTime);
-                    if(typeof webkitRequestAnimationFrame !== 'undefined'){
-                        webkitRequestAnimationFrame(loop,waitTime);
-                    }else{
-                        setTimeout(loop,waitTime);
-                    }
+                    setTimeout(loop,waitTime);
                 }else{
                     if(self.running){
                         self.run();
@@ -728,9 +724,108 @@
         expired: function(){
             return this.scene.time >= this.startTime + this.duration;
         },
+        period: function(){
+            if(this.expired()){
+                this.startTime += this.duration;
+                return true;
+            }
+            return false;
+        },
         remaining: function(){
             return Math.max(0,this.startTime + duration - this.scene.time);
         },
+
+    });
+
+    /*
+     
+     Signals:
+     
+     var s = new Signal('1 + cos( period: $p sec, amp: %a)', {
+                            p:   0.12, 
+                            amp: new Signal('cos(15 Hz) * 0.1')});
+
+     */
+
+    exports.RunningMean = core.Class.extend({
+        init: function(opt){
+            var len = opt.length || 10;
+            var val = opt.value  || 0;
+            this.queue = [];
+            for(var i = 0; i < len; i++){
+                this.queue.push(val);
+            }
+            this.mean = val;
+            this.value  = val
+        },
+        push: function(val){
+            this.mean -= this.queue[0] / this.queue.length;
+            this.queue.shift();
+            this.queue.push(val);
+            this.mean += val / this.queue.length;
+            this.value = val;
+        },
+    });
+
+    exports.AssetManager = core.Class.extend({
+        init: function(){
+            this.db = []
+            this.onsync = function(){};
+            this.onfail = function(reason){};
+            this.onprogress = function(progress){};
+            this.protocol = 'ws://';
+            this.hostname = 'localhost';
+            this.port = 8081;
+        },
+        add: function(url,data,version){
+            var record = this.db[url] || {version:0};
+            record.data = data;
+            record.version = version || record.version + 1;
+            this.db[url] = record;
+        },
+        get: function(url){
+            if(this.db[url]){
+                return this.db[url].data;
+            }
+            return undefined;
+        },
+        rem: function(url){
+            delete this.db[url];
+        },
+        schema: function(){
+            var schema = {};
+            for(url in this.db){
+                schema[url] = this.db[url].version;
+            }
+            return schema;
+        },
+        delta: function(newSchema){
+            var oldSchema = this.schema();
+            var delta = {};
+            for(url in newSchema){
+                if(!oldSchema[url] || ( oldSchema[url] && oldSchema[url].version < newSchema[url].version)){
+                    delta[url] = newSchema.version;
+                }
+            }
+            for(url in oldSchema){
+                if(!newSchema[url]){
+                    delta[url] = -1;
+                }
+            }
+        },
+        sync: function(assets){
+            var delta = this.delta(assets.schema());
+            for(var url in delta){
+                if(progress){ progress(); }
+                if(delta[url] < 0){
+                    this.rem(url);
+                }else{
+                    this.add(url,assets.get(url),delta[url]);
+                }
+            }
+            if(progress){ progress(); }
+        },
+        serve: function(){},
     });
 
     exports.Ray = function(opt){

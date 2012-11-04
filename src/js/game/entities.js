@@ -10,7 +10,11 @@
         init: function(opt){
             opt = opt || {};
             this._super(opt);
-            this.game = opt.game || this.game || window.game;
+            this.game = opt.game || this.game || exports.GameEnt.game;
+            if(!this.game){
+                throw new Error('you must provide a game to a gameEnt constructor');
+            }
+            this.guid = opt.guid || this.game.newGuid();
         },
     });
 
@@ -82,15 +86,32 @@
         init: function(options){
             options = options || {};
             this._super(options);
-            this.spawns = {
+            this.collisionBehaviour = 'receive';
+            this.setState(options);
+        },
+        getState: function(){
+            return {
+                name:     this.name,
+                cellX:    this.grid.cellX,
+                cellY:    this.grid.cellY,
+                cellSize: this.grid.cellSize,
+                cells:    this.grid.cells,
+                spawns:   this.spawns,
+            };
+        },
+        setState: function(lvl){
+            this.grid = lvl.grid || new Grid({
+                cellX: lvl.cellX || 50,
+                cellY: lvl.cellY || 50,
+                cellSize: lvl.cellSize ? new V2(lvl.cellSize): 103,
+                cells: lvl.cells,
+                fill: lvl.cells ? undefined : 0,
+            });
+            this.spawns = lvl.spawns || {
                 red: [],
-                blue: [],
+                blue:[],
             };
-            this.flags = {
-                red: null,
-                blue: null,
-            };
-            this.theme = {
+            this.theme = lvl.theme || {
                 grid:{
                     1: assets.blockSprite,
                     2: assets.blockSpritePurple,
@@ -103,41 +124,6 @@
                 },
                 bgcolor: '#333',
             };
-            if(options.theme){
-                for(x in options.theme){
-                    this.theme[x] = options.theme[x];
-                }
-            }
-            this.collisionBehaviour = 'receive';
-            this.name     = options.name || 'default';
-            this.editCell = 1;
-            this.grid     = new Grid({
-                cellX: 50,
-                cellY: 50,
-                cellSize: 103,
-                fill:0,
-            });
-            this.load();
-        },
-        getState: function(){
-            return {
-                name:     this.name,
-                cellX:    this.grid.cellX,
-                cellY:    this.grid.cellY,
-                cellSize: this.grid.cellSize,
-                cells:    this.grid.cells,
-                spawns:   this.spawns,
-            }
-        },
-        setState: function(state){
-            var lvl = state;
-            this.grid = new Grid({
-                cellX: lvl.cellX,
-                cellY: lvl.cellY,
-                cellSize: new V2(lvl.cellSize),
-                cells: lvl.cells,
-            });
-            this.spawns = lvl.spawns;
             this.name = lvl.name || 'default';
             this.bound   = new BRect(0,0,this.grid.size.x, this.grid.size.y);
             this.drawable = [
@@ -153,30 +139,14 @@
                 }),
             ];
         },
-        save: function(){
-            if(typeof localStorage !== 'undefined'){
-                localStorage['shivrz_lvl_'+ this.name] = JSON.stringify(this.getState());
-            }
-        },
-        load: function(){
-            if(typeof localStorage !== 'undefined'){
-                var lvl  = localStorage['shivrz_lvl_'+this.name];
-                if(lvl){
-                    lvl = JSON.parse(lvl);
-                    if(lvl){
-                        this.setState(lvl);
-                    }
-                }
-            }
-        },
         generate: function(opt){
             opt = opt || {};
             var density = opt.density || 0.1;
             var bgdensity = opt.bgdensity || 0.1;
             var grid = new Grid({
-                cellX: opt.cellX || 50,
-                cellY: opt.cellY || 50,
-                cellSize: 103,
+                cellX: opt.cellX || this.grid.cellX,
+                cellY: opt.cellY || this.grid.cellY,
+                cellSize: this.grid.cellSize,
                 fill:0,
             });
             for(var x = 0, xlen = grid.cellX; x < xlen; x++){
@@ -206,10 +176,7 @@
                     spawns[team].push(pos);
                 }
             }
-            this.grid = grid;
-            this.spawns = spawns;
-            this.save();
-            this.load();
+            this.setState({grid: grid, spawns:spawns});
         },
     });
 
@@ -266,7 +233,6 @@
     exports.Projectile = exports.GridCollider.extend({
         name: 'projectile',
         damage: 95,
-        owner: null,
         speed: 950,
         range: 2000,
         radius: 5,
@@ -274,14 +240,13 @@
         explDamage: 80,
         explKnockback: 500,
         expl: null,
-        dir : new V2(1,0),
-        init: function(opt){
-            this._super(opt);
-            this.owner = opt.owner || this.owner;
-            this.dir = opt.dir || this.dir;
+        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed}
+            this._super(opt); 
+            this.owner = player.ship || null;
+            this.dir = V2(opt.dir);
             this.speedVec = this.dir.scale(this.speed);
             if(opt.heritSpeed){
-                this.speedVec = this.speedVec.add(opt.heritSpeed);
+                this.speedVec = this.speedVec.add(V2(opt.heritSpeed));
             }
             this.tr.setRotation(this.speedVec.azimuth());
             this.bound = new BRect(0,0,this.radius*2, this.radius*2,'centered');
@@ -291,6 +256,7 @@
             this.destroy(this.range/this.speed);
         },
         explode: function(){
+            /*
             if(this.explDamage && this.explRadius){
                 var entities = this.scene.getEntities();
                 for(var i = 0, len = entities.length; i < len; i++){
@@ -308,17 +274,21 @@
             }
             if(this.Expl){
                 this.scene.add(new this.Expl({pos:this.tr.getPos()}) );
-            }
+            }*/
         },
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            return true;
         },
         onGridCollision: function(grid,vec){
             this.tr.translate(vec);
             this.explode();
             this.destroy();
+        },
+        onDestruction: function(){
+            if(serverSide){
+                this.game.destroyEnt(this.guid);
+            }
         },
         onCollisionEmit: function(ent){
             this._super(ent);
@@ -431,8 +401,11 @@
         ammo: 5,
         maxAmmo: 20,
         init: function(opt){
-            this.main = opt.main;
-            this.owner = opt.owner;
+            this.main   = opt.main;
+            this.owner  = opt.owner;
+            this.player = opt.owner.player;
+            this.game   = opt.owner.game;
+            this.game.entclasses[this.name] = this.Projectile;
             this.lastFire = 0;
             this.index    = 0;
         },
@@ -459,6 +432,13 @@
             }else{
                 this.index++;
             }
+            console.log('Player: '+this.owner.player.name+' firing weapon: '+this.name);
+            this.game.spawnEnt(this.name, this.player.name,{
+                pos: pos,
+                dir: dir,
+                heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
+            });
+            /*
             if(this.Projectile){
                 var proj = new this.Projectile({ 
                     owner: this.owner,
@@ -467,7 +447,7 @@
                     heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
                 });
                 this.main.scene.add(proj);
-            }
+            }*/
             this.lastFire = scene.time;
             
         },
@@ -523,27 +503,17 @@
         init: function(opt){
             opt = opt || {};
             this.game = opt.game || null;
-            this.fpses = [60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-        },
-        getAvgFPS: function(){
-            var avg = 0;
-            for(var i = 0; i < this.fpses.length; i++){
-                avg += this.fpses[i];
-            }
-            return Math.round(avg / this.fpses.length);
-        },
-        recordFPS: function(fps){
-            this.fpses.shift();
-            this.fpses.push(fps);
+            this.fps = new RunningMean({length: 60, value: 60});
         },
         onUpdate: function(){
-            var lvl    = this.game.lvl;
+            var lvl    = this.game.level;
             var player = this.game.getLocalPlayer();
             var ship   = player ? player.ship : null;
             var input  = this.main.input;
-            this.recordFPS(1/this.main.deltaTime);
+            this.fps.push(1/this.main.deltaTime);
             if(clientSide){
-                $('.fps').html(''+this.getAvgFPS()+ ' fps');
+                $('.fps').html('fps:  '+Math.round(this.fps.mean)+ ' fps');
+                $('.ping').html('ping: '+Math.round(this.game.rtt.mean * 1000)+ ' ms');
             }
 
             if(ship){
@@ -629,7 +599,7 @@
                 'missile',
                 'bolter',
             ];
-            this.weapon = this.getWeapon(0);
+            this.weapon = this.weaponIndexes[0];
             
             this.shipSprite   = this.player.team === 'red' ? 
                 assets.shipSpriteRed.clone():
@@ -648,20 +618,28 @@
             this.collisionBehaviour = 'both';
             this.bound = new BRect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
             this.colVec = new V2();
-
-
         },
-        getWeapon: function(index){
-            if(typeof index === 'number'){
-                return this.weapons[this.weaponIndexes[index]];
-            }else if(index){
-                return this.weapons[index];
+        getState: function(){
+            return {
+                pos: this.tr.getPos(),
+                rotation: this.tr.getRotation(),
+                moveSpeed: this.moveSpeed.clone(),
+                weapon: this.weapon,
+            };
+        },
+        setState: function(state){
+            this.tr.setPos(new V2(state.pos));
+            this.tr.setRotation(state.rotation);
+            this.weapon = state.weapon;
+        },
+        mergeState: function(state){
+            var lpos = this.tr.getPos();
+            var rpos = new V2(state.pos);
+            if(lpos.dist(rpos) < 0){
+                this.tr.setPos(lpos.lerp(rpos,0.1));
             }else{
-                return this.weapon;
+                this.tr.setPos(rpos);
             }
-        },
-        setWeapon: function(weapon){
-            this.weapon = this.getWeapon(weapon);
         },
         damage: function(owner,damage){
             if(owner.player.team !== this.player.team){
@@ -670,41 +648,39 @@
                 return;
             }
         },
-        controls: function(){
-            var dt = this.scene.deltaTime;
+        getLocalControls: function(){
             var input = this.main.input;
-            this.aimdir = this.scene.camera.getMouseWorldPos().sub(this.tr.pos).normalize();
+            var dt = this.scene.deltaTime;
+            var aimdir = this.scene.camera.getMouseWorldPos().sub(this.tr.getPos()).normalize();
+            var weapon = undefined;
             if(input.isKeyPressing('weapon-missile')){
-                this.setWeapon('missile');
+                weapon = 'missile';
             }else if(input.isKeyPressing('weapon-bolter')){
-                this.setWeapon('bolter');
+                weapon = 'bolter';
             }
-            if(input.isKeyDown('pause')){
-                this.main.exit();
-            }
-            if(input.isKeyDown('left')){
-                this.moveDir.x = -1;
-            }else if(input.isKeyDown('right')){
-                this.moveDir.x = 1;
-            }else{
-                this.moveDir.x = 0;
-            }
-            if(input.isKeyDown('up')){
-                this.moveDir.y = -1;
-            }else if(input.isKeyDown('down')){
-                this.moveDir.y = 1;
-            }else{
-                this.moveDir.y = 0;
-            }
+            var movedir = new V2(
+                input.isKeyDown('right') - input.isKeyDown('left'),
+                input.isKeyDown('down') - input.isKeyDown('up')
+            );
+            var fire =  input.isKeyDown('fire');
+            return {dt:dt, aimdir:aimdir, weapon:weapon, movedir:movedir, fire:fire};
+        },
+        applyControls: function(controls){
+            var dt = controls.dt;
+            var movedir = controls.movedir;
 
-            if(this.moveDir.x === 0){
+            this.firing = controls.fire;
+            if(controls.weapon){
+                this.weapon = controls.weapon;
+            }
+            if(movedir.x === 0){
                 if(this.moveSpeed.x > 0){
                     this.moveSpeed.x = Math.max(0,this.moveSpeed.x-this.spec.deccel*dt);
                 }else{
                     this.moveSpeed.x = Math.min(0,this.moveSpeed.x+this.spec.deccel*dt);
                 }
             }else{
-                if(this.moveDir.x > 0){
+                if(movedir.x > 0){
                     if(this.moveSpeed.x < this.spec.startSpeed){
                         this.moveSpeed.x += this.spec.ctrlAccel*dt;
                     }else{
@@ -718,14 +694,14 @@
                     }
                 }
             }
-            if(this.moveDir.y === 0){
+            if(movedir.y === 0){
                 if(this.moveSpeed.y > 0){
                     this.moveSpeed.y = Math.max(0,this.moveSpeed.y-this.spec.deccel*dt);
                 }else{
                     this.moveSpeed.y = Math.min(0,this.moveSpeed.y+this.spec.deccel*dt);
                 }
             }else{
-                if(this.moveDir.y > 0){
+                if(movedir.y > 0){
                     if(this.moveSpeed.y < this.spec.startSpeed){
                         this.moveSpeed.y += this.spec.ctrlAccel*dt;
                     }else{
@@ -739,40 +715,64 @@
                     }
                 }
             }
-            
-            if(input.isKeyDown('fire')){
-                this.firing = true;
-            }else{
-                this.firing = false;
-            }
-        },
-        onUpdate: function(){
-            var dt = this.scene.deltaTime;
-            if(this.player.type === 'local'){
-                this.controls();
-                if(this.firing){
-                    var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
-                    if(this.weapon.fire(this.tr.getPos(), this.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
-                        this.lastFireTime = this.scene.time;
-                    }
+            this.tr.translate(this.moveSpeed.scale(dt));
+            this.tr.setRotation((new V2(controls.aimdir).azimuth()*DEG + 90)*RAD);
+            if(controls.fire && serverSide){
+                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
+                if(this.weapons[this.weapon].fire(this.tr.getPos(), controls.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
+                    this.lastFireTime = this.scene.time;
                 }
             }
-
-            if( this.scene.time - this.lastFireTime < 0.05 ){
-                this.drawable = [this.shipHover, this.shipHover2, this.shipSpriteFiring];
-            }else{
-                this.drawable = [this.shipHover, this.shipHover2, this.shipSprite];
+        },
+        getRemoteControls: function(){
+            if(this.player.controls.length > 0){
+                var controls = this.player.controls[0];
+                this.player.controls = this.player.controls.splice(1);
             }
-            
-            this.tr.translate(this.moveSpeed.scale(this.scene.deltaTime));
-            
-            this.tr.setRotation((this.aimdir.azimuth()*DEG + 90)*RAD);
-
+            return controls;
+        },
+        getRemoteState: function(){
+            var state = this.player.shipstates[this.player.shipstates.length -1];
+            this.player.shipstates = [];
+            return state;
+        },
+        updateGraphics: function(){
             this.shipHover.alpha = 0.25 + 0.5* (1+0.5*Math.cos(this.scene.time*0.5));
             this.shipHover.scale = 0.8  + 0.4* (1-0.5*Math.cos(this.scene.time*0.5));
 
             this.shipHover2.alpha = 0.25 + 0.5* (1+0.5*Math.cos(this.scene.time*0.7));
             this.shipHover2.scale = 0.8  + 0.4* (1-0.5*Math.cos(this.scene.time*0.7));
+        },
+        onUpdate: function(){
+            if(clientSide){
+                if(this.player.type === 'local'){
+                    var controls = this.getLocalControls();
+                    this.applyControls(controls);
+                    this.game.send('server','controls',controls);
+                    var state = this.getRemoteState();
+                    if(state){
+                        this.mergeState(state);
+                    }
+                }else{
+                    var state = this.getRemoteState();
+                    if(state){
+                        this.setState(state);
+                    }else{
+                        //extrapolate
+                    }
+                }
+                this.updateGraphics();
+            }else{
+                var controls = this.getRemoteControls()
+                while(controls){
+                    this.applyControls(controls);
+                    controls = this.getRemoteControls();
+                }
+                this.game.send('all','ship_update',{
+                    player: this.player.name,
+                    state: this.getState(),
+                });
+            }
         },
         onGridCollision: function(grid,colVec){
             var knocked = this.knockTime > this.scene.time;
