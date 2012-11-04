@@ -118,12 +118,13 @@
             var minY  = bound.minY();
             var maxX  = bound.maxX();
             var maxY  = bound.maxY();
+            var sx    = bound.size().x;
+            var sy    = bound.size().y;
      
             var cx    = this.cellX;
             var cy    = this.cellY;
             var csx   = this.cellSize.x;
             var csy   = this.cellSize.y;
-
 
             if(maxX <= 0 || maxY <= 0 || minX >= cx*csx || minY >= cy*csy){
                 return;
@@ -156,6 +157,7 @@
             var esc_r = -( maxX - max_px )  * csx;  
             var esc_u = (min_py + 1 - minY) * csy;
             var esc_d = -( maxY - max_py )  * csy;
+
 
             // at this point we are back in world sizes 
 
@@ -225,22 +227,37 @@
                         dx = esc_r;
                     }
                     if(count === 2){
+                        // center of the bound relative to the center of the 4
+                        // cells. cy goes up
+                        var sx = esc_l - esc_r;
+                        var sy = esc_u - esc_d;
+                        var cx = -esc_r - sx*0.5;
+                        var cy = -(-esc_d - sy*0.5);
+
                         if(solid_dr && solid_ul){
-                            //console.log('\\',Math.round(esc_d + esc_l));
-                            //console.log('\\',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
                             // XXXX
                             // XXXX
                             //     XXXX
                             //     XXXX
-                            return null;
+                            if(cy >= -cx){
+                                dx = esc_l;
+                                dy = esc_d;
+                            }else{
+                                dx = esc_r;
+                                dy = esc_u;
+                            }
                         }else if(solid_dl && solid_ur){
                             //     XXXX
-                            //   ###XXX
-                            // XX###
+                            //     XXXX
+                            // XXXX 
                             // XXXX
-                            //console.log('/',Math.round(esc_d + esc_r));
-                            //console.log('/',Math.round(esc_d),Math.round(esc_l),Math.round(esc_u,esc_r));
-                            return null;
+                            if(cy >= cx){
+                                dx = esc_r;
+                                dy = esc_d;
+                            }else{
+                                dx = esc_l;
+                                dy = esc_u;
+                            }
                         }
                     }
                     return new V2(dx,dy);
