@@ -240,7 +240,7 @@
         explDamage: 80,
         explKnockback: 500,
         expl: null,
-        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed}
+        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed,networkDelay}
             this._super(opt); 
             this.owner = player.ship || null;
             this.dir = V2(opt.dir);
@@ -251,12 +251,19 @@
             this.tr.setRotation(this.speedVec.azimuth());
             this.bound = new BRect(0,0,this.radius*2, this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
+            if(opt.networkDelay){
+                this.tr.translate(this.speedVec.scale(opt.networkDelay));
+            }
         },
         onInstantiation: function(){
             this.destroy(this.range/this.speed);
         },
-        explode: function(){
-            /*
+        explosionGFX: function(){
+            if(clientSide && this.Expl){
+                this.scene.add(new this.Expl({pos:this.tr.getPos()}) );
+            }
+        },
+        explosionDamage: function(){
             if(this.explDamage && this.explRadius){
                 var entities = this.scene.getEntities();
                 for(var i = 0, len = entities.length; i < len; i++){
@@ -272,9 +279,6 @@
                     }
                 }
             }
-            if(this.Expl){
-                this.scene.add(new this.Expl({pos:this.tr.getPos()}) );
-            }*/
         },
         onUpdate: function(){
             this._super();
@@ -282,10 +286,11 @@
         },
         onGridCollision: function(grid,vec){
             this.tr.translate(vec);
-            this.explode();
+            this.explosionDamage();
             this.destroy();
         },
         onDestruction: function(){
+            this.explosionGFX();
             if(serverSide){
                 this.game.destroyEnt(this.guid);
             }
@@ -294,9 +299,6 @@
             this._super(ent);
             if(ent instanceof exports.Ship && ent !== this.owner){
                 ent.damage(this.owner,this.damage);
-                if(this.Expl){
-                    this.scene.add(new this.Expl({pos:this.tr.getPos()}));
-                }
                 this.destroy();
             }
         }
@@ -311,9 +313,6 @@
             this.drawable = this.drawable.clone();
             this.tr.setRotation( Math.random() * 6.28);
         },
-        onInstanciation:function(){
-            this.destroy(0.4);
-        },
         onUpdate: function(){
             this.drawable.alpha = Math.max(0,1-(5*(this.scene.time - this.startTime)));
             this.tr.scaleFac(1.05);
@@ -321,6 +320,7 @@
         },
         onInstanciation: function(){
             this._super();
+            this.destroy(0.4);
             if(!this.smoke){
                 return;
             }
@@ -338,6 +338,7 @@
     });
 
     exports.BoltExplosion = exports.MissileExplosion.extend({
+        name: 'boltExplosion',
         drawable: assets.boltExplosion,
         smoke: assets.boltSmoke,
     });
@@ -351,7 +352,7 @@
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            if(this.lastSmokeTime < this.scene.time - this.smokeInterval){
+            if(clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new exports.Particle({
                     drawable: assets.missileSmoke,
                     pos:this.tr.getPos(),
@@ -369,14 +370,14 @@
         drawable: assets.boltSprite,
         speed:600,
         damage:30,
-        explosionDamage:25,
+        explDamage:25,
         Expl: exports.BoltExplosion,
         smokeInterval : 0.001,
         lastSmokeTime : 0,
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            if(this.lastSmokeTime < this.scene.time - this.smokeInterval){
+            if(clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new exports.Particle({
                     drawable: assets.boltSmoke,
                     pos:this.tr.getPos(),
