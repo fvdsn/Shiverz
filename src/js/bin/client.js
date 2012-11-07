@@ -466,7 +466,7 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             ents.GameEnt.game = this; //FIXME ?
 
             // Networking
-            this.serverUrl = opt.serverUrl || 'localhost';
+            this.serverHostName = opt.serverHostName || 'localhost';
             this.serverPort = opt.serverPort || 8080;
             this.serverTime = 0;
             this.rtt = new RunningMean({length:10,value:0});
@@ -510,7 +510,7 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             this.serverTime = serverTime;
         },
         getServerUrl: function(){
-            return 'ws://'+this.serverUrl+':'+this.serverPort;
+            return 'ws://'+this.serverHostName+':'+this.serverPort;
         },
         addPlayer: function(player){
             this.players[player.name] = player;
@@ -6348,18 +6348,21 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
 });
 
 require.define("/main.js",function(require,module,exports,__dirname,__filename,process,global){var game = require('./game/game.js');
+
 if(typeof window !== 'undefined'){
-    console.log('window!',window);
     window.onload = function(){
-        console.log('loaded');
-        var g = new game.Game();
+        var g = new game.Game({
+            serverHostName:'localhost',
+            serverPort:8080,
+            localPlayerName:'foobar'
+        });
         window.Game = game.Game;
         window.Player = game.Player;
         window.g = g;
         g.start();
     };
 }else{
-    var g = new game.Game();
+    var g = new game.Game({serverHostName:'localhost',serverPort:8080});
     g.start();
 }
 

@@ -73,7 +73,7 @@
             ents.GameEnt.game = this; //FIXME ?
 
             // Networking
-            this.serverUrl = opt.serverUrl || 'localhost';
+            this.serverHostName = opt.serverHostName || 'localhost';
             this.serverPort = opt.serverPort || 8080;
             this.serverTime = 0;
             this.rtt = new RunningMean({length:10,value:0});
@@ -117,7 +117,7 @@
             this.serverTime = serverTime;
         },
         getServerUrl: function(){
-            return 'ws://'+this.serverUrl+':'+this.serverPort;
+            return 'ws://'+this.serverHostName+':'+this.serverPort;
         },
         addPlayer: function(player){
             this.players[player.name] = player;
