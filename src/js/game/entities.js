@@ -141,8 +141,17 @@
         },
         generate: function(opt){
             opt = opt || {};
+            var patterns = [
+                [[1,1,1]],
+                [[1,1,1,1]],
+                [[1],[1],[1],[1]],
+                [[0,1,0],
+                 [1,1,1],
+                 [0,1,0]],
+                [[1,1],[1,1]]
+            ];
             var density = opt.density || 0.1;
-            var bgdensity = opt.bgdensity || 0.1;
+            var patternAvgSize = 4;
             var grid = new Grid({
                 cellX: opt.cellX || this.grid.cellX,
                 cellY: opt.cellY || this.grid.cellY,
@@ -153,18 +162,25 @@
                 for(var y = 0, ylen = grid.cellY; y < ylen; y++){
                     var cell = 0;
                     if(x === 0 || x === xlen-1 || y === 0 || y === ylen-1){
-                        cell = 1;
-                    }else{
-                        var r = Math.random();
-                        if(r < density){
-                            cell = r < density * 0.5 ? 1 : 2;
-                        }else if(r - density < bgdensity){
-                            cell = r - density < bgdensity*0.5 ? -1 : -2;
-                        }
+                        grid.setCell(x,y,2);
                     }
-                    grid.setCell(x,y,cell);
                 }
             }
+            var patterncount = Math.round(grid.cellX*grid.cellY*density/patternAvgSize);
+            for(var i = 0; i < patterncount; i++){
+                var cell = Math.random() < 0.5 ? 1 : 2;
+                var pattern = patterns[Math.floor(Math.random()*patterns.length)];
+                var cx = Math.round(1+Math.random()*(grid.cellX-2));
+                var cy = Math.round(1+Math.random()*(grid.cellY-2));
+                for(var y = 0; y < pattern.length; y++){
+                    for(var x = 0; x < pattern[y].length; x++){
+                        if(pattern[y][x] > 0){
+                            grid.setCell(cx+x,cy+y,cell);
+                        }
+                    }
+                }
+            }
+
             var spawnPoints = opt.spawnPoints || 4;
             var spawns = {red:[],blue:[]};
             for(var i = 0; i < spawnPoints; i++){
@@ -234,7 +250,7 @@
         explDamage: 80,
         explKnockback: 500,
         expl: null,
-        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed,networkDelay}
+        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed}
             this._super(opt); 
             this.owner = player.ship || null;
             this.dir = V2(opt.dir);
@@ -245,9 +261,10 @@
             this.tr.setRotation(this.speedVec.azimuth());
             this.bound = new BRect(0,0,this.radius*2, this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
-            if(opt.networkDelay){
-                this.tr.translate(this.speedVec.scale(opt.networkDelay));
-            }
+        },
+        compensateLag: function(networkDelay){
+            console.log("Compensating Lag: "+networkDelay);
+            this.tr.translate(this.speedVec.scale(networkDelay));
         },
         onInstantiation: function(){
             this.destroy(this.range/this.speed);
@@ -287,7 +304,7 @@
             this.explosionGFX();
             this.explosionDamage();
             if(serverSide){
-                this.game.destroyEnt(this.guid);
+                this.game.destroyProj(this.guid);
             }
         },
         onCollisionEmit: function(ent){
@@ -316,7 +333,7 @@
         onInstanciation: function(){
             this._super();
             this.destroy(0.4);
-            if(!this.smoke){
+            /*if(!this.smoke){
                 return;
             }
             for(var i = 0; i < 40; i++){
@@ -329,6 +346,7 @@
                 }));
 
             }
+            */
         }
     });
 
@@ -347,7 +365,7 @@
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            if(clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
+            if(false && clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new exports.Particle({
                     drawable: assets.missileSmoke,
                     pos:this.tr.getPos(),
@@ -372,7 +390,7 @@
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            if(clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
+            if(false && clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new exports.Particle({
                     drawable: assets.boltSmoke,
                     pos:this.tr.getPos(),
@@ -429,21 +447,11 @@
                 this.index++;
             }
             console.log('Player: '+this.owner.player.name+' firing weapon: '+this.name);
-            this.game.spawnEnt(this.name, this.player.name,{
+            this.game.spawnProj(this.name, this.player.name,{
                 pos: pos,
                 dir: dir,
                 heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
             });
-            /*
-            if(this.Projectile){
-                var proj = new this.Projectile({ 
-                    owner: this.owner,
-                    pos: pos,
-                    dir: dir,
-                    heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
-                });
-                this.main.scene.add(proj);
-            }*/
             this.lastFire = scene.time;
         },
     });
@@ -725,9 +733,10 @@
             this.tr.translate(this.moveSpeed.scale(dt));
             var v = this.gridCollisionVec();
             if(v){
-                if(v.x){
+                if(v.x && v.x*this.moveSpeed.x < 0){
                     this.moveSpeed.x = 0;
-                }else{
+                }
+                if(v.y && v.y*this.moveSpeed.y < 0){
                     this.moveSpeed.y = 0;
                 }
                 this.tr.translate(v);

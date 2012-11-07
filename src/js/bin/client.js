@@ -461,9 +461,12 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                 this.level.generate();
             }
             this.entclasses = {}; //maps game entities names to their classes
-            this.entsByGuid = {};
+            this.projByGuid = {};
 
             ents.GameEnt.game = this; //FIXME ?
+            // Settings
+            this.lagCompensation = true;
+            this.maxLagCompensation = 0.1;
 
             // Networking
             this.serverHostName = opt.serverHostName || 'localhost';
@@ -582,25 +585,30 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             this.main.scene.add(ship);
             return ship;
         },
-        spawnEnt: function(name,playername,args){
+        spawnProj: function(name,playername,args){
             console.log('Player: '+playername+' Spawning Entity: '+name+' with args:'+JSON.stringify(args));
-            if(this.entclasses[name] && this.players[playername]){
-                var ent = new (this.entclasses[name])(this.players[playername],args);
-                this.main.scene.add(ent);
-                this.entsByGuid[ent.guid] = ent;
+            var player = this.players[playername];
+            if(player && this.entclasses[name]){
+                var proj = new (this.entclasses[name])(player,args);
+                this.main.scene.add(proj);
+                this.projByGuid[proj.guid] = proj;
             }else{
-                throw new Error('could not spawn entity');
+                throw new Error('could not spawn projectile');
             }
             if(serverSide){
-                this.send('all','spawn_ent',{name:name, playername:playername, args:args});
+                if(this.lagCompensation){
+                    proj.compensateLag(Math.min(player.rtt.mean/2,this.maxLagCompensation));
+                    args.pos = proj.tr.getPos();
+                }
+                this.send('all','spawn_proj',{name:name, playername:playername, args:args});
             }
         },
-        destroyEnt: function(guid){
-            if(this.entsByGuid[guid]){
-                this.entsByGuid[guid].destroy();
-                delete this.entsByGuid[guid];
+        destroyProj: function(guid){
+            if(this.projByGuid[guid]){
+                this.projByGuid[guid].destroy();
+                delete this.projByGuid[guid];
                 if(serverSide){
-                    this.send('all','destroy_ent',guid);
+                    this.send('all','destroy_proj',guid);
                 }
             }
         },
@@ -756,12 +764,12 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             }else if(msg.type === 'ping'){
                 this.ping(msg.data.time);
                 this.send('server','ping',{time:this.main.time});
-            }else if(msg.type === 'spawn_ent'){
-                console.log('Spawning entity: ',msg.data);
-                this.spawnEnt(msg.data.name, msg.data.playername, msg.data.args);
-            }else if(msg.type === 'destroy_ent'){
-                console.log('Destroying entity: ',msg.data);
-                this.destroyEnt(msg.data);
+            }else if(msg.type === 'spawn_proj'){
+                console.log('Spawning Projectile: ',msg.data);
+                this.spawnProj(msg.data.name, msg.data.playername, msg.data.args);
+            }else if(msg.type === 'destroy_proj'){
+                console.log('Destroying Projectile: ',msg.data);
+                this.destroyProj(msg.data);
             }else{
                 console.log('unkwnown message from server:',msg);
             }
@@ -5687,8 +5695,17 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
         },
         generate: function(opt){
             opt = opt || {};
+            var patterns = [
+                [[1,1,1]],
+                [[1,1,1,1]],
+                [[1],[1],[1],[1]],
+                [[0,1,0],
+                 [1,1,1],
+                 [0,1,0]],
+                [[1,1],[1,1]]
+            ];
             var density = opt.density || 0.1;
-            var bgdensity = opt.bgdensity || 0.1;
+            var patternAvgSize = 4;
             var grid = new Grid({
                 cellX: opt.cellX || this.grid.cellX,
                 cellY: opt.cellY || this.grid.cellY,
@@ -5699,18 +5716,25 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
                 for(var y = 0, ylen = grid.cellY; y < ylen; y++){
                     var cell = 0;
                     if(x === 0 || x === xlen-1 || y === 0 || y === ylen-1){
-                        cell = 1;
-                    }else{
-                        var r = Math.random();
-                        if(r < density){
-                            cell = r < density * 0.5 ? 1 : 2;
-                        }else if(r - density < bgdensity){
-                            cell = r - density < bgdensity*0.5 ? -1 : -2;
-                        }
+                        grid.setCell(x,y,2);
                     }
-                    grid.setCell(x,y,cell);
                 }
             }
+            var patterncount = Math.round(grid.cellX*grid.cellY*density/patternAvgSize);
+            for(var i = 0; i < patterncount; i++){
+                var cell = Math.random() < 0.5 ? 1 : 2;
+                var pattern = patterns[Math.floor(Math.random()*patterns.length)];
+                var cx = Math.round(1+Math.random()*(grid.cellX-2));
+                var cy = Math.round(1+Math.random()*(grid.cellY-2));
+                for(var y = 0; y < pattern.length; y++){
+                    for(var x = 0; x < pattern[y].length; x++){
+                        if(pattern[y][x] > 0){
+                            grid.setCell(cx+x,cy+y,cell);
+                        }
+                    }
+                }
+            }
+
             var spawnPoints = opt.spawnPoints || 4;
             var spawns = {red:[],blue:[]};
             for(var i = 0; i < spawnPoints; i++){
@@ -5780,7 +5804,7 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
         explDamage: 80,
         explKnockback: 500,
         expl: null,
-        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed,networkDelay}
+        init: function(player,opt){ //opt: {game,pos,speed,heritSpeed}
             this._super(opt); 
             this.owner = player.ship || null;
             this.dir = V2(opt.dir);
@@ -5791,9 +5815,10 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
             this.tr.setRotation(this.speedVec.azimuth());
             this.bound = new BRect(0,0,this.radius*2, this.radius*2,'centered');
             this.collisionBehaviour = 'emit';
-            if(opt.networkDelay){
-                this.tr.translate(this.speedVec.scale(opt.networkDelay));
-            }
+        },
+        compensateLag: function(networkDelay){
+            console.log("Compensating Lag: "+networkDelay);
+            this.tr.translate(this.speedVec.scale(networkDelay));
         },
         onInstantiation: function(){
             this.destroy(this.range/this.speed);
@@ -5833,7 +5858,7 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
             this.explosionGFX();
             this.explosionDamage();
             if(serverSide){
-                this.game.destroyEnt(this.guid);
+                this.game.destroyProj(this.guid);
             }
         },
         onCollisionEmit: function(ent){
@@ -5862,7 +5887,7 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
         onInstanciation: function(){
             this._super();
             this.destroy(0.4);
-            if(!this.smoke){
+            /*if(!this.smoke){
                 return;
             }
             for(var i = 0; i < 40; i++){
@@ -5875,6 +5900,7 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
                 }));
 
             }
+            */
         }
     });
 
@@ -5893,7 +5919,7 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            if(clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
+            if(false && clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new exports.Particle({
                     drawable: assets.missileSmoke,
                     pos:this.tr.getPos(),
@@ -5918,7 +5944,7 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
         onUpdate: function(){
             this._super();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-            if(clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
+            if(false && clientSide && this.lastSmokeTime < this.scene.time - this.smokeInterval){
                 this.scene.add(new exports.Particle({
                     drawable: assets.boltSmoke,
                     pos:this.tr.getPos(),
@@ -5975,21 +6001,11 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
                 this.index++;
             }
             console.log('Player: '+this.owner.player.name+' firing weapon: '+this.name);
-            this.game.spawnEnt(this.name, this.player.name,{
+            this.game.spawnProj(this.name, this.player.name,{
                 pos: pos,
                 dir: dir,
                 heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
             });
-            /*
-            if(this.Projectile){
-                var proj = new this.Projectile({ 
-                    owner: this.owner,
-                    pos: pos,
-                    dir: dir,
-                    heritSpeed: (heritSpeed || new V2()).scale(this.inheritance),
-                });
-                this.main.scene.add(proj);
-            }*/
             this.lastFire = scene.time;
         },
     });
@@ -6271,9 +6287,10 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
             this.tr.translate(this.moveSpeed.scale(dt));
             var v = this.gridCollisionVec();
             if(v){
-                if(v.x){
+                if(v.x && v.x*this.moveSpeed.x < 0){
                     this.moveSpeed.x = 0;
-                }else{
+                }
+                if(v.y && v.y*this.moveSpeed.y < 0){
                     this.moveSpeed.y = 0;
                 }
                 this.tr.translate(v);

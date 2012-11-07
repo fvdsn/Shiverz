@@ -68,9 +68,12 @@
                 this.level.generate();
             }
             this.entclasses = {}; //maps game entities names to their classes
-            this.entsByGuid = {};
+            this.projByGuid = {};
 
             ents.GameEnt.game = this; //FIXME ?
+            // Settings
+            this.lagCompensation = true;
+            this.maxLagCompensation = 0.1;
 
             // Networking
             this.serverHostName = opt.serverHostName || 'localhost';
@@ -189,25 +192,30 @@
             this.main.scene.add(ship);
             return ship;
         },
-        spawnEnt: function(name,playername,args){
+        spawnProj: function(name,playername,args){
             console.log('Player: '+playername+' Spawning Entity: '+name+' with args:'+JSON.stringify(args));
-            if(this.entclasses[name] && this.players[playername]){
-                var ent = new (this.entclasses[name])(this.players[playername],args);
-                this.main.scene.add(ent);
-                this.entsByGuid[ent.guid] = ent;
+            var player = this.players[playername];
+            if(player && this.entclasses[name]){
+                var proj = new (this.entclasses[name])(player,args);
+                this.main.scene.add(proj);
+                this.projByGuid[proj.guid] = proj;
             }else{
-                throw new Error('could not spawn entity');
+                throw new Error('could not spawn projectile');
             }
             if(serverSide){
-                this.send('all','spawn_ent',{name:name, playername:playername, args:args});
+                if(this.lagCompensation){
+                    proj.compensateLag(Math.min(player.rtt.mean/2,this.maxLagCompensation));
+                    args.pos = proj.tr.getPos();
+                }
+                this.send('all','spawn_proj',{name:name, playername:playername, args:args});
             }
         },
-        destroyEnt: function(guid){
-            if(this.entsByGuid[guid]){
-                this.entsByGuid[guid].destroy();
-                delete this.entsByGuid[guid];
+        destroyProj: function(guid){
+            if(this.projByGuid[guid]){
+                this.projByGuid[guid].destroy();
+                delete this.projByGuid[guid];
                 if(serverSide){
-                    this.send('all','destroy_ent',guid);
+                    this.send('all','destroy_proj',guid);
                 }
             }
         },
@@ -363,12 +371,12 @@
             }else if(msg.type === 'ping'){
                 this.ping(msg.data.time);
                 this.send('server','ping',{time:this.main.time});
-            }else if(msg.type === 'spawn_ent'){
-                console.log('Spawning entity: ',msg.data);
-                this.spawnEnt(msg.data.name, msg.data.playername, msg.data.args);
-            }else if(msg.type === 'destroy_ent'){
-                console.log('Destroying entity: ',msg.data);
-                this.destroyEnt(msg.data);
+            }else if(msg.type === 'spawn_proj'){
+                console.log('Spawning Projectile: ',msg.data);
+                this.spawnProj(msg.data.name, msg.data.playername, msg.data.args);
+            }else if(msg.type === 'destroy_proj'){
+                console.log('Destroying Projectile: ',msg.data);
+                this.destroyProj(msg.data);
             }else{
                 console.log('unkwnown message from server:',msg);
             }
