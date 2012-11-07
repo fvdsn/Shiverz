@@ -181,22 +181,16 @@
     });
 
     exports.GridCollider = exports.GameEnt.extend({
-        onCollisionEmit: function(ent){
+        gridCollisionVec: function(){
             var self = this;
-            if(ent instanceof exports.Level){
-                var vec = ent.grid.collisionVec(
-                    this.bound.cloneAt(this.tr.getPos()),
-                    function(cell,x,y){ return self.isSolid(cell,x,y); }
-                );
-                if(vec){
-                    this.onGridCollision(ent.grid,vec);
-                }
-            }
+            return this.game.level.grid.collisionVec(
+                this.bound.cloneAt(this.tr.getPos()),
+                function(cell,x,y){ return self.isSolid(cell,x,y); }
+            );
         },
         isSolid: function(cell,x,y){
             return cell > 0;
         },
-        onGridCollision: function(cells){},
     });
 
     exports.Particle   = exports.GridCollider.extend({
@@ -217,17 +211,17 @@
         },
         onUpdate: function(){
             this._super();
+            var  oldpos = this.tr.getPos();
             var  time = this.scene.time - this.startTime;
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
             this.tr.rotate(this.rotSpeed*this.scene.deltaTime);
             this.drawable.alpha = Math.max(0,0.15-(0.3*time));
             this.tr.setScale(0.4+3*time);
             this.speedVec = this.speedVec.scale(0.99);
-            return true;
-        },
-        onGridCollision: function(grid,vec){
-            this.tr.translate(vec);
-            this.destroy();
+            if(this.gridCollisionVec()){
+                this.tr.setPos(oldpos);
+                this.destroy();
+            }
         },
     });
     exports.Projectile = exports.GridCollider.extend({
@@ -282,15 +276,16 @@
         },
         onUpdate: function(){
             this._super();
+            var oldpos = this.tr.getPos();
             this.tr.translate(this.speedVec.scale(this.scene.deltaTime));
-        },
-        onGridCollision: function(grid,vec){
-            this.tr.translate(vec);
-            this.explosionDamage();
-            this.destroy();
+            if(this.gridCollisionVec()){
+                this.tr.setPos(oldpos);
+                this.destroy();
+            }
         },
         onDestruction: function(){
             this.explosionGFX();
+            this.explosionDamage();
             if(serverSide){
                 this.game.destroyEnt(this.guid);
             }
@@ -450,7 +445,6 @@
                 this.main.scene.add(proj);
             }*/
             this.lastFire = scene.time;
-            
         },
     });
 
@@ -546,7 +540,7 @@
         type:  'fighter',  // 'fighter' | 'tank' | 'dpm' | 'scout' | 'defense' | 'skills' 
         startSpeed:  160,
         maxSpeed:    950,
-        accel:       500,
+        accel:       600,
         ctrlAccel:   10000, 
         deccel:      1000,
         drag:        50,
@@ -585,9 +579,11 @@
             this.spec = opt.spec || this.spec || new exports.ShipSpec();
             this.player = opt.player || null;
 
+            this.history       = [];
+            this.frame         = 0;
+
             this.moveSpeed    = new V2();
             this.moveDir      = new V2();
-            this.aimdir       = new V2(1,0);
 
             this.knockSpeed    = new V2();
             this.knockTime     = 0;
@@ -618,7 +614,6 @@
 
             this.collisionBehaviour = 'both';
             this.bound = new BRect(0,0,this.spec.radius*2, this.spec.radius*2,'centered');
-            this.colVec = new V2();
         },
         getState: function(){
             return {
@@ -626,6 +621,7 @@
                 rotation: this.tr.getRotation(),
                 moveSpeed: this.moveSpeed.clone(),
                 weapon: this.weapon,
+                frame: this.frame,
             };
         },
         setState: function(state){
@@ -634,12 +630,21 @@
             this.weapon = state.weapon;
         },
         mergeState: function(state){
-            var lpos = this.tr.getPos();
-            var rpos = new V2(state.pos);
-            if(lpos.dist(rpos) < 0){
-                this.tr.setPos(lpos.lerp(rpos,0.1));
-            }else{
-                this.tr.setPos(rpos);
+            for(var i = 0, len = this.history.length; i < len; i++){
+                if(state.frame === this.history[i].state.frame){
+                    var cstate = this.history[i].state;
+                    if( !V2.equals(cstate.pos,state.pos) ||
+                        !V2.equals(cstate.moveSpeed,state.moveSpeed )){
+                        console.log('faulty merge:\n'+ state.frame + '\n' + JSON.stringify(state.pos) + '\n' + JSON.stringify(cstate.pos));
+                        this.tr.setPos(new V2(state.pos));
+                        this.moveSpeed = new V2(state.moveSpeed);
+                        for(var j = i+1; j < len; j++){
+                            this.applyControls(this.history[j].controls);
+                        }
+                    }
+                    this.history = this.history.slice(i+1);
+                    break;
+                }
             }
         },
         damage: function(owner,damage){
@@ -664,9 +669,10 @@
                 input.isKeyDown('down') - input.isKeyDown('up')
             );
             var fire =  input.isKeyDown('fire');
-            return {dt:dt, aimdir:aimdir, weapon:weapon, movedir:movedir, fire:fire};
+            return {dt:dt, aimdir:aimdir, weapon:weapon, movedir:movedir, fire:fire, frame:this.frame};
         },
         applyControls: function(controls){
+            this.frame = controls.frame;
             var dt = controls.dt;
             var movedir = controls.movedir;
 
@@ -717,9 +723,19 @@
                 }
             }
             this.tr.translate(this.moveSpeed.scale(dt));
+            var v = this.gridCollisionVec();
+            if(v){
+                if(v.x){
+                    this.moveSpeed.x = 0;
+                }else{
+                    this.moveSpeed.y = 0;
+                }
+                this.tr.translate(v);
+            }
+
             this.tr.setRotation((new V2(controls.aimdir).azimuth()*DEG + 90)*RAD);
             if(controls.fire && serverSide){
-                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(this.aimdir))) : new V2();
+                var herit = this.moveSpeed.len() > 350  ? this.moveSpeed.scale(0.5 * Math.abs(this.moveSpeed.normalize().dot(controls.aimdir))) : new V2();
                 if(this.weapons[this.weapon].fire(this.tr.getPos(), controls.aimdir,herit)){ // this.moveSpeed.scale(0.5))){
                     this.lastFireTime = this.scene.time;
                 }
@@ -746,10 +762,12 @@
         },
         onUpdate: function(){
             if(clientSide){
+                this.frame += 1;
                 if(this.player.type === 'local'){
                     var controls = this.getLocalControls();
                     this.applyControls(controls);
                     this.game.send('server','controls',controls);
+                    this.history.push({controls: controls, state: this.getState()});
                     var state = this.getRemoteState();
                     if(state){
                         this.mergeState(state);
@@ -773,30 +791,6 @@
                     player: this.player.name,
                     state: this.getState(),
                 });
-            }
-        },
-        onGridCollision: function(grid,colVec){
-            var knocked = this.knockTime > this.scene.time;
-            this.colVec = colVec;
-            this.tr.translate(this.colVec);
-            if(this.colVec.x){
-                if(knocked){
-                    this.knockSpeed.x = - this.knockSpeed.x * this.spec.knockBounce;
-                    this.moveSpeed.x = this.knockSpeed.x ;
-                }else if(this.moveDir.x * this.moveSpeed.x <= 0){
-                    this.moveSpeed.x = -this.moveSpeed.x * this.spec.bounce;
-                }else{
-                    this.moveSpeed.x = 0;
-                }
-            }else{
-                if(knocked){
-                    this.knockSpeed.y = - this.knockSpeed.y * this.spec.knockBounce;
-                    this.moveSpeed.y = this.knockSpeed.y ;
-                }else if(this.moveDir.y * this.moveSpeed.y <= 0){
-                    this.moveSpeed.y = -this.moveSpeed.y * this.spec.bounce;
-                }else{
-                    this.moveSpeed.y = 0;
-                }
             }
         },
         onDestruction: function(){

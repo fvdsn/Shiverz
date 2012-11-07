@@ -296,21 +296,31 @@
                     self.addPlayer(player);
                     self.send('!'+newPlayerName,'new_player',player.getState());
                     socket.on('close',function(code,message){self._onPlayerDisconnected(newPlayerName);});
-                }else if(msg.type === 'controls'){
-                    player.controls.push(msg.data);
-                }else if(msg.type === 'change_team'){
-                    self.changeTeam(player.name,msg.data);
-                    self.send('all','change_team',{player:player.name, team:msg.data});
-                }else if(msg.type === 'ping'){
-                    player.ping(msg.data.time);
-                    self.send(socket,'ping',{time: self.main.time});
-                }else if(msg.type === 'suicide'){
-                    console.log('Player: '+player.name+' committed suicide');
-                    player.kill();
                 }else{
-                    console.log('unknown message:',msg);
+                    self._onMessageFromPlayer(player,msg);
                 }
             });
+        },
+        _onMessageFromPlayer: function(player,msg){
+            var type = msg.type, data = msg.data;
+            if(type === 'controls'){
+                player.controls.push(data);
+            }else if(type === 'change_team'){
+                this.changeTeam(player.name,data);
+                this.send('all','change_team',{player:player.name, team:data});
+            }else if(type === 'ping'){
+                player.ping(data.time);
+                this.send(player.socket,'ping',{time: this.main.time});
+            }else if(type === 'suicide'){
+                console.log('Player: '+player.name+' committed suicide');
+                player.kill();
+            }else if(type === 'teleport'){
+                if(player.ship){
+                    player.ship.tr.setPos(new V2(data));
+                }
+            }else{
+                console.log('unknown message:',msg);
+            }
         },
         _onPlayerDisconnected: function(player){
             console.log('Server: player disconnected: ',player);

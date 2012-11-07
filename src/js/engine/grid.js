@@ -210,7 +210,22 @@
                 if(count === 0){
                     return undefined;
                 }else if(count === 4){
-                    return null; // error
+                    var dx = 0, dy = 0;
+                    if( -esc_r < esc_l){
+                        dx = esc_r - csx;
+                    }else{
+                        dx = esc_l + csx;
+                    }
+                    if( -esc_d < esc_u){
+                        dy = esc_d - csx;
+                    }else{
+                        dy = esc_u + csx;
+                    }
+                    if(Math.abs(dx) < Math.abs(dy)){
+                        return new V2(dx,0);
+                    }else{
+                        return new V2(0,dy);
+                    }
                 }else if(count >= 2){
                     var dx = 0;
                     var dy = 0;
