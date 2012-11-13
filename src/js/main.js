@@ -4,7 +4,7 @@ if(typeof window !== 'undefined'){
     window.onload = function(){
         var g = new game.Game({
             serverHostName:'vps.vanderessen.com',
-            serverPort:6666,
+            serverPort:8080,
             localPlayerName:'foobar'
         });
         window.Game = game.Game;
@@ -13,6 +13,6 @@ if(typeof window !== 'undefined'){
         g.start();
     };
 }else{
-    var g = new game.Game({serverHostName:'localhost',serverPort:6666});
+    var g = new game.Game({serverHostName:'localhost',serverPort:8080});
     g.start();
 }
