@@ -400,8 +400,14 @@
                 this.socketToServer.onmessage = function(message){ self._onMessageFromServer(message); };
                 this.serverSocket = null;
             }else{
-                this.serverSocket = new (require('ws').Server)({port: this.serverPort});
+		this.httpServer = require('http').createServer(function(req,res){
+			res.writeHead(200,{'Content-Type':'text/html'});
+			res.end('<h1>Shiverz Game Server: open on port:'+self.serverPort+'</h1>');
+		});
+		this.httpServer.listen(this.serverPort);
+                this.serverSocket = new (require('ws').Server)({server:this.httpServer});
                 this.serverSocket.on('connection',function(socket){self._onPlayerConnected(socket);});
+		console.log('Server listening on port:',this.serverPort);
                 this.socketToServer = null;
                 renderer = null;
             }
