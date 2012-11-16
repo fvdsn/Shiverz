@@ -3,7 +3,7 @@ var game = require('./game/game.js');
 if(typeof window !== 'undefined'){
     window.onload = function(){
         var g = new game.Game({
-            serverHostName:'vps.vanderessen.com',
+            serverHostName:'localhost',
             serverPort:8080,
             localPlayerName:'foobar'
         });

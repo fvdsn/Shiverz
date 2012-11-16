@@ -391,441 +391,6 @@ process.binding = function (name) {
 
 });
 
-require.define("/game/game.js",function(require,module,exports,__dirname,__filename,process,global){(function(exports){
-    require('../engine/modula.js').use();
-    var assets = require('./assets.js');
-    var settings = require('./settings.js');
-    var ents = require('./entities.js');
-
-    var Player = Class.extend({
-        init: function(opt){
-            opt = opt || {};
-            this.name  = opt.name || 'unnamed';
-            this.nick  = opt.nick || 'UnnamedPlayer';
-            this.game  = opt.game || null;
-            this.state = 'new';   // 'new','spawning','playing'
-            this.type  = opt.type || 'local';   // 'local', 'remote', 'ai'
-            this.team  = opt.team || 'spectator'; // 'spectator','auto','red','blue','foes','monsters'
-            this.ship  = opt.ship || null;
-            this.health = 100;
-            this.respawnTimer = null;
-
-            //Networking
-            this.socket = opt.socket || null;
-            this.controls = [];
-            this.shipstates = [];
-            this.time = 0;  //time of the mainloop
-            this.rtt  = new RunningMean({length: 10, value: 0});
-        },
-        ping:function(time){
-            if(this.time !== 0 && this.time !== time){
-                this.rtt.push(time-this.time);
-            }
-            this.time = time;
-        },
-        getState: function(){
-            return {
-                name: this.name,
-                state: this.state,
-                type: this.type,
-                team: this.team,
-                ship: this.ship ? this.ship.getState(): undefined,
-                health: this.health,
-            };
-        },
-        setState: function(plyr){
-            this.name = plyr.name || this.name;
-            this.type = plyr.type || this.type;
-            this.team = plyr.team || this.team;
-            this.health = plyr.health !== undefined ? plyr.health : this.health;
-            if(this.game && !this.ship && plyr.ship){
-                var ship = this.game.spawnPlayer(this,new V2());
-                ship.setState(plyr.ship);
-            }
-        },
-        isDead: function(){
-            return this.health <= 0;
-        },
-        kill: function(){
-            this.health = -10000;
-        },
-    });
-    exports.Player = Player;
-
-	var Game = Class.extend({
-        init: function(opt){
-            opt = opt || {};
-            this.localPlayerName = opt.localPlayerName || 'UnnamedPlayer';
-            this.players = {};
-            this.level = new ents.Level();
-            if(serverSide){
-                this.level.generate();
-            }
-            this.entclasses = {}; //maps game entities names to their classes
-            this.projByGuid = {};
-
-            ents.GameEnt.game = this; //FIXME ?
-            // Settings
-            this.lagCompensation = true;
-            this.maxLagCompensation = 0.1;
-
-            // Networking
-            this.serverHostName = opt.serverHostName || 'localhost';
-            this.serverPort = opt.serverPort || 8080;
-            this.serverTime = 0;
-            this.rtt = new RunningMean({length:10,value:0});
-
-            // Guids are unique numbers identifying game entities across the
-            // network
-            this.guidNext  = 1;
-		},
-        newGuid : function(){
-            var guid = this.guidNext;
-            this.guidNext += 1;
-            return guid;
-        },
-        ping: function(serverTime){
-            if(this.serverTime !== 0 && this.serverTime !== serverTime){
-                this.rtt.push(serverTime - this.serverTime);
-            }
-            this.serverTime = serverTime;
-        },
-        getServerUrl: function(){
-            return 'ws://'+this.serverHostName+':'+this.serverPort;
-        },
-        addPlayer: function(player){
-            this.players[player.name] = player;
-            player.game  =  this;
-            console.log('Game: new player: ',player.name);
-        },
-        remPlayer: function(playername){
-            if(this.players[playername].ship){
-                this.players[playername].ship.destroy();
-            }
-            delete this.players[playername];
-            console.log('Game: removed player: ',playername);
-        },
-        changeTeam: function(playername,team){
-            this.players[playername].team = team;
-        },
-        changeNick: function(playername, nick){
-            for(var p in this.players){
-                if(p !== playername && this.players[p].nick === nick){
-                    return false;
-                }
-            }
-            this.players[playername].nick = nick;
-            return true;
-        },
-        getState: function(){
-            var players = {};
-            for(player in this.players){
-                players[player] = this.players[player].getState();
-            }
-            var level = this.level.getState();
-            return {players: players, level: level};
-        },
-        setState: function(game){
-            console.log('SetState:',game);
-            this.loadLevel(game.level);
-            this.players = {};
-            for(player in game.players){
-                var p = new Player({game:this});
-                p.setState(game.players[player]);
-                this.addPlayer(p);
-            }
-        },
-        loadLevel: function(arg){
-            console.log('Loading level');
-            if(typeof arg === 'string'){
-                var newlevel = new ents.Level({name:arg});
-            }else{
-                var newlevel = new ents.Level(arg);
-            }
-            this.level.destroy();
-            this.level = newlevel;
-            this.main.scene.add(newlevel);
-        },
-        getLocalPlayer: function(){
-            for(name in this.players){
-                var p = this.players[name];
-                if(p.type === 'local'){
-                    return p;
-                }
-            }
-            return null;
-        },
-        spawnPlayer: function(player,pos){
-            if(!pos){
-                var spawns = this.level.spawns[player.team];
-                var spawn =  spawns[Math.floor(Math.random()*spawns.length)];
-                pos = new V2(spawn||[0,0]).add(V2(0.5,0.5)).mult(this.level.grid.cellSize);
-            }
-            console.log('spawning player: '+player.name+'@'+pos);
-            var ship = new ents.Ship({
-                game: this,
-                player: player,
-                pos: pos,
-            });
-            player.ship = ship;
-            player.health = 100;
-            this.main.scene.add(ship);
-            return ship;
-        },
-        spawnProj: function(name,playername,args){
-            console.log('Player: '+playername+' Spawning Entity: '+name+' with args:'+JSON.stringify(args));
-            var player = this.players[playername];
-            if(player && this.entclasses[name]){
-                if(serverSide){
-                    args.guid = this.newGuid();
-                }
-                var proj = new (this.entclasses[name])(player,args);
-                this.main.scene.add(proj);
-                this.projByGuid[proj.guid] = proj;
-            }else{
-                throw new Error('could not spawn projectile');
-            }
-            if(serverSide){
-                if(this.lagCompensation){
-                    proj.compensateLag(Math.min(player.rtt.mean/2,this.maxLagCompensation));
-                    args.pos = proj.tr.getPos();
-                }
-                this.send('all','spawn_proj',{name:name, playername:playername, args:args});
-            }
-        },
-        destroyProj: function(guid){
-            if(this.projByGuid[guid]){
-                this.projByGuid[guid].destroy();
-                delete this.projByGuid[guid];
-                if(serverSide){
-                    this.send('all','destroy_proj',guid);
-                }
-            }
-        },
-        updatePlayer: function(player){
-            if(player.isDead()){
-                if(player.ship){
-                    player.ship.destroy();
-                    player.spawnTimer = this.main.scene.timer(2);
-                    this.send('all','kill_player',player.name);
-                }else if(player.spawnTimer && player.spawnTimer.expired()){
-                    var ship = this.spawnPlayer(player);
-                    this.send('all','spawn_player',{player: player.name, pos: ship.tr.getPos()});
-                }
-            }
-        },
-        onGameUpdate: function(){
-            if(serverSide){
-                for(player in this.players){
-                    var p = this.players[player];
-                    if(p.team !== 'spectator'){
-                        if(p.state === 'new' || p.state === 'spawning'){
-                            var ship = this.spawnPlayer(p);
-                            this.send('all','spawn_player',{player: p.name, pos: ship.tr.getPos()});
-                            p.state = 'playing'; //FIXME send over network
-                        }else{
-                            this.updatePlayer(p);
-                        }
-                    }
-                }
-            }
-        },
-        send: function(destination,type,data){
-            var msg = {type:type, data:data || {}};
-            if(clientSide){
-                // console.log('Client: sending '+type+' to '+destination+' with data:',data);
-                if(destination === 'server'){
-                    this.socketToServer.send(JSON.stringify(msg));
-                }else{ 
-                    throw new Error('send(): invalid destination for message of type:'+type);
-                }
-            }else{
-                // console.log('Server: sending '+type+' to '+destination+' with data:',JSON.stringify(data).substr(0,1000));
-                if(typeof destination === 'string'){
-                    if(destination === 'all'){
-                        var strmsg = JSON.stringify(msg);
-                        for(player in this.players){
-                            this.players[player].socket.send(strmsg);
-                        }
-                    }else if(destination[0] === '!'){ //FIXME what if the username starts with ! ?
-                        destination = destination.slice(1);
-                        for(player in this.players){
-                            if(player !== destination){
-                                this.players[player].socket.send(JSON.stringify(msg));
-                            }
-                        }
-                    }else{
-                        destination = destination.slice(1);
-                        if(this.players[destination]){
-                            this.players[destination].socket.send(JSON.stringify(msg));
-                        }
-                    }
-                }else{
-                    destination.send(JSON.stringify(msg));
-                }
-            }
-        },
-        _onPlayerConnected: function(socket){
-            var self = this;
-            console.log('Server: new client connected');
-            var player = null;
-            socket.on('message', function(message){
-                var msg  = JSON.parse(message);
-                //console.log('Server: received message: '+JSON.stringify(message).substr(0,1000));
-                if(msg.type === 'greeting'){
-                    var newPlayerName = msg.data.playerName;
-                    while(self.players[newPlayerName]){
-                        newPlayerName = newPlayerName+'I';
-                    }
-                    self.send(socket,'greeting',{
-                        playerName: newPlayerName, 
-                        playerTeam:'spectator',
-                        gamestate: self.getState(),
-                    });
-                    player = new Player({ game: self, name: newPlayerName, type: 'remote', socket:socket, team:'spectator'});
-                    self.addPlayer(player);
-                    self.send('!'+newPlayerName,'new_player',player.getState());
-                    socket.on('close',function(code,message){self._onPlayerDisconnected(newPlayerName);});
-                }else{
-                    self._onMessageFromPlayer(player,msg);
-                }
-            });
-        },
-        _onMessageFromPlayer: function(player,msg){
-            var type = msg.type, data = msg.data;
-            if(type === 'controls'){
-                player.controls.push(data);
-            }else if(type === 'change_team'){
-                this.changeTeam(player.name,data);
-                this.send('all','change_team',{player:player.name, team:data});
-            }else if(type === 'change_nick'){
-                if(this.changeNick(player.name,data)){
-                    this.send('all','change_nick',{player:player.name, nick:data});
-                }
-            }else if(type === 'ping'){
-                player.ping(data.time);
-                this.send(player.socket,'ping',{time: this.main.time});
-            }else if(type === 'suicide'){
-                console.log('Player: '+player.name+' committed suicide');
-                player.kill();
-            }else if(type === 'teleport'){
-                if(player.ship){
-                    player.ship.tr.setPos(new V2(data));
-                }
-            }else{
-                console.log('unknown message:',msg);
-            }
-        },
-        _onPlayerDisconnected: function(player){
-            console.log('Server: player disconnected: ',player);
-            this.remPlayer(player);
-            this.send('all','player_disconnected',player);
-        },
-        _onConnectedToServer: function(){
-            console.log('Client: connected to server');
-            this.send('server','greeting',{playerName:this.localPlayerName});
-        },
-        _onMessageFromServer: function(message){
-            var msg = JSON.parse(message.data);
-            //console.log('Received message from server: ',msg);
-            if(msg.type === 'greeting'){
-                this.setState(msg.data.gamestate);
-                this.localPlayerName = msg.data.playerName;
-                this.addPlayer(new Player({game: this, name:this.localPlayerName, type: 'local', team:msg.data.playerTeam}));
-                this.send('server','ping',{time: this.main.time});
-            }else if(msg.type === 'new_player'){
-                var player = new Player({game:this});
-                player.setState(msg.data);
-                this.addPlayer(player);
-            }else if(msg.type === 'player_disconnected'){
-                this.remPlayer(msg.data);
-            }else if(msg.type === 'spawn_player'){
-                this.spawnPlayer(this.players[msg.data.player],msg.data.pos);
-            }else if(msg.type === 'change_team'){
-                this.changeTeam(msg.data.player,msg.data.team);
-            }else if(msg.type === 'change_nick'){
-                this.changeNick(msg.data.player,msg.data.nick);
-            }else if(msg.type === 'kill_player'){
-                var player = this.players[msg.data];
-                if(player && player.ship){
-                    player.ship.destroy();
-                }
-            }else if(msg.type === 'ship_update'){
-                var player = this.players[msg.data.player];
-                if(player){
-                    player.shipstates.push(msg.data.state);
-                }
-            }else if(msg.type === 'ping'){
-                this.ping(msg.data.time);
-                this.send('server','ping',{time:this.main.time});
-            }else if(msg.type === 'spawn_proj'){
-                console.log('Spawning Projectile: ',msg.data);
-                this.spawnProj(msg.data.name, msg.data.playername, msg.data.args);
-            }else if(msg.type === 'destroy_proj'){
-                console.log('Destroying Projectile: ',msg.data);
-                this.destroyProj(msg.data);
-            }else{
-                console.log('unkwnown message from server:',msg);
-            }
-        },
-		start: function(){
-            var self = this;
-            if(clientSide){
-                var renderer = new RendererCanvas2d({
-                    passes:[
-                    'buildings',
-                    'bgblocks',
-                    'ships',
-                    'projectiles',
-                    'explosions',
-                    'blocks',
-                    ],
-                    canvas: document.getElementById('game_canvas'), 
-                    getSize: function(){
-                        return new V2(window.innerWidth, window.innerHeight);
-                    },
-                    background: 'rgba(40,35,30,1)',
-                    alwaysRedraw: true,
-                });
-                console.log('Client: Connecting to server: '+this.getServerUrl());
-                this.socketToServer = new WebSocket(this.getServerUrl());
-                this.socketToServer.onopen = function(){ self._onConnectedToServer(); };
-                this.socketToServer.onmessage = function(message){ self._onMessageFromServer(message); };
-                this.serverSocket = null;
-            }else{
-                this.serverSocket = new (require('ws').Server)({port: this.serverPort});
-                this.serverSocket.on('connection',function(socket){self._onPlayerConnected(socket);});
-                this.socketToServer = null;
-                renderer = null;
-            }
-            var GameScene = Scene.extend({
-                renderer: renderer,
-                camera : new ents.GameCamera({game:self}),
-                onSceneStart: function(){
-                    this.add(self.level);
-                },
-                onFrameStart: function(){
-                    self.onGameUpdate();
-                },
-            });
-            this.main = new Main({
-                input: new Input({
-                    alias: settings.bindings,
-                }),
-                scene: new GameScene(),
-                fps: 60,
-            });
-            this.main.run();
-		},
-		exit:  function(){
-            this.main.exit();
-		},
-	});
-    exports.Game = Game;
-})(exports);
-
-});
-
 require.define("/engine/modula.js",function(require,module,exports,__dirname,__filename,process,global){(function(exports){
     function extend(obj1,obj2){
         for( field in obj2){
@@ -6358,12 +5923,1433 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
 
 });
 
+require.define("/game/game.js",function(require,module,exports,__dirname,__filename,process,global){(function(exports){
+    require('../engine/modula.js').use();
+    var assets = require('./assets.js');
+    var settings = require('./settings.js');
+    var ents = require('./entities.js');
+
+    var Player = Class.extend({
+        init: function(opt){
+            opt = opt || {};
+            this.name  = opt.name || 'unnamed';
+            this.nick  = opt.nick || 'UnnamedPlayer';
+            this.game  = opt.game || null;
+            this.state = 'new';   // 'new','spawning','playing'
+            this.type  = opt.type || 'local';   // 'local', 'remote', 'ai'
+            this.team  = opt.team || 'spectator'; // 'spectator','auto','red','blue','foes','monsters'
+            this.ship  = opt.ship || null;
+            this.health = 100;
+            this.respawnTimer = null;
+
+            //Networking
+            this.socket = opt.socket || null;
+            this.controls = [];
+            this.shipstates = [];
+            this.time = 0;  //time of the mainloop
+            this.rtt  = new RunningMean({length: 10, value: 0});
+        },
+        ping:function(time){
+            if(this.time !== 0 && this.time !== time){
+                this.rtt.push(time-this.time);
+            }
+            this.time = time;
+        },
+        getState: function(){
+            return {
+                name: this.name,
+                state: this.state,
+                type: this.type,
+                team: this.team,
+                ship: this.ship ? this.ship.getState(): undefined,
+                health: this.health,
+            };
+        },
+        setState: function(plyr){
+            this.name = plyr.name || this.name;
+            this.type = plyr.type || this.type;
+            this.team = plyr.team || this.team;
+            this.health = plyr.health !== undefined ? plyr.health : this.health;
+            if(this.game && !this.ship && plyr.ship){
+                var ship = this.game.spawnPlayer(this,new V2());
+                ship.setState(plyr.ship);
+            }
+        },
+        isDead: function(){
+            return this.health <= 0;
+        },
+        kill: function(){
+            this.health = -10000;
+        },
+    });
+    exports.Player = Player;
+
+	var Game = Class.extend({
+        init: function(opt){
+            opt = opt || {};
+            this.localPlayerName = opt.localPlayerName || 'UnnamedPlayer';
+            this.players = {};
+            this.level = new ents.Level();
+            if(serverSide){
+                this.level.generate();
+            }
+            this.entclasses = {}; //maps game entities names to their classes
+            this.projByGuid = {};
+
+            ents.GameEnt.game = this; //FIXME ?
+            // Settings
+            this.lagCompensation = true;
+            this.maxLagCompensation = 0.1;
+
+            // Networking
+            this.serverHostName = opt.serverHostName || 'localhost';
+            this.serverPort = opt.serverPort || 8080;
+            this.serverTime = 0;
+            this.rtt = new RunningMean({length:10,value:0});
+
+            // Guids are unique numbers identifying game entities across the
+            // network
+            this.guidNext  = 1;
+		},
+        newGuid : function(){
+            var guid = this.guidNext;
+            this.guidNext += 1;
+            return guid;
+        },
+        ping: function(serverTime){
+            if(this.serverTime !== 0 && this.serverTime !== serverTime){
+                this.rtt.push(serverTime - this.serverTime);
+            }
+            this.serverTime = serverTime;
+        },
+        getServerUrl: function(){
+            return 'ws://'+this.serverHostName+':'+this.serverPort;
+        },
+        addPlayer: function(player){
+            this.players[player.name] = player;
+            player.game  =  this;
+            console.log('Game: new player: ',player.name);
+        },
+        remPlayer: function(playername){
+            if(this.players[playername].ship){
+                this.players[playername].ship.destroy();
+            }
+            delete this.players[playername];
+            console.log('Game: removed player: ',playername);
+        },
+        changeTeam: function(playername,team){
+            this.players[playername].team = team;
+        },
+        changeNick: function(playername, nick){
+            for(var p in this.players){
+                if(p !== playername && this.players[p].nick === nick){
+                    return false;
+                }
+            }
+            this.players[playername].nick = nick;
+            return true;
+        },
+        getState: function(){
+            var players = {};
+            for(player in this.players){
+                players[player] = this.players[player].getState();
+            }
+            var level = this.level.getState();
+            return {players: players, level: level};
+        },
+        setState: function(game){
+            console.log('SetState:',game);
+            this.loadLevel(game.level);
+            this.players = {};
+            for(player in game.players){
+                var p = new Player({game:this});
+                p.setState(game.players[player]);
+                this.addPlayer(p);
+            }
+        },
+        loadLevel: function(arg){
+            console.log('Loading level');
+            if(typeof arg === 'string'){
+                var newlevel = new ents.Level({name:arg});
+            }else{
+                var newlevel = new ents.Level(arg);
+            }
+            this.level.destroy();
+            this.level = newlevel;
+            this.main.scene.add(newlevel);
+        },
+        getLocalPlayer: function(){
+            for(name in this.players){
+                var p = this.players[name];
+                if(p.type === 'local'){
+                    return p;
+                }
+            }
+            return null;
+        },
+        spawnPlayer: function(player,pos){
+            if(!pos){
+                var spawns = this.level.spawns[player.team];
+                var spawn =  spawns[Math.floor(Math.random()*spawns.length)];
+                pos = new V2(spawn||[0,0]).add(V2(0.5,0.5)).mult(this.level.grid.cellSize);
+            }
+            console.log('spawning player: '+player.name+'@'+pos);
+            var ship = new ents.Ship({
+                game: this,
+                player: player,
+                pos: pos,
+            });
+            player.ship = ship;
+            player.health = 100;
+            this.main.scene.add(ship);
+            return ship;
+        },
+        spawnProj: function(name,playername,args){
+            console.log('Player: '+playername+' Spawning Entity: '+name+' with args:'+JSON.stringify(args));
+            var player = this.players[playername];
+            if(player && this.entclasses[name]){
+                if(serverSide){
+                    args.guid = this.newGuid();
+                }
+                var proj = new (this.entclasses[name])(player,args);
+                this.main.scene.add(proj);
+                this.projByGuid[proj.guid] = proj;
+            }else{
+                throw new Error('could not spawn projectile');
+            }
+            if(serverSide){
+                if(this.lagCompensation){
+                    proj.compensateLag(Math.min(player.rtt.mean/2,this.maxLagCompensation));
+                    args.pos = proj.tr.getPos();
+                }
+                this.send('all','spawn_proj',{name:name, playername:playername, args:args});
+            }
+        },
+        destroyProj: function(guid){
+            if(this.projByGuid[guid]){
+                this.projByGuid[guid].destroy();
+                delete this.projByGuid[guid];
+                if(serverSide){
+                    this.send('all','destroy_proj',guid);
+                }
+            }
+        },
+        updatePlayer: function(player){
+            if(player.isDead()){
+                if(player.ship){
+                    player.ship.destroy();
+                    player.spawnTimer = this.main.scene.timer(2);
+                    this.send('all','kill_player',player.name);
+                }else if(player.spawnTimer && player.spawnTimer.expired()){
+                    var ship = this.spawnPlayer(player);
+                    this.send('all','spawn_player',{player: player.name, pos: ship.tr.getPos()});
+                }
+            }
+        },
+        onGameUpdate: function(){
+            if(serverSide){
+                for(player in this.players){
+                    var p = this.players[player];
+                    if(p.team !== 'spectator'){
+                        if(p.state === 'new' || p.state === 'spawning'){
+                            var ship = this.spawnPlayer(p);
+                            this.send('all','spawn_player',{player: p.name, pos: ship.tr.getPos()});
+                            p.state = 'playing'; //FIXME send over network
+                        }else{
+                            this.updatePlayer(p);
+                        }
+                    }
+                }
+            }
+        },
+        send: function(destination,type,data){
+            var msg = {type:type, data:data || {}};
+            if(clientSide){
+                // console.log('Client: sending '+type+' to '+destination+' with data:',data);
+                if(destination === 'server'){
+                    this.socketToServer.send(JSON.stringify(msg));
+                }else{ 
+                    throw new Error('send(): invalid destination for message of type:'+type);
+                }
+            }else{
+                // console.log('Server: sending '+type+' to '+destination+' with data:',JSON.stringify(data).substr(0,1000));
+                if(typeof destination === 'string'){
+                    if(destination === 'all'){
+                        var strmsg = JSON.stringify(msg);
+                        for(player in this.players){
+                            this.players[player].socket.send(strmsg);
+                        }
+                    }else if(destination[0] === '!'){ //FIXME what if the username starts with ! ?
+                        destination = destination.slice(1);
+                        for(player in this.players){
+                            if(player !== destination){
+                                this.players[player].socket.send(JSON.stringify(msg));
+                            }
+                        }
+                    }else{
+                        destination = destination.slice(1);
+                        if(this.players[destination]){
+                            this.players[destination].socket.send(JSON.stringify(msg));
+                        }
+                    }
+                }else{
+                    destination.send(JSON.stringify(msg));
+                }
+            }
+        },
+        _onPlayerConnected: function(socket){
+            var self = this;
+            console.log('Server: new client connected');
+            var player = null;
+            socket.on('message', function(message){
+                var msg  = JSON.parse(message);
+                //console.log('Server: received message: '+JSON.stringify(message).substr(0,1000));
+                if(msg.type === 'greeting'){
+                    var newPlayerName = msg.data.playerName;
+                    while(self.players[newPlayerName]){
+                        newPlayerName = newPlayerName+'I';
+                    }
+                    self.send(socket,'greeting',{
+                        playerName: newPlayerName, 
+                        playerTeam:'spectator',
+                        gamestate: self.getState(),
+                    });
+                    player = new Player({ game: self, name: newPlayerName, type: 'remote', socket:socket, team:'spectator'});
+                    self.addPlayer(player);
+                    self.send('!'+newPlayerName,'new_player',player.getState());
+                    socket.on('close',function(code,message){self._onPlayerDisconnected(newPlayerName);});
+                }else{
+                    self._onMessageFromPlayer(player,msg);
+                }
+            });
+        },
+        _onMessageFromPlayer: function(player,msg){
+            var type = msg.type, data = msg.data;
+            if(type === 'controls'){
+                player.controls.push(data);
+            }else if(type === 'change_team'){
+                this.changeTeam(player.name,data);
+                this.send('all','change_team',{player:player.name, team:data});
+            }else if(type === 'change_nick'){
+                if(this.changeNick(player.name,data)){
+                    this.send('all','change_nick',{player:player.name, nick:data});
+                }
+            }else if(type === 'ping'){
+                player.ping(data.time);
+                this.send(player.socket,'ping',{time: this.main.time});
+            }else if(type === 'suicide'){
+                console.log('Player: '+player.name+' committed suicide');
+                player.kill();
+            }else if(type === 'teleport'){
+                if(player.ship){
+                    player.ship.tr.setPos(new V2(data));
+                }
+            }else{
+                console.log('unknown message:',msg);
+            }
+        },
+        _onPlayerDisconnected: function(player){
+            console.log('Server: player disconnected: ',player);
+            this.remPlayer(player);
+            this.send('all','player_disconnected',player);
+        },
+        _onConnectedToServer: function(){
+            console.log('Client: connected to server');
+            this.send('server','greeting',{playerName:this.localPlayerName});
+        },
+        _onMessageFromServer: function(message){
+            var msg = JSON.parse(message.data);
+            //console.log('Received message from server: ',msg);
+            if(msg.type === 'greeting'){
+                this.setState(msg.data.gamestate);
+                this.localPlayerName = msg.data.playerName;
+                this.addPlayer(new Player({game: this, name:this.localPlayerName, type: 'local', team:msg.data.playerTeam}));
+                this.send('server','ping',{time: this.main.time});
+            }else if(msg.type === 'new_player'){
+                var player = new Player({game:this});
+                player.setState(msg.data);
+                this.addPlayer(player);
+            }else if(msg.type === 'player_disconnected'){
+                this.remPlayer(msg.data);
+            }else if(msg.type === 'spawn_player'){
+                this.spawnPlayer(this.players[msg.data.player],msg.data.pos);
+            }else if(msg.type === 'change_team'){
+                this.changeTeam(msg.data.player,msg.data.team);
+            }else if(msg.type === 'change_nick'){
+                this.changeNick(msg.data.player,msg.data.nick);
+            }else if(msg.type === 'kill_player'){
+                var player = this.players[msg.data];
+                if(player && player.ship){
+                    player.ship.destroy();
+                }
+            }else if(msg.type === 'ship_update'){
+                var player = this.players[msg.data.player];
+                if(player){
+                    player.shipstates.push(msg.data.state);
+                }
+            }else if(msg.type === 'ping'){
+                this.ping(msg.data.time);
+                this.send('server','ping',{time:this.main.time});
+            }else if(msg.type === 'spawn_proj'){
+                console.log('Spawning Projectile: ',msg.data);
+                this.spawnProj(msg.data.name, msg.data.playername, msg.data.args);
+            }else if(msg.type === 'destroy_proj'){
+                console.log('Destroying Projectile: ',msg.data);
+                this.destroyProj(msg.data);
+            }else{
+                console.log('unkwnown message from server:',msg);
+            }
+        },
+		start: function(){
+            var self = this;
+            if(clientSide){
+                var renderer = new RendererCanvas2d({
+                    passes:[
+                    'buildings',
+                    'bgblocks',
+                    'ships',
+                    'projectiles',
+                    'explosions',
+                    'blocks',
+                    ],
+                    canvas: document.getElementById('game_canvas'), 
+                    getSize: function(){
+                        return new V2(window.innerWidth, window.innerHeight);
+                    },
+                    background: 'rgba(40,35,30,1)',
+                    alwaysRedraw: true,
+                });
+                console.log('Client: Connecting to server: '+this.getServerUrl());
+                this.socketToServer = new WebSocket(this.getServerUrl());
+                this.socketToServer.onopen = function(){ self._onConnectedToServer(); };
+                this.socketToServer.onmessage = function(message){ self._onMessageFromServer(message); };
+                this.serverSocket = null;
+            }else{
+		this.httpServer = require('http').createServer(function(req,res){
+			res.writeHead(200,{'Content-Type':'text/html'});
+			res.end('<h1>Shiverz Game Server: open on port:'+self.serverPort+'</h1>');
+		});
+		this.httpServer.listen(this.serverPort);
+                this.serverSocket = new (require('ws').Server)({server:this.httpServer});
+                this.serverSocket.on('connection',function(socket){self._onPlayerConnected(socket);});
+		console.log('Server listening on port:',this.serverPort);
+                this.socketToServer = null;
+                renderer = null;
+            }
+            var GameScene = Scene.extend({
+                renderer: renderer,
+                camera : new ents.GameCamera({game:self}),
+                onSceneStart: function(){
+                    this.add(self.level);
+                },
+                onFrameStart: function(){
+                    self.onGameUpdate();
+                },
+            });
+            this.main = new Main({
+                input: new Input({
+                    alias: settings.bindings,
+                }),
+                scene: new GameScene(),
+                fps: 60,
+            });
+            this.main.run();
+		},
+		exit:  function(){
+            this.main.exit();
+		},
+	});
+    exports.Game = Game;
+})(exports);
+
+});
+
+require.define("http",function(require,module,exports,__dirname,__filename,process,global){module.exports = require("http-browserify")
+});
+
+require.define("/node_modules/http-browserify/package.json",function(require,module,exports,__dirname,__filename,process,global){module.exports = {"main":"index.js","browserify":"index.js"}
+});
+
+require.define("/node_modules/http-browserify/index.js",function(require,module,exports,__dirname,__filename,process,global){var http = module.exports;
+var EventEmitter = require('events').EventEmitter;
+var Request = require('./lib/request');
+
+http.request = function (params, cb) {
+    if (!params) params = {};
+    if (!params.host) params.host = window.location.host.split(':')[0];
+    if (!params.port) params.port = window.location.port;
+    
+    var req = new Request(new xhrHttp, params);
+    if (cb) req.on('response', cb);
+    return req;
+};
+
+http.get = function (params, cb) {
+    params.method = 'GET';
+    var req = http.request(params, cb);
+    req.end();
+    return req;
+};
+
+http.Agent = function () {};
+http.Agent.defaultMaxSockets = 4;
+
+var xhrHttp = (function () {
+    if (typeof window === 'undefined') {
+        throw new Error('no window object present');
+    }
+    else if (window.XMLHttpRequest) {
+        return window.XMLHttpRequest;
+    }
+    else if (window.ActiveXObject) {
+        var axs = [
+            'Msxml2.XMLHTTP.6.0',
+            'Msxml2.XMLHTTP.3.0',
+            'Microsoft.XMLHTTP'
+        ];
+        for (var i = 0; i < axs.length; i++) {
+            try {
+                var ax = new(window.ActiveXObject)(axs[i]);
+                return function () {
+                    if (ax) {
+                        var ax_ = ax;
+                        ax = null;
+                        return ax_;
+                    }
+                    else {
+                        return new(window.ActiveXObject)(axs[i]);
+                    }
+                };
+            }
+            catch (e) {}
+        }
+        throw new Error('ajax not supported in this browser')
+    }
+    else {
+        throw new Error('ajax not supported in this browser');
+    }
+})();
+
+});
+
+require.define("events",function(require,module,exports,__dirname,__filename,process,global){if (!process.EventEmitter) process.EventEmitter = function () {};
+
+var EventEmitter = exports.EventEmitter = process.EventEmitter;
+var isArray = typeof Array.isArray === 'function'
+    ? Array.isArray
+    : function (xs) {
+        return Object.prototype.toString.call(xs) === '[object Array]'
+    }
+;
+
+// By default EventEmitters will print a warning if more than
+// 10 listeners are added to it. This is a useful default which
+// helps finding memory leaks.
+//
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+var defaultMaxListeners = 10;
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!this._events) this._events = {};
+  this._events.maxListeners = n;
+};
+
+
+EventEmitter.prototype.emit = function(type) {
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events || !this._events.error ||
+        (isArray(this._events.error) && !this._events.error.length))
+    {
+      if (arguments[1] instanceof Error) {
+        throw arguments[1]; // Unhandled 'error' event
+      } else {
+        throw new Error("Uncaught, unspecified 'error' event.");
+      }
+      return false;
+    }
+  }
+
+  if (!this._events) return false;
+  var handler = this._events[type];
+  if (!handler) return false;
+
+  if (typeof handler == 'function') {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        var args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+    return true;
+
+  } else if (isArray(handler)) {
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var listeners = handler.slice();
+    for (var i = 0, l = listeners.length; i < l; i++) {
+      listeners[i].apply(this, args);
+    }
+    return true;
+
+  } else {
+    return false;
+  }
+};
+
+// EventEmitter is defined in src/node_events.cc
+// EventEmitter.prototype.emit() is also defined there.
+EventEmitter.prototype.addListener = function(type, listener) {
+  if ('function' !== typeof listener) {
+    throw new Error('addListener only takes instances of Function');
+  }
+
+  if (!this._events) this._events = {};
+
+  // To avoid recursion in the case that type == "newListeners"! Before
+  // adding it to the listeners, first emit "newListeners".
+  this.emit('newListener', type, listener);
+
+  if (!this._events[type]) {
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  } else if (isArray(this._events[type])) {
+
+    // Check for listener leak
+    if (!this._events[type].warned) {
+      var m;
+      if (this._events.maxListeners !== undefined) {
+        m = this._events.maxListeners;
+      } else {
+        m = defaultMaxListeners;
+      }
+
+      if (m && m > 0 && this._events[type].length > m) {
+        this._events[type].warned = true;
+        console.error('(node) warning: possible EventEmitter memory ' +
+                      'leak detected. %d listeners added. ' +
+                      'Use emitter.setMaxListeners() to increase limit.',
+                      this._events[type].length);
+        console.trace();
+      }
+    }
+
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  } else {
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  var self = this;
+  self.on(type, function g() {
+    self.removeListener(type, g);
+    listener.apply(this, arguments);
+  });
+
+  return this;
+};
+
+EventEmitter.prototype.removeListener = function(type, listener) {
+  if ('function' !== typeof listener) {
+    throw new Error('removeListener only takes instances of Function');
+  }
+
+  // does not use listeners(), so no side effect of creating _events[type]
+  if (!this._events || !this._events[type]) return this;
+
+  var list = this._events[type];
+
+  if (isArray(list)) {
+    var i = list.indexOf(listener);
+    if (i < 0) return this;
+    list.splice(i, 1);
+    if (list.length == 0)
+      delete this._events[type];
+  } else if (this._events[type] === listener) {
+    delete this._events[type];
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  // does not use listeners(), so no side effect of creating _events[type]
+  if (type && this._events && this._events[type]) this._events[type] = null;
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  if (!this._events) this._events = {};
+  if (!this._events[type]) this._events[type] = [];
+  if (!isArray(this._events[type])) {
+    this._events[type] = [this._events[type]];
+  }
+  return this._events[type];
+};
+
+});
+
+require.define("/node_modules/http-browserify/lib/request.js",function(require,module,exports,__dirname,__filename,process,global){var Stream = require('stream');
+var Response = require('./response');
+var concatStream = require('concat-stream')
+
+var Request = module.exports = function (xhr, params) {
+    var self = this;
+    self.writable = true;
+    self.xhr = xhr;
+    self.body = concatStream()
+    
+    var uri = params.host + ':' + params.port + (params.path || '/');
+    
+    xhr.open(
+        params.method || 'GET',
+        (params.scheme || 'http') + '://' + uri,
+        true
+    );
+    
+    if (params.headers) {
+        Object.keys(params.headers).forEach(function (key) {
+            if (!self.isSafeRequestHeader(key)) return;
+            var value = params.headers[key];
+            if (Array.isArray(value)) {
+                value.forEach(function (v) {
+                    xhr.setRequestHeader(key, v);
+                });
+            }
+            else xhr.setRequestHeader(key, value)
+        });
+    }
+    
+    var res = new Response;
+    res.on('ready', function () {
+        self.emit('response', res);
+    });
+    
+    xhr.onreadystatechange = function () {
+        res.handle(xhr);
+    };
+};
+
+Request.prototype = new Stream;
+
+Request.prototype.setHeader = function (key, value) {
+    if ((Array.isArray && Array.isArray(value))
+    || value instanceof Array) {
+        for (var i = 0; i < value.length; i++) {
+            this.xhr.setRequestHeader(key, value[i]);
+        }
+    }
+    else {
+        this.xhr.setRequestHeader(key, value);
+    }
+};
+
+Request.prototype.write = function (s) {
+    this.body.write(s);
+};
+
+Request.prototype.end = function (s) {
+    if (s !== undefined) this.body.write(s);
+    this.body.end()
+    this.xhr.send(this.body.getBody());
+};
+
+// Taken from http://dxr.mozilla.org/mozilla/mozilla-central/content/base/src/nsXMLHttpRequest.cpp.html
+Request.unsafeHeaders = [
+    "accept-charset",
+    "accept-encoding",
+    "access-control-request-headers",
+    "access-control-request-method",
+    "connection",
+    "content-length",
+    "cookie",
+    "cookie2",
+    "content-transfer-encoding",
+    "date",
+    "expect",
+    "host",
+    "keep-alive",
+    "origin",
+    "referer",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    "user-agent",
+    "via"
+];
+
+Request.prototype.isSafeRequestHeader = function (headerName) {
+    if (!headerName) return false;
+    return (Request.unsafeHeaders.indexOf(headerName.toLowerCase()) === -1)
+};
+
+});
+
+require.define("stream",function(require,module,exports,__dirname,__filename,process,global){var events = require('events');
+var util = require('util');
+
+function Stream() {
+  events.EventEmitter.call(this);
+}
+util.inherits(Stream, events.EventEmitter);
+module.exports = Stream;
+// Backwards-compat with node 0.4.x
+Stream.Stream = Stream;
+
+Stream.prototype.pipe = function(dest, options) {
+  var source = this;
+
+  function ondata(chunk) {
+    if (dest.writable) {
+      if (false === dest.write(chunk) && source.pause) {
+        source.pause();
+      }
+    }
+  }
+
+  source.on('data', ondata);
+
+  function ondrain() {
+    if (source.readable && source.resume) {
+      source.resume();
+    }
+  }
+
+  dest.on('drain', ondrain);
+
+  // If the 'end' option is not supplied, dest.end() will be called when
+  // source gets the 'end' or 'close' events.  Only dest.end() once, and
+  // only when all sources have ended.
+  if (!dest._isStdio && (!options || options.end !== false)) {
+    dest._pipeCount = dest._pipeCount || 0;
+    dest._pipeCount++;
+
+    source.on('end', onend);
+    source.on('close', onclose);
+  }
+
+  var didOnEnd = false;
+  function onend() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.end();
+  }
+
+
+  function onclose() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.destroy();
+  }
+
+  // don't leave dangling pipes when there are errors.
+  function onerror(er) {
+    cleanup();
+    if (this.listeners('error').length === 0) {
+      throw er; // Unhandled stream error in pipe.
+    }
+  }
+
+  source.on('error', onerror);
+  dest.on('error', onerror);
+
+  // remove all the event listeners that were added.
+  function cleanup() {
+    source.removeListener('data', ondata);
+    dest.removeListener('drain', ondrain);
+
+    source.removeListener('end', onend);
+    source.removeListener('close', onclose);
+
+    source.removeListener('error', onerror);
+    dest.removeListener('error', onerror);
+
+    source.removeListener('end', cleanup);
+    source.removeListener('close', cleanup);
+
+    dest.removeListener('end', cleanup);
+    dest.removeListener('close', cleanup);
+  }
+
+  source.on('end', cleanup);
+  source.on('close', cleanup);
+
+  dest.on('end', cleanup);
+  dest.on('close', cleanup);
+
+  dest.emit('pipe', source);
+
+  // Allow for unix-like usage: A.pipe(B).pipe(C)
+  return dest;
+};
+
+});
+
+require.define("util",function(require,module,exports,__dirname,__filename,process,global){var events = require('events');
+
+exports.print = function () {};
+exports.puts = function () {};
+exports.debug = function() {};
+
+exports.inspect = function(obj, showHidden, depth, colors) {
+  var seen = [];
+
+  var stylize = function(str, styleType) {
+    // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
+    var styles =
+        { 'bold' : [1, 22],
+          'italic' : [3, 23],
+          'underline' : [4, 24],
+          'inverse' : [7, 27],
+          'white' : [37, 39],
+          'grey' : [90, 39],
+          'black' : [30, 39],
+          'blue' : [34, 39],
+          'cyan' : [36, 39],
+          'green' : [32, 39],
+          'magenta' : [35, 39],
+          'red' : [31, 39],
+          'yellow' : [33, 39] };
+
+    var style =
+        { 'special': 'cyan',
+          'number': 'blue',
+          'boolean': 'yellow',
+          'undefined': 'grey',
+          'null': 'bold',
+          'string': 'green',
+          'date': 'magenta',
+          // "name": intentionally not styling
+          'regexp': 'red' }[styleType];
+
+    if (style) {
+      return '\033[' + styles[style][0] + 'm' + str +
+             '\033[' + styles[style][1] + 'm';
+    } else {
+      return str;
+    }
+  };
+  if (! colors) {
+    stylize = function(str, styleType) { return str; };
+  }
+
+  function format(value, recurseTimes) {
+    // Provide a hook for user-specified inspect functions.
+    // Check that value is an object with an inspect function on it
+    if (value && typeof value.inspect === 'function' &&
+        // Filter out the util module, it's inspect function is special
+        value !== exports &&
+        // Also filter out any prototype objects using the circular check.
+        !(value.constructor && value.constructor.prototype === value)) {
+      return value.inspect(recurseTimes);
+    }
+
+    // Primitive types cannot have properties
+    switch (typeof value) {
+      case 'undefined':
+        return stylize('undefined', 'undefined');
+
+      case 'string':
+        var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
+                                                 .replace(/'/g, "\\'")
+                                                 .replace(/\\"/g, '"') + '\'';
+        return stylize(simple, 'string');
+
+      case 'number':
+        return stylize('' + value, 'number');
+
+      case 'boolean':
+        return stylize('' + value, 'boolean');
+    }
+    // For some reason typeof null is "object", so special case here.
+    if (value === null) {
+      return stylize('null', 'null');
+    }
+
+    // Look up the keys of the object.
+    var visible_keys = Object_keys(value);
+    var keys = showHidden ? Object_getOwnPropertyNames(value) : visible_keys;
+
+    // Functions without properties can be shortcutted.
+    if (typeof value === 'function' && keys.length === 0) {
+      if (isRegExp(value)) {
+        return stylize('' + value, 'regexp');
+      } else {
+        var name = value.name ? ': ' + value.name : '';
+        return stylize('[Function' + name + ']', 'special');
+      }
+    }
+
+    // Dates without properties can be shortcutted
+    if (isDate(value) && keys.length === 0) {
+      return stylize(value.toUTCString(), 'date');
+    }
+
+    var base, type, braces;
+    // Determine the object type
+    if (isArray(value)) {
+      type = 'Array';
+      braces = ['[', ']'];
+    } else {
+      type = 'Object';
+      braces = ['{', '}'];
+    }
+
+    // Make functions say that they are functions
+    if (typeof value === 'function') {
+      var n = value.name ? ': ' + value.name : '';
+      base = (isRegExp(value)) ? ' ' + value : ' [Function' + n + ']';
+    } else {
+      base = '';
+    }
+
+    // Make dates with properties first say the date
+    if (isDate(value)) {
+      base = ' ' + value.toUTCString();
+    }
+
+    if (keys.length === 0) {
+      return braces[0] + base + braces[1];
+    }
+
+    if (recurseTimes < 0) {
+      if (isRegExp(value)) {
+        return stylize('' + value, 'regexp');
+      } else {
+        return stylize('[Object]', 'special');
+      }
+    }
+
+    seen.push(value);
+
+    var output = keys.map(function(key) {
+      var name, str;
+      if (value.__lookupGetter__) {
+        if (value.__lookupGetter__(key)) {
+          if (value.__lookupSetter__(key)) {
+            str = stylize('[Getter/Setter]', 'special');
+          } else {
+            str = stylize('[Getter]', 'special');
+          }
+        } else {
+          if (value.__lookupSetter__(key)) {
+            str = stylize('[Setter]', 'special');
+          }
+        }
+      }
+      if (visible_keys.indexOf(key) < 0) {
+        name = '[' + key + ']';
+      }
+      if (!str) {
+        if (seen.indexOf(value[key]) < 0) {
+          if (recurseTimes === null) {
+            str = format(value[key]);
+          } else {
+            str = format(value[key], recurseTimes - 1);
+          }
+          if (str.indexOf('\n') > -1) {
+            if (isArray(value)) {
+              str = str.split('\n').map(function(line) {
+                return '  ' + line;
+              }).join('\n').substr(2);
+            } else {
+              str = '\n' + str.split('\n').map(function(line) {
+                return '   ' + line;
+              }).join('\n');
+            }
+          }
+        } else {
+          str = stylize('[Circular]', 'special');
+        }
+      }
+      if (typeof name === 'undefined') {
+        if (type === 'Array' && key.match(/^\d+$/)) {
+          return str;
+        }
+        name = JSON.stringify('' + key);
+        if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
+          name = name.substr(1, name.length - 2);
+          name = stylize(name, 'name');
+        } else {
+          name = name.replace(/'/g, "\\'")
+                     .replace(/\\"/g, '"')
+                     .replace(/(^"|"$)/g, "'");
+          name = stylize(name, 'string');
+        }
+      }
+
+      return name + ': ' + str;
+    });
+
+    seen.pop();
+
+    var numLinesEst = 0;
+    var length = output.reduce(function(prev, cur) {
+      numLinesEst++;
+      if (cur.indexOf('\n') >= 0) numLinesEst++;
+      return prev + cur.length + 1;
+    }, 0);
+
+    if (length > 50) {
+      output = braces[0] +
+               (base === '' ? '' : base + '\n ') +
+               ' ' +
+               output.join(',\n  ') +
+               ' ' +
+               braces[1];
+
+    } else {
+      output = braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
+    }
+
+    return output;
+  }
+  return format(obj, (typeof depth === 'undefined' ? 2 : depth));
+};
+
+
+function isArray(ar) {
+  return ar instanceof Array ||
+         Array.isArray(ar) ||
+         (ar && ar !== Object.prototype && isArray(ar.__proto__));
+}
+
+
+function isRegExp(re) {
+  return re instanceof RegExp ||
+    (typeof re === 'object' && Object.prototype.toString.call(re) === '[object RegExp]');
+}
+
+
+function isDate(d) {
+  if (d instanceof Date) return true;
+  if (typeof d !== 'object') return false;
+  var properties = Date.prototype && Object_getOwnPropertyNames(Date.prototype);
+  var proto = d.__proto__ && Object_getOwnPropertyNames(d.__proto__);
+  return JSON.stringify(proto) === JSON.stringify(properties);
+}
+
+function pad(n) {
+  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+}
+
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+              'Oct', 'Nov', 'Dec'];
+
+// 26 Feb 16:19:34
+function timestamp() {
+  var d = new Date();
+  var time = [pad(d.getHours()),
+              pad(d.getMinutes()),
+              pad(d.getSeconds())].join(':');
+  return [d.getDate(), months[d.getMonth()], time].join(' ');
+}
+
+exports.log = function (msg) {};
+
+exports.pump = null;
+
+var Object_keys = Object.keys || function (obj) {
+    var res = [];
+    for (var key in obj) res.push(key);
+    return res;
+};
+
+var Object_getOwnPropertyNames = Object.getOwnPropertyNames || function (obj) {
+    var res = [];
+    for (var key in obj) {
+        if (Object.hasOwnProperty.call(obj, key)) res.push(key);
+    }
+    return res;
+};
+
+var Object_create = Object.create || function (prototype, properties) {
+    // from es5-shim
+    var object;
+    if (prototype === null) {
+        object = { '__proto__' : null };
+    }
+    else {
+        if (typeof prototype !== 'object') {
+            throw new TypeError(
+                'typeof prototype[' + (typeof prototype) + '] != \'object\''
+            );
+        }
+        var Type = function () {};
+        Type.prototype = prototype;
+        object = new Type();
+        object.__proto__ = prototype;
+    }
+    if (typeof properties !== 'undefined' && Object.defineProperties) {
+        Object.defineProperties(object, properties);
+    }
+    return object;
+};
+
+exports.inherits = function(ctor, superCtor) {
+  ctor.super_ = superCtor;
+  ctor.prototype = Object_create(superCtor.prototype, {
+    constructor: {
+      value: ctor,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+};
+
+var formatRegExp = /%[sdj%]/g;
+exports.format = function(f) {
+  if (typeof f !== 'string') {
+    var objects = [];
+    for (var i = 0; i < arguments.length; i++) {
+      objects.push(exports.inspect(arguments[i]));
+    }
+    return objects.join(' ');
+  }
+
+  var i = 1;
+  var args = arguments;
+  var len = args.length;
+  var str = String(f).replace(formatRegExp, function(x) {
+    if (x === '%%') return '%';
+    if (i >= len) return x;
+    switch (x) {
+      case '%s': return String(args[i++]);
+      case '%d': return Number(args[i++]);
+      case '%j': return JSON.stringify(args[i++]);
+      default:
+        return x;
+    }
+  });
+  for(var x = args[i]; i < len; x = args[++i]){
+    if (x === null || typeof x !== 'object') {
+      str += ' ' + x;
+    } else {
+      str += ' ' + exports.inspect(x);
+    }
+  }
+  return str;
+};
+
+});
+
+require.define("/node_modules/http-browserify/lib/response.js",function(require,module,exports,__dirname,__filename,process,global){var Stream = require('stream');
+
+var Response = module.exports = function (res) {
+    this.offset = 0;
+    this.readable = true;
+};
+
+Response.prototype = new Stream;
+
+var capable = {
+    streaming : true,
+    status2 : true
+};
+
+function parseHeaders (res) {
+    var lines = res.getAllResponseHeaders().split(/\r?\n/);
+    var headers = {};
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line === '') continue;
+        
+        var m = line.match(/^([^:]+):\s*(.*)/);
+        if (m) {
+            var key = m[1].toLowerCase(), value = m[2];
+            
+            if (headers[key] !== undefined) {
+                if ((Array.isArray && Array.isArray(headers[key]))
+                || headers[key] instanceof Array) {
+                    headers[key].push(value);
+                }
+                else {
+                    headers[key] = [ headers[key], value ];
+                }
+            }
+            else {
+                headers[key] = value;
+            }
+        }
+        else {
+            headers[line] = true;
+        }
+    }
+    return headers;
+}
+
+Response.prototype.getResponse = function (xhr) {
+    var respType = xhr.responseType.toLowerCase();
+    if (respType === "blob") return xhr.responseBlob;
+    if (respType === "arraybuffer") return xhr.response;
+    return xhr.responseText;
+}
+
+Response.prototype.getHeader = function (key) {
+    return this.headers[key.toLowerCase()];
+};
+
+Response.prototype.handle = function (res) {
+    if (res.readyState === 2 && capable.status2) {
+        try {
+            this.statusCode = res.status;
+            this.headers = parseHeaders(res);
+        }
+        catch (err) {
+            capable.status2 = false;
+        }
+        
+        if (capable.status2) {
+            this.emit('ready');
+        }
+    }
+    else if (capable.streaming && res.readyState === 3) {
+        try {
+            if (!this.statusCode) {
+                this.statusCode = res.status;
+                this.headers = parseHeaders(res);
+                this.emit('ready');
+            }
+        }
+        catch (err) {}
+        
+        try {
+            this.write(res);
+        }
+        catch (err) {
+            capable.streaming = false;
+        }
+    }
+    else if (res.readyState === 4) {
+        if (!this.statusCode) {
+            this.statusCode = res.status;
+            this.emit('ready');
+        }
+        this.write(res);
+        
+        if (res.error) {
+            this.emit('error', this.getResponse(res));
+        }
+        else this.emit('end');
+    }
+};
+
+Response.prototype.write = function (res) {
+    var respBody = this.getResponse(res);
+    if (respBody.toString().match(/ArrayBuffer/)) {
+        this.emit('data', new Uint8Array(respBody, this.offset));
+        this.offset = respBody.byteLength;
+        return;
+    }
+    if (respBody.length > this.offset) {
+        this.emit('data', respBody.slice(this.offset));
+        this.offset = respBody.length;
+    }
+};
+
+});
+
+require.define("/node_modules/http-browserify/node_modules/concat-stream/package.json",function(require,module,exports,__dirname,__filename,process,global){module.exports = {}
+});
+
+require.define("/node_modules/http-browserify/node_modules/concat-stream/index.js",function(require,module,exports,__dirname,__filename,process,global){var stream = require('stream')
+var util = require('util')
+
+function ConcatStream(cb) {
+  stream.Stream.call(this)
+  this.writable = true
+  if (cb) this.cb = cb
+  this.body = []
+  if (this.cb) this.on('error', cb)
+}
+
+util.inherits(ConcatStream, stream.Stream)
+
+ConcatStream.prototype.write = function(chunk) {
+  this.body.push(chunk)
+}
+
+ConcatStream.prototype.arrayConcat = function(arrs) {
+  if (arrs.length === 0) return []
+  if (arrs.length === 1) return arrs[0]
+  return arrs.reduce(function (a, b) { return a.concat(b) })
+}
+
+ConcatStream.prototype.isArray = function(arr) {
+  var isArray = Array.isArray(arr)
+  var isTypedArray = arr.toString().match(/Array/)
+  return isArray || isTypedArray
+}
+
+ConcatStream.prototype.getBody = function () {
+  if (this.body.length === 0) return
+  if (typeof(this.body[0]) === "string") return this.body.join('')
+  if (this.isArray(this.body[0])) return this.arrayConcat(this.body)
+  if (typeof(Buffer) !== "undefined" && Buffer.isBuffer(this.body[0])) {
+    return Buffer.concat(this.body)
+  }
+  return this.body
+}
+
+ConcatStream.prototype.end = function() {
+  if (this.cb) this.cb(false, this.getBody())
+}
+
+module.exports = function(cb) {
+  return new ConcatStream(cb)
+}
+
+module.exports.ConcatStream = ConcatStream
+
+});
+
 require.define("/main.js",function(require,module,exports,__dirname,__filename,process,global){var game = require('./game/game.js');
 
 if(typeof window !== 'undefined'){
     window.onload = function(){
         var g = new game.Game({
-            serverHostName:'vps.vanderessen.com',
+            serverHostName:'localhost',
             serverPort:8080,
             localPlayerName:'foobar'
         });
