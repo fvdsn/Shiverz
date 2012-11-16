@@ -5,32 +5,9 @@
         <title>RotorBlade</title>
         <script src="js/lib/jquery.js"></script>
         <script src="js/bin/client.js"></script>
-        <style media="screen">
-            html,body {
-                background: #333;
-				width:100%;
-				margin:100%;
-				margin:0;
-				overflow:hidden;
-            }
-			canvas {
+	<link href='http://fonts.googleapis.com/css?family=Nova+Round|Codystar|Tulpen+One|Megrim|Audiowide|Press+Start+2P' rel='stylesheet' type='text/css'>
+	<link rel='stylesheet' href='css/game.css'></link>
 
-				background: #000;
-				width:100%;
-				height:100%;
-				//-webkit-box-shadow: 0px 3px 20px #000;
-			}
-			.fps,.ping{
-				position:absolute;
-				color:white;
-				font-size:15px;
-				left:3px;
-				top:3px;
-			}
-			.ping{
-				top:16px;
-			}
-        </style>
     </head>
     <body>
     	<canvas id="game_canvas">
@@ -41,6 +18,39 @@
 	</div>
 	<div class='ping'>
 		ping: 0
+	</div>
+	<div class='dialog name_select'>
+		<h1>Player Name ?</h1>
+		<input type='text' placeholder='UnnamedPlayer'></input>
+		<div class='button ok'>Ok</div>
+	</div>
+	<div class='dialog team_select'>
+		<h1>Team ?</h1>
+		<div class='button team red'>Red</div>
+		<div class='button team blue'>Blue</div>
+	</div>
+	<!--
+	<div class='hud top'>
+		<div class='item score'>
+			<span class='red'>7</span>/<span class='blue'>9</span>
+		</div>
+		<div class='item time'>00:00</div>
+	</div>
+	-->
+	<div class='hud bottom'>
+		<div class='item health low'>
+			<span class='descr'>health</span>
+			100
+		</div>
+		<div class='item armor'>
+			<span class='descr'>armor</span>
+			50
+		</div>
+		<div class='item weapon'></div>
+		<div class='item ammo'>
+			<span class='descr'>ammo</span>
+			16
+		</div>
 	</div>
     </body>
 </html>
