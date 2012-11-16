@@ -221,6 +221,17 @@
                 }
             }
         },
+        updateHud: function(){
+            var player = this.getLocalPlayer();
+            if(player){
+                $('.hud .health .value').html(player.health);
+                if(player.health < 25){
+                    $('.hud .health').addClass('low');
+                }else{
+                    $('.hud .health').removeClass('low');
+                }
+            }
+        },
         onGameUpdate: function(){
             if(serverSide){
                 for(player in this.players){
@@ -235,6 +246,8 @@
                         }
                     }
                 }
+            }else{
+                this.updateHud();
             }
         },
         send: function(destination,type,data){
