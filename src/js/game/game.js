@@ -11,11 +11,11 @@
             this.nick  = opt.nick || 'UnnamedPlayer';
             this.game  = opt.game || null;
             this.state = 'new';   // 'new','spawning','playing'
-            this.type  = opt.type || 'local';   // 'local', 'remote', 'ai'
             this.team  = opt.team || 'spectator'; // 'spectator','auto','red','blue','foes','monsters'
             this.ship  = opt.ship || null;
             this.health = 100;
             this.respawnTimer = null;
+            this.lastSentState = "";
 
             //Networking
             this.socket = opt.socket || null;
@@ -32,23 +32,16 @@
         },
         getState: function(){
             return {
-                name: this.name,
+                name: this.name, //TODO remove this
                 state: this.state,
-                type: this.type,
                 team: this.team,
-                ship: this.ship ? this.ship.getState(): undefined,
                 health: this.health,
             };
         },
         setState: function(plyr){
             this.name = plyr.name || this.name;
-            this.type = plyr.type || this.type;
             this.team = plyr.team || this.team;
             this.health = plyr.health !== undefined ? plyr.health : this.health;
-            if(this.game && !this.ship && plyr.ship){
-                var ship = this.game.spawnPlayer(this,new V2());
-                ship.setState(plyr.ship);
-            }
         },
         isDead: function(){
             return this.health <= 0;
@@ -129,17 +122,31 @@
             for(player in this.players){
                 players[player] = this.players[player].getState();
             }
+            var ships = {};
+            for(player in this.players){
+                var ship = this.players[player].ship;
+                if(ship){
+                    ships[player] = ship.getState();
+                }
+            }
             var level = this.level.getState();
-            return {players: players, level: level};
+            return {players: players, level: level, ships: ships};
         },
-        setState: function(game){
-            console.log('SetState:',game);
-            this.loadLevel(game.level);
+        setState: function(state){
+            console.log('SetState:',state);
+            this.loadLevel(state.level);
             this.players = {};
-            for(player in game.players){
+            for(player in state.players){
                 var p = new Player({game:this});
-                p.setState(game.players[player]);
+                p.setState(state.players[player]);
                 this.addPlayer(p);
+            }
+            for(playername in state.ships){
+                var player = this.players[playername];
+                if(!player.ship){
+                    var ship = this.spawnPlayer(player,new V2());
+                    ship.setState(state.ships[playername]);
+                }
             }
         },
         loadLevel: function(arg){
@@ -154,13 +161,7 @@
             this.main.scene.add(newlevel);
         },
         getLocalPlayer: function(){
-            for(name in this.players){
-                var p = this.players[name];
-                if(p.type === 'local'){
-                    return p;
-                }
-            }
-            return null;
+            return this.players[this.localPlayerName] || null;
         },
         spawnPlayer: function(player,pos){
             if(!pos){
@@ -219,6 +220,12 @@
                     var ship = this.spawnPlayer(player);
                     this.send('all','spawn_player',{player: player.name, pos: ship.tr.getPos()});
                 }
+            }
+            var state = player.getState();
+            var statestr = JSON.stringify(state);
+            if(statestr !== player.lastSentState){
+                player.lastSentState = statestr;
+                this.send('all','update_player',{player: player.name, state:state});
             }
         },
         updateHud: function(){
@@ -302,7 +309,7 @@
                         playerTeam:'spectator',
                         gamestate: self.getState(),
                     });
-                    player = new Player({ game: self, name: newPlayerName, type: 'remote', socket:socket, team:'spectator'});
+                    player = new Player({ game: self, name: newPlayerName, socket:socket, team:'spectator'});
                     self.addPlayer(player);
                     self.send('!'+newPlayerName,'new_player',player.getState());
                     socket.on('close',function(code,message){self._onPlayerDisconnected(newPlayerName);});
@@ -351,12 +358,16 @@
             if(msg.type === 'greeting'){
                 this.setState(msg.data.gamestate);
                 this.localPlayerName = msg.data.playerName;
-                this.addPlayer(new Player({game: this, name:this.localPlayerName, type: 'local', team:msg.data.playerTeam}));
+                this.addPlayer(new Player({game: this, name:this.localPlayerName, team:msg.data.playerTeam}));
                 this.send('server','ping',{time: this.main.time});
             }else if(msg.type === 'new_player'){
                 var player = new Player({game:this});
                 player.setState(msg.data);
                 this.addPlayer(player);
+            }else if(msg.type === 'update_player'){
+                var player = this.players[msg.data.player];
+                console.log('update_player:',player,msg.data.state);
+                player.setState(msg.data.state);
             }else if(msg.type === 'player_disconnected'){
                 this.remPlayer(msg.data);
             }else if(msg.type === 'spawn_player'){

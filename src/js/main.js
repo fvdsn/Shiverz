@@ -3,7 +3,7 @@ var game = require('./game/game.js');
 if(typeof window !== 'undefined'){
     window.onload = function(){
         var g = new game.Game({
-            serverHostName:'localhost',
+            serverHostName: window.location.host || 'localhost',
             serverPort:8080,
             localPlayerName:'foobar'
         });
@@ -30,8 +30,6 @@ if(typeof window !== 'undefined'){
                 $('.hud').show();
             });
         });
-
-        
     };
 }else{
     var g = new game.Game({serverHostName:'localhost',serverPort:8080});

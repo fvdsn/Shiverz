@@ -657,7 +657,7 @@
         },
         damage: function(owner,damage){
             if(owner.player.team !== this.player.team){
-                this.player.health -= damage;
+                this.player.health =  Math.round(this.player.health - damage);
                 console.log(owner.player.name+' inflicted '+damage+' damage to player '+this.player.name);
                 return;
             }
@@ -772,7 +772,7 @@
         onUpdate: function(){
             if(clientSide){
                 this.frame += 1;
-                if(this.player.type === 'local'){
+                if(this.player === this.game.getLocalPlayer()){
                     var controls = this.getLocalControls();
                     this.applyControls(controls);
                     this.game.send('server','controls',controls);

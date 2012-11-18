@@ -1,3 +1,18 @@
+TEAMPLAY:
+	le jeu a deux phases:
+	1) BATTLE
+		les deux équipes essaient de capturer le drapeau adverse pendant que le leur est au stand.
+		si une équipe marque, elle gagne 1 point et le jeu passe en mode attaque/defense
+	2) ATTACK/DEFENSE
+		L'équipe qui est en mode attaque doit capturer le drapeau adverse et le ramener au stand.
+		L'équipe qui est en mode défense doit empècher le drapeau d'etre capturé pendant la durée
+		du round (1min) 
+		Si l'attaque gagne le round, elle gagne un point et continue à attaquer.
+		Si la défense gagne, on repasse en mode battle.
+
+
+
+
 NOM DU JEU:
 ROTORBLADE / BURST
 
