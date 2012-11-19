@@ -656,9 +656,19 @@
             }
         },
         damage: function(owner,damage){
-            if(owner.player.team !== this.player.team){
-                this.player.health =  Math.round(this.player.health - damage);
-                console.log(owner.player.name+' inflicted '+damage+' damage to player '+this.player.name);
+            if(!owner ||( owner.player.team !== this.player.team)){
+                damage = Math.max(0,Math.round(damage));
+                var armordamage = Math.round(damage*2/3);
+                if(this.player.armor > armordamage){
+                    this.player.armor -= armordamage;
+                }else{
+                    armordamage = this.player.armor;
+                    this.player.armor = 0;
+                }
+                this.player.health -= (damage - armordamage);
+                if(owner){
+                    this.player.lastFoe = owner.player;
+                }
                 return;
             }
         },

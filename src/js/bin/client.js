@@ -406,9 +406,16 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             this.state = 'new';   // 'new','spawning','playing'
             this.team  = opt.team || 'spectator'; // 'spectator','auto','red','blue','foes','monsters'
             this.ship  = opt.ship || null;
-            this.health = 100;
             this.respawnTimer = null;
-            this.lastSentState = "";
+
+            this.updateInterval = 1;
+            this.lastUpdate = 0;
+            this.frags  = 0;
+            this.deaths = 0;
+            this.armor  = 50;
+            this.health = 125;
+            this.ammo   = {};
+            this.lastFoe = null;
 
             //Networking
             this.socket = opt.socket || null;
@@ -416,6 +423,7 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             this.shipstates = [];
             this.time = 0;  //time of the mainloop
             this.rtt  = new RunningMean({length: 10, value: 0});
+            this.lastSentState = "";
         },
         ping:function(time){
             if(this.time !== 0 && this.time !== time){
@@ -428,13 +436,16 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                 name: this.name, //TODO remove this
                 state: this.state,
                 team: this.team,
+                armor: this.armor,
+                frags: this.frags,
+                deaths: this.deaths,
                 health: this.health,
             };
         },
-        setState: function(plyr){
-            this.name = plyr.name || this.name;
-            this.team = plyr.team || this.team;
-            this.health = plyr.health !== undefined ? plyr.health : this.health;
+        setState: function(state){
+            for (field in state){
+                this[field] = state[field];
+            }
         },
         isDead: function(){
             return this.health <= 0;
@@ -569,7 +580,9 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                 pos: pos,
             });
             player.ship = ship;
-            player.health = 100;
+            player.health = 125;
+            player.armor = 50;
+            player.lastUpdate = this.main.time;
             this.main.scene.add(ship);
             return ship;
         },
@@ -606,12 +619,23 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
         updatePlayer: function(player){
             if(player.isDead()){
                 if(player.ship){
+                    player.deaths++;
+                    if(player.lastFoe){
+                        player.lastFoe.frags++;
+                    }
                     player.ship.destroy();
                     player.spawnTimer = this.main.scene.timer(2);
                     this.send('all','kill_player',player.name);
                 }else if(player.spawnTimer && player.spawnTimer.expired()){
                     var ship = this.spawnPlayer(player);
                     this.send('all','spawn_player',{player: player.name, pos: ship.tr.getPos()});
+                }
+            }else if(this.main.time > player.lastUpdate + player.updateInterval){
+                player.lastUpdate = this.main.time;
+                if(player.health > 100){
+                    player.health--;
+                }else if(player.health < 100){
+                    player.health++;
                 }
             }
             var state = player.getState();
@@ -630,6 +654,10 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                 }else{
                     $('.hud .health').removeClass('low');
                 }
+                $('.hud .armor .value').html(player.armor);
+            }
+            if(this.main.input.isKeyPressing('t')){
+                $('.dialog.score').toggle();
             }
         },
         onGameUpdate: function(){
@@ -718,6 +746,10 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             }else if(type === 'change_team'){
                 this.changeTeam(player.name,data);
                 this.send('all','change_team',{player:player.name, team:data});
+            }else if(type === 'damage'){
+                if(player.ship){
+                    player.ship.damage(null,data);
+                }
             }else if(type === 'change_nick'){
                 if(this.changeNick(player.name,data)){
                     this.send('all','change_nick',{player:player.name, nick:data});
@@ -759,7 +791,6 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                 this.addPlayer(player);
             }else if(msg.type === 'update_player'){
                 var player = this.players[msg.data.player];
-                console.log('update_player:',player,msg.data.state);
                 player.setState(msg.data.state);
             }else if(msg.type === 'player_disconnected'){
                 this.remPlayer(msg.data);
@@ -6234,9 +6265,19 @@ require.define("/game/entities.js",function(require,module,exports,__dirname,__f
             }
         },
         damage: function(owner,damage){
-            if(owner.player.team !== this.player.team){
-                this.player.health -= damage;
-                console.log(owner.player.name+' inflicted '+damage+' damage to player '+this.player.name);
+            if(!owner ||( owner.player.team !== this.player.team)){
+                damage = Math.max(0,Math.round(damage));
+                var armordamage = Math.round(damage*2/3);
+                if(this.player.armor > armordamage){
+                    this.player.armor -= armordamage;
+                }else{
+                    armordamage = this.player.armor;
+                    this.player.armor = 0;
+                }
+                this.player.health -= (damage - armordamage);
+                if(owner){
+                    this.player.lastFoe = owner.player;
+                }
                 return;
             }
         },
