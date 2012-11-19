@@ -659,7 +659,7 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                 }
                 $('.hud .armor .value').html(player.armor);
             }
-            if(this.main.input.isKeyPressing('t')){
+            if(this.main.input.isKeyPressing('b')){
                 $('.dialog.score').toggle();
                 $('.dialog.score .entries').empty();
                 $('.dialog.score .team > score').empty();
@@ -668,6 +668,9 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                     var entries = $('.dialog.score .'+player.team+' .entries');
                     entries.append("<div class='entry'><span class='nick'>"+player.nick+"</span> <span class='score'>"+player.frags+"</span> </div>");
                 }
+            }
+            if(this.main.input.isKeyPressing('t')){
+                $('.dialog.team_select').toggle();
             }
         },
         onGameUpdate: function(){
@@ -4176,6 +4179,9 @@ require.define("/engine/engine.js",function(require,module,exports,__dirname,__f
                     this._mouseStatus = 'over';
                 }
             }else{ //out
+                for(key in this._keyStatus){
+                    this._keyStatus[key] = 'up';
+                }
                 if(this._mouseStatus === 'over' || this._mouseStatus === 'entering'){
                     this._mouseStatus = 'leaving';
                 }else{  // leaving || out
@@ -7432,6 +7438,7 @@ if(typeof window !== 'undefined'){
         window.Player = game.Player;
         window.g = g;
         g.start();
+        $('.name_select input')[0].focus();
 
         $('.name_select .button.ok').click(function(){
             var nick = $('.name_select input')[0].value;

@@ -11,6 +11,7 @@ if(typeof window !== 'undefined'){
         window.Player = game.Player;
         window.g = g;
         g.start();
+        $('.name_select input')[0].focus();
 
         $('.name_select .button.ok').click(function(){
             var nick = $('.name_select input')[0].value;

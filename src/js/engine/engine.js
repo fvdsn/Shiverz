@@ -279,6 +279,9 @@
                     this._mouseStatus = 'over';
                 }
             }else{ //out
+                for(key in this._keyStatus){
+                    this._keyStatus[key] = 'up';
+                }
                 if(this._mouseStatus === 'over' || this._mouseStatus === 'entering'){
                     this._mouseStatus = 'leaving';
                 }else{  // leaving || out

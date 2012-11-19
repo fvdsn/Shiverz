@@ -266,7 +266,7 @@
                 }
                 $('.hud .armor .value').html(player.armor);
             }
-            if(this.main.input.isKeyPressing('t')){
+            if(this.main.input.isKeyPressing('b')){
                 $('.dialog.score').toggle();
                 $('.dialog.score .entries').empty();
                 $('.dialog.score .team > score').empty();
@@ -275,6 +275,9 @@
                     var entries = $('.dialog.score .'+player.team+' .entries');
                     entries.append("<div class='entry'><span class='nick'>"+player.nick+"</span> <span class='score'>"+player.frags+"</span> </div>");
                 }
+            }
+            if(this.main.input.isKeyPressing('t')){
+                $('.dialog.team_select').toggle();
             }
         },
         onGameUpdate: function(){
