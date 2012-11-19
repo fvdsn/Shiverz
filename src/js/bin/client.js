@@ -7424,7 +7424,7 @@ require.define("/main.js",function(require,module,exports,__dirname,__filename,p
 if(typeof window !== 'undefined'){
     window.onload = function(){
         var g = new game.Game({
-            serverHostName: window.location.host || 'localhost',
+            serverHostName: window.location.hostname || 'localhost',
             serverPort:8080,
             localPlayerName:'foobar'
         });
@@ -7436,7 +7436,6 @@ if(typeof window !== 'undefined'){
         $('.name_select .button.ok').click(function(){
             var nick = $('.name_select input')[0].value;
 
-            console.log('Nick:',nick);
             g.send('server','change_nick',nick || 'Anonynoob');
 
             $('.dialog.name_select').hide(250,function(){
