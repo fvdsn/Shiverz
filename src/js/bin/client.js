@@ -625,6 +625,7 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
                     player.deaths++;
                     if(player.lastFoe){
                         player.lastFoe.frags++;
+                        player.lastFoe.armor += 20;
                     }
                     player.ship.destroy();
                     player.spawnTimer = this.main.scene.timer(2);
