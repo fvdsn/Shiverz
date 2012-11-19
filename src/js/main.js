@@ -13,7 +13,11 @@ if(typeof window !== 'undefined'){
         g.start();
 
         $('.name_select .button.ok').click(function(){
-            g.send('server','change_nick',$('.name_select input')[0].value);
+            var nick = $('.name_select input')[0].value;
+
+            console.log('Nick:',nick);
+            g.send('server','change_nick',nick || 'Anonynoob');
+
             $('.dialog.name_select').hide(250,function(){
                 $('.dialog.team_select').show(250);
             });

@@ -434,6 +434,7 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
         getState: function(){
             return {
                 name: this.name, //TODO remove this
+                nick: this.nick, // and this ?
                 state: this.state,
                 team: this.team,
                 armor: this.armor,
@@ -513,11 +514,13 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             this.players[playername].team = team;
         },
         changeNick: function(playername, nick){
+            nick = nick || 'UnnamedPlayer';
             for(var p in this.players){
                 if(p !== playername && this.players[p].nick === nick){
                     return false;
                 }
             }
+            console.log(playername,' changing nick to ',nick);
             this.players[playername].nick = nick;
             return true;
         },
@@ -658,6 +661,13 @@ require.define("/game/game.js",function(require,module,exports,__dirname,__filen
             }
             if(this.main.input.isKeyPressing('t')){
                 $('.dialog.score').toggle();
+                $('.dialog.score .entries').empty();
+                $('.dialog.score .team > score').empty();
+                for(name in this.players){
+                    var player = this.players[name];
+                    var entries = $('.dialog.score .'+player.team+' .entries');
+                    entries.append("<div class='entry'><span class='nick'>"+player.nick+"</span> <span class='score'>"+player.frags+"</span> </div>");
+                }
             }
         },
         onGameUpdate: function(){
@@ -7424,7 +7434,11 @@ if(typeof window !== 'undefined'){
         g.start();
 
         $('.name_select .button.ok').click(function(){
-            g.send('server','change_nick',$('.name_select input')[0].value);
+            var nick = $('.name_select input')[0].value;
+
+            console.log('Nick:',nick);
+            g.send('server','change_nick',nick || 'Anonynoob');
+
             $('.dialog.name_select').hide(250,function(){
                 $('.dialog.team_select').show(250);
             });

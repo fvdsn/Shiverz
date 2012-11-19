@@ -41,6 +41,7 @@
         getState: function(){
             return {
                 name: this.name, //TODO remove this
+                nick: this.nick, // and this ?
                 state: this.state,
                 team: this.team,
                 armor: this.armor,
@@ -120,11 +121,13 @@
             this.players[playername].team = team;
         },
         changeNick: function(playername, nick){
+            nick = nick || 'UnnamedPlayer';
             for(var p in this.players){
                 if(p !== playername && this.players[p].nick === nick){
                     return false;
                 }
             }
+            console.log(playername,' changing nick to ',nick);
             this.players[playername].nick = nick;
             return true;
         },
@@ -265,6 +268,13 @@
             }
             if(this.main.input.isKeyPressing('t')){
                 $('.dialog.score').toggle();
+                $('.dialog.score .entries').empty();
+                $('.dialog.score .team > score').empty();
+                for(name in this.players){
+                    var player = this.players[name];
+                    var entries = $('.dialog.score .'+player.team+' .entries');
+                    entries.append("<div class='entry'><span class='nick'>"+player.nick+"</span> <span class='score'>"+player.frags+"</span> </div>");
+                }
             }
         },
         onGameUpdate: function(){
